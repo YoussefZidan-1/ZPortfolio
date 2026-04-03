@@ -101,30 +101,35 @@ const navLinks = [
   
   const techStack = [
     {
-      category: "Frontend",
-      items: ["React.js", "Next.js", "TypeScript"],
+      category: "Frontend:",
+      items: ["HTML", "CSS", "JS", "React", "Tailwind CSS"],
     },
     {
-      category: "Mobile",
-      items: ["React Native", "Expo"],
+      category: "Languages:",
+      items: ["C", "Python", "Bash"],
     },
     {
-      category: "Styling",
-      items: ["Tailwind CSS", "Sass", "CSS"],
+      category: "Backend:",
+      items: ["Appwrite"],
     },
     {
-      category: "Backend",
-      items: ["Node.js", "Express", "NestJS", "Hono"],
+      category: "Creative:",
+      items: ["GSAP", "Blender", "DaVinci Resolve", "CapCut"],
     },
     {
-      category: "Database",
-      items: ["MongoDB", "PostgreSQL"],
+      category: "Env & Editor:",
+      items: ["Arch Linux", "Hyprland", "Neovim", "Ghostty"],
     },
     {
-      category: "Dev Tools",
-      items: ["Git", "GitHub", "Docker"],
+      category: "(Learning):",
+      items: ["TS", "Next.js", "React Native"],
+    },
+    {
+      category: "(Planned):",
+      items: ["Three.js", "WebGL", "WebGPU"],
     },
   ];
+
   
   const socials = [
     {
