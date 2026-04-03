@@ -103,10 +103,10 @@ const Welcome = () => {
   return (
     <section id="welcome" className="flex flex-col items-center justify-center min-h-screen">
       <div ref={subtitleRef} className="cursor-default">
-        {renderText("Hey, I'm Yousef! Welcome to my", "text-3xl font-georama", 100)}
+        {renderText("Hey, I'm Yousef Zidan! Welcome to my", "text-3xl font-georama", 100)}
       </div>
       <div ref={titleRef} className="mt-7 cursor-default">
-        {renderText("Portfolio", "text-9xl italic font-georama", 400)}
+        {renderText("ZPortfolio", "text-9xl italic font-georama", 400)}
       </div>
       <div className="small-screen mt-10">
         <p>This Portfolio is designed for desktop/tablet screens only.</p>
