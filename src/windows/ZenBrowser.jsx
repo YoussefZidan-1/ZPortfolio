@@ -3,7 +3,7 @@ import { blogPosts } from "#constants/index.js";
 import WindowWrapper from "#hoc/WindowWrapper";
 import { ChevronLeft, PanelLeft, ChevronRight, ShieldHalf, Search, Share, Plus, Copy, MoveRight } from "lucide-react";
 
-const Safari = () => {
+const ZenBrowser = () => {
   return (
     <>
       <div id="window-header">
@@ -49,5 +49,5 @@ const Safari = () => {
   );
 };
 
-const SafariWindow = WindowWrapper(Safari, 'safari')
-export default SafariWindow;
+const ZenWindow = WindowWrapper(ZenBrowser, 'safari')
+export default ZenWindow;
