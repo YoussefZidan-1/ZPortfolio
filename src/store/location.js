@@ -12,7 +12,7 @@ const useLocationStore = create(
         state.activeLocation = location;
       }),
 
-    resetActionLocation: () =>
+    resetActiveLocation: () =>
       set((state) => {
         state.activeLocation = DEFAULT_LOCATION;
       }),
