@@ -1,19 +1,35 @@
-import { defineConfig } from 'vite'
+import { defineConfig, normalizePath } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { resolve, dirname } from 'path'
+import { resolve, dirname, join } from 'path'
 import { fileURLToPath } from 'url'
+import { viteStaticCopy } from 'vite-plugin-static-copy'
+import { createRequire } from 'node:module'
 
-// https://vite.dev/config/
+const require = createRequire(import.meta.url)
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const pdfjsDistPath = dirname(require.resolve('pdfjs-dist/package.json'))
+const cMapsDir = normalizePath(join(pdfjsDistPath, 'cmaps'))
+const standardFontsDir = normalizePath(join(pdfjsDistPath, 'standard_fonts'))
+
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    viteStaticCopy({
+      targets: [
+        { src: cMapsDir, dest: '' },
+        { src: standardFontsDir, dest: '' }
+      ],
+    }),
+  ],
   resolve: {
     alias: {
-      '#components': resolve(dirname(fileURLToPath(import.meta.url)), 'src/components'),
-      '#constants': resolve(dirname(fileURLToPath(import.meta.url)), 'src/constants'),
-      '#store': resolve(dirname(fileURLToPath(import.meta.url)), 'src/store'),
-      '#hoc': resolve(dirname(fileURLToPath(import.meta.url)), 'src/hoc'),
-      '#windows': resolve(dirname(fileURLToPath(import.meta.url)), 'src/windows'),
+      '#components': resolve(__dirname, 'src/components'),
+      '#constants': resolve(__dirname, 'src/constants'),
+      '#store': resolve(__dirname, 'src/store'),
+      '#hoc': resolve(__dirname, 'src/hoc'),
+      '#windows': resolve(__dirname, 'src/windows'),
     },
   },
 })

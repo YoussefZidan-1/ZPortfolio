@@ -1,3 +1,4 @@
 import Terminal from "#windows/Terminal.jsx";
-import Safari from "#windows/Safari.jsx";
-export { Terminal, Safari }
+import ZenBrowser from "#windows/ZenBrowser.jsx";
+import Resume from "#windows/Resume.jsx";
+export { Terminal, ZenBrowser, Resume };

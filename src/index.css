@@ -1,7 +1,8 @@
 @import url("https://fonts.googleapis.com/css2?family=Georama:ital,wght@0,100..900;1,100..900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap");
 @font-face {
     font-family: "JetBrainsMonoNF";
-    src: url("/fonts/JetBrainsMono/JetBrainsMonoNerdFont-Regular.ttf") format("truetype");
+    src: url("/fonts/JetBrainsMono/JetBrainsMonoNerdFont-Regular.ttf")
+        format("truetype");
     font-weight: 400;
     font-style: normal;
     font-display: swap;
@@ -172,14 +173,14 @@ body {
     }
 
     #terminal {
-        @apply w-xl absolute top-32 left-1/12 bg-white shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
+        @apply w-xl absolute top-32 left-1/12 bg-black/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
 
         h2 {
             @apply font-bold text-sm text-center w-full;
         }
 
         .techstack {
-            @apply text-sm font-terminal p-5;
+            @apply text-sm font-terminal p-5 text-white;
 
             .label {
                 @apply flex items-center ms-10 mt-7;
