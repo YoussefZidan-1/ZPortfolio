@@ -15,7 +15,7 @@ const Resume = () => {
   const options = useMemo(() => ({
     cMapUrl: '/cmaps/',
     cMapPacked: true,
-    standardFontDataUrl: 'standard_fonts/',
+    standardFontDataUrl: '/standard_fonts/',
   }), []);
 
   function onDocumentLoadSuccess({ numPages }) {
