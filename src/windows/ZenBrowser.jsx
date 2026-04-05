@@ -27,7 +27,7 @@ const ZenBrowser = () => {
         </div>
       </div>
       <div className="blog">
-        <h2>My Developer Blog</h2>
+        <h2>My Developer Certificates</h2>
         <div className="space-y-8">
           {blogPosts.map(({ id, image, title, date, link }) => (
             <div key={id} className="blog-post">

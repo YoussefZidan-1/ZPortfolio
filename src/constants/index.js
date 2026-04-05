@@ -77,25 +77,25 @@ const navLinks = [
   const blogPosts = [
     {
       id: 1,
-      date: "Sep 2, 2025",
+      date: "June 27, 2025",
       title:
-        "TypeScript Explained: What It Is, Why It Matters, and How to Master It",
+        "CS50x Certificate",
       image: "/images/blog1.png",
-      link: "https://jsmastery.com/blog/typescript-explained-what-it-is-why-it-matters-and-how-to-master-it",
+      link: "https://cs50.harvard.edu/certificates/4e5fe04c-408a-40f9-9da4-126af12a296f",
     },
     {
       id: 2,
-      date: "Aug 28, 2025",
-      title: "The Ultimate Guide to Mastering Three.js for 3D Development",
+      date: "Jan 11, 2026",
+      title: "freeCodeCamp | Responsive Web Design Certificate",
       image: "/images/blog2.png",
-      link: "https://jsmastery.com/blog/the-ultimate-guide-to-mastering-three-js-for-3d-development",
+      link: "https://www.freecodecamp.org/certification/youssef_zidan-1/responsive-web-design-v9",
     },
     {
       id: 3,
-      date: "Aug 15, 2025",
-      title: "The Ultimate Guide to Mastering GSAP Animations",
+      date: "Feb 19, 2026",
+      title: "freeCodeCamp | JavaScript Algorithms and Data Structures",
       image: "/images/blog3.png",
-      link: "https://jsmastery.com/blog/the-ultimate-guide-to-mastering-gsap-animations",
+      link: "https://www.freecodecamp.org/certification/youssef_zidan-1/javascript-v9",
     },
   ];
   
@@ -137,28 +137,28 @@ const navLinks = [
       text: "Github",
       icon: "/icons/github.svg",
       bg: "#f4656b",
-      link: "https://github.com/JavaScript-Mastery-Pro",
+      link: "https://github.com/YoussefZidan-1/",
     },
     {
       id: 2,
       text: "Platform",
       icon: "/icons/atom.svg",
       bg: "#4bcb63",
-      link: "https://jsmastery.com/",
+      link: "https://yzportfolio.vercel.app/",
     },
     {
       id: 3,
       text: "Twitter/X",
       icon: "/icons/twitter.svg",
       bg: "#ff866b",
-      link: "https://x.com/jsmasterypro",
+      link: "https://x.com/YousefZeda59629",
     },
     {
       id: 4,
       text: "LinkedIn",
       icon: "/icons/linkedin.svg",
       bg: "#05b6f6",
-      link: "https://www.linkedin.com/company/javascriptmastery/posts/?feedView=all",
+      link: "https://www.linkedin.com/in/yousef-zedan-6a275a400/",
     },
   ];
   
@@ -433,7 +433,7 @@ const navLinks = [
         image: "/images/adrian.jpg",
         description: [
           "Hey! I’m Youssef 👋, a web developer who enjoys building sleek, interactive websites that actually work well.",
-          "I specialize in JavaScript, React, and Next.js—and I love making things feel smooth, fast, and just a little bit delightful.",
+          "I specialize in JavaScript, React, and GSAP—and I love making things feel smooth, fast, and just a little bit delightful.",
           "I’m big on clean UI, good UX, and writing code that doesn’t need a search party to debug.",
           "Outside of dev work, you'll find me tweaking layouts at 2AM, sipping overpriced coffee, or impulse-buying gadgets I absolutely convinced myself I needed 😅",
         ],
