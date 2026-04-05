@@ -44,7 +44,7 @@ const navLinks = [
     },
     {
       id: "safari",
-      name: "Articles", // was "Safari"
+      name: "Certificates", // was "Safari"
       icon: "safari.png",
       canOpen: true,
     },
