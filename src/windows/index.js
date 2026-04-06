@@ -1,4 +1,5 @@
 import Terminal from "#windows/Terminal.jsx";
 import ZenBrowser from "#windows/ZenBrowser.jsx";
 import Resume from "#windows/Resume.jsx";
-export { Terminal, ZenBrowser, Resume };
+import Finder from "#windows/Finder.jsx";
+export { Terminal, ZenBrowser, Resume, Finder };
