@@ -10,7 +10,11 @@ const Finder = () => {
   const { openWindow } = useWindowStore();
   const { activeLocation, setActiveLocation } = useLocationStore();
   const openItem = (item) => {
-    if(item.fileType === 'pdf') return openWindow('resume')
+    if (item.fileType === "pdf") return openWindow("resume");
+    if (item.kind === "folder") return setActiveLocation(item);
+    if (["fig", "url"].includes(item.fileType) && item.href)
+      return window.open(item.href, "_blank");
+    openWindow(`${item.fileType}${item.kind}`, item);
   };
   const renderList = (name, items) => (
     <div>
@@ -43,20 +47,19 @@ const Finder = () => {
           <ul>{renderList("Favourites", Object.values(locations))}</ul>
           <ul>{renderList("Work", locations.work.children)}</ul>
         </div>
-      <ul className="content">
-        {activeLocation?.children.map((item) => (
-          <li
-            key={item.id}
-            className={item.position}
-            onClick={() => openItem(item)}
-          >
-            <img src={item.icon} alt={item.name} />
-            <p>{item.name}</p>
-          </li>
-        ))}
-      </ul>
+        <ul className="content">
+          {activeLocation?.children.map((item) => (
+            <li
+              key={item.id}
+              className={item.position}
+              onClick={() => openItem(item)}
+            >
+              <img src={item.icon} alt={item.name} />
+              <p>{item.name}</p>
+            </li>
+          ))}
+        </ul>
       </div>
-
     </>
   );
 };
