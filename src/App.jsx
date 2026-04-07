@@ -1,5 +1,5 @@
 import { Navbar, Welcome, Dock } from "#components";
-import { Finder, Resume, Terminal, ZenBrowser } from "#windows";
+import { Finder, Image, Resume, Terminal, Text, ZenBrowser } from "#windows";
 import gsap from "gsap";
 import { Draggable } from "gsap/Draggable";
 gsap.registerPlugin(Draggable);
@@ -14,6 +14,8 @@ const App = () => {
       <ZenBrowser />
       <Resume />
       <Finder />
+      <Text />
+      <Image />
     </main>
   );
 };
