@@ -1,7 +1,7 @@
 import { Mail, Search } from "lucide-react"
 import WindowWrapper from "#hoc/WindowWrapper"
 import WindowControls from "#components/WindowControls"
-import { gallery, photoLinks } from "#constants"
+import { gallery, photosLinks } from "#constants/index.js"
 import useWindowStore from "#store/window"
 
 const Photos = () => {
@@ -20,7 +20,7 @@ const Photos = () => {
         <div className="sidebar">
           <h2>Photos</h2>
           <ul>
-            {photoLinks.map(({ id, icon, title }) => (
+            {photosLinks.map(({ id, icon, title }) => (
               <li key={id}>
                 <img src={icon} alt={title} />
                 <p>{title}</p>
