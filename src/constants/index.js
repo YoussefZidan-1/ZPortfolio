@@ -141,14 +141,14 @@ const navLinks = [
     },
     {
       id: 2,
-      text: "Platform",
+      text: "Whatsapp",
       icon: "/icons/atom.svg",
       bg: "#4bcb63",
-      link: "https://yzportfolio.vercel.app/",
+      link: "https://wa.me/+201130765715",
     },
     {
       id: 3,
-      text: "Twitter/X",
+      text: "X",
       icon: "/icons/twitter.svg",
       bg: "#ff866b",
       link: "https://x.com/YousefZeda59629",
@@ -402,7 +402,7 @@ const navLinks = [
         kind: "file",
         fileType: "img",
         position: "top-10 left-5",
-        imageUrl: "/images/yousef.png",
+        imageUrl: "/images/yousef-2.png",
       },
       {
         id: 2,
