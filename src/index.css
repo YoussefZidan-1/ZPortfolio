@@ -8,11 +8,7 @@
     font-display: swap;
 }
 @import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
 
-@custom-variant dark (&:is(.dark *));
 
 html,
 body {
@@ -74,16 +70,6 @@ body {
             @apply text-sm font-medium text-black;
         }
     }
-  * {
-    @apply border-border outline-ring/50;
-    }
-  body {
-    @apply bg-background text-foreground;
-    }
-  html {
-    @apply font-sans;
-    }
-}
 
 @layer components {
     .icon {
@@ -417,4 +403,4 @@ body {
             }
         }
     }
-}
+}}
