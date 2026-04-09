@@ -136,7 +136,7 @@ const navLinks = [
       id: 1,
       text: "Github",
       icon: "/icons/github.svg",
-      bg: "#f4656b",
+      bg: "#0d1117",
       link: "https://github.com/YoussefZidan-1/",
     },
     {
@@ -150,7 +150,7 @@ const navLinks = [
       id: 3,
       text: "X",
       icon: "/icons/twitter.svg",
-      bg: "#ff866b",
+      bg: "#000000",
       link: "https://x.com/YousefZeda59629",
     },
     {
