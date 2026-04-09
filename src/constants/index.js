@@ -230,7 +230,7 @@ const navLinks = [
       // ▶ Project 1
       {
         id: 5,
-        name: "ZMovie",
+        name: "ZCinema",
         icon: "/images/folder.png",
         kind: "folder",
         position: "top-10 left-5", // icon position inside Finder
