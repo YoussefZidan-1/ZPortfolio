@@ -86,10 +86,19 @@ src/
 
 **Yousef Zedan (ZED Studios)**
 
-- **Email:** [zedstudios.devs@gmail.com](mailto:zedstudios.devs@gmail.com)
-- **LinkedIn:** [Yousef Zedan](https://www.linkedin.com/in/yousef-zedan-6a275a400/)
-- **GitHub:** [@YoussefZidan-1](https://github.com/YoussefZidan-1/)
-- **X (Twitter):** [@YousefZeda59629](https://x.com/YousefZeda59629)
+<div align="center">
+
+[![Email](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:zedstudios.devs@gmail.com)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/yousef-zedan-6a275a400/)
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/YoussefZidan-1/)
+[![X](https://img.shields.io/badge/X-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/YousefZeda59629)
+
+</div>
+
+---
+
+### 🎨 Visual Portfolio Preview
+> **Note:** The icons above will take you directly to my profiles. If you want to see the MacOS experience in action, check out the [Live Demo](https://yzportfolio.vercel.app/).
 
 ---
 
