@@ -36,7 +36,7 @@ Ensure you have **Node.js** and **npm** installed on your machine.
 
 1. **Clone the repository:**
    ```sh
-   git clone https://github.com/YoussefZidan-1/zportfolio.git
+   git clone https://github.com/YoussefZidan-1/ZPortfolio.git
    ```
 
 2. **Navigate to the project directory:**
