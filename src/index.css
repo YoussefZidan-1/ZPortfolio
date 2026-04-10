@@ -139,7 +139,7 @@ body {
     }
 
     #window-header {
-        @apply flex items-center justify-between px-4 py-3 rounded-t-lg bg-gray-50 border-b border-gray-200 select-none text-sm text-gray-400;
+        @apply flex items-center justify-between px-4 py-3 rounded-t-lg bg-white/10 border-b border-white/20 select-none text-sm text-indigo-500;
     }
 
     #safari {
@@ -149,12 +149,12 @@ body {
             @apply flex items-center gap-3 w-2/3 bg-white/30 backdrop-blur-xl border border-gray-300 rounded-lg px-3 py-2;
 
             input {
-                @apply placeholder:text-gray-400;
+                @apply placeholder:text-indigo-400;
             }
         }
 
         .blog {
-            @apply bg-white/30 backdrop-blur-xl p-10 max-w-3xl mx-auto;
+            @apply bg-transparent backdrop-blur-xl p-10 max-w-3xl mx-auto;
 
             h2 {
                 @apply text-xl font-bold text-pink-600 mb-10;
@@ -171,7 +171,7 @@ body {
                     @apply col-span-10 space-y-3;
 
                     p {
-                        @apply text-xs text-gray-500;
+                        @apply text-xs text-gray-600;
                     }
 
                     h3 {
@@ -264,10 +264,10 @@ body {
         @apply max-w-3xl absolute top-96 left-1/2 -translate-y-1/2 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
 
         .sidebar {
-            @apply w-3/12 flex-none bg-gray-50 border-r border-gray-200 flex flex-col p-5;
+            @apply w-3/12 flex-none bg-black/10 border-r border-black/10 flex flex-col p-5;
 
             h2 {
-                @apply text-xs font-medium text-gray-400 mb-1;
+                @apply text-xs font-medium text-black mb-1;
             }
 
             ul {
@@ -331,7 +331,7 @@ body {
     }
 
     #finder {
-        @apply absolute w-3xl left-40 top-20 shadow-2xl drop-shadow-2xl overflow-hidden rounded-xl;
+        @apply backdrop-blur-xl absolute w-3xl left-40 top-20 shadow-2xl drop-shadow-2xl overflow-hidden rounded-xl;
 
         .sidebar {
             @apply w-48 bg-gray-50 border-r border-gray-200 flex flex-col p-5 space-y-3;
