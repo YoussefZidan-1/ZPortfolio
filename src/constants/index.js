@@ -1,3 +1,13 @@
+/**
+ * 💻 ZPortfolio — MacOS Inspired Creative Portfolio
+ * ------------------------------------------------
+ * Created & Developed by: Yousef Zedan (ZEDStudios)
+ * GitHub: https://github.com/YoussefZidan-1/zportfolio
+ * License: MIT (Attribution required)
+ * * "Building tools for creators, by a creator." 🚀
+ */
+
+
 const navLinks = [
     {
       id: 1,
