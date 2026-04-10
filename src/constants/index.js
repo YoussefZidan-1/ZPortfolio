@@ -5,6 +5,8 @@
  * GitHub: https://github.com/YoussefZidan-1/zportfolio
  * License: MIT (Attribution required)
  * * "Building tools for creators, by a creator." 🚀
+ * ------------------------------------------------
+ * "If you're using this template, a star on GitHub would mean a lot! ⭐"
  */
 
 
