@@ -1,3 +1,9 @@
+/**
+ * 💻 ZPortfolio — MacOS Inspired Creative Portfolio
+ * Developed by: Yousef Zedan (ZED Studios)
+ * Original Repo: https://github.com/YoussefZidan-1/zportfolio
+ */
+
 import { Navbar, Welcome, Dock, Home } from "#components";
 import { Contact, Finder, Image, Photos, Resume, Terminal, Text, ZenBrowser } from "#windows";
 import gsap from "gsap";
