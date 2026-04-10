@@ -94,6 +94,10 @@ src/
 [![X](https://img.shields.io/badge/X-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/YousefZeda59629)
 
 </div>
+<p align="center">
+  Developed with passion by <b>Yousef Zedan (ZED Studios)</b>. <br>
+  <i>"Always building, always learning."</i>
+</p>
 
 ---
 
