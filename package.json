@@ -1,7 +1,9 @@
 {
   "name": "zportfolio",
-  "private": true,
-  "version": "0.0.0",
+  "private": false, 
+  "version": "1.0.0",
+  "author": "Yousef Zedan (ZED Studios) <zedstudios.devs@gmail.com>",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
