@@ -34,6 +34,20 @@ body {
     --breakpoint-3xl: 1920px;
 }
 
+/* Hide scrollbar but allow scrolling */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Custom caret animation */
+input::selection {
+    background: rgba(236, 72, 153, 0.3);
+}
+
 @utility flex-center {
     @apply flex items-center justify-center;
 }
