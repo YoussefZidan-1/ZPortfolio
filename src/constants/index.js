@@ -395,6 +395,14 @@ const WINDOW_CONFIG = {
   terminal: { isOpen: false, zIndex: INITIAL_Z_INDEX, data: null },
   txtfile: { isOpen: false, zIndex: INITIAL_Z_INDEX, data: null },
   imgfile: { isOpen: false, zIndex: INITIAL_Z_INDEX, data: null },
+  finder: { isOpen: false, isMaximized: false, zIndex: INITIAL_Z_INDEX, data: null },
+  contact: { isOpen: false, isMaximized: false, zIndex: INITIAL_Z_INDEX, data: null },
+  resume: { isOpen: false, isMaximized: false, zIndex: INITIAL_Z_INDEX, data: null },
+  safari: { isOpen: false, isMaximized: false, zIndex: INITIAL_Z_INDEX, data: null },
+  photos: { isOpen: false, isMaximized: false, zIndex: INITIAL_Z_INDEX, data: null },
+  terminal: { isOpen: false, isMaximized: false, zIndex: INITIAL_Z_INDEX, data: null },
+  txtfile: { isOpen: false, isMaximized: false, zIndex: INITIAL_Z_INDEX, data: null },
+  imgfile: { isOpen: false, isMaximized: false, zIndex: INITIAL_Z_INDEX, data: null },
 };
 
 export { 

@@ -18,8 +18,14 @@ const useWindowStore = create(
       const win = state.windows[windowKey];
       if (!win) return;
       win.isOpen = false;
+      win.isMaximized = false; // Reset maximize on close
       win.zIndex = INITIAL_Z_INDEX;
       win.data = null;
+    }),
+    // ADD THIS FUNCTION
+    toggleMaximize: (windowKey) => set((state) => {
+      const win = state.windows[windowKey];
+      if (win) win.isMaximized = !win.isMaximized;
     }),
     focusWindow: (windowKey) => set((state) => {
       const win = state.windows[windowKey];
