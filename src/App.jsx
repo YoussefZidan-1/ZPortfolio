@@ -30,6 +30,7 @@ const App = () => {
     <main>
       <Navbar />
       <Welcome />
+      <Home />
       <Dock />
       <Terminal />
       <ZenBrowser />
@@ -38,7 +39,6 @@ const App = () => {
       <Text />
       <Image />
       <Contact />
-      <Home />
       <Photos />
     </main>
   );
