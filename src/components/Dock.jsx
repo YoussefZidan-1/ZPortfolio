@@ -56,19 +56,13 @@ const Dock = memo(() => {
       dock.removeEventListener("mousemove", handleMouseMove);
       dock.removeEventListener("mouseleave", resetIcons);
     };
-  }, []);
+  },[]);
 
   const toggleApp = (app) => {
     if (!app.canOpen) return;
 
     const windowState = windows[app.id];
-
-    if (!windowState) {
-      console.error(`Window is not found for app: ${app.id}`);
-      return;
-    }
-
-    if (windowState.isOpen) {
+    if (windowState?.isOpen) {
       closeWindow(app.id);
     } else {
       openWindow(app.id);
@@ -76,26 +70,35 @@ const Dock = memo(() => {
   };
 
   return (
-    <section id="dock"><div ref={dockRef} className="dock-container">
+    <section id="dock">
+      <div ref={dockRef} className="dock-container">
         {dockApps.map(({ id, name, icon, canOpen }) => (
-          <div key={id ?? name} className="relative flex justify-center"><button
+          <div key={id ?? name} className="relative flex justify-center">
+            <button
               type="button"
-              className="dock-icon"
+              className="dock-icon flex items-center justify-center"
               aria-label={name}
               data-tooltip-id="dock-tooltip"
               data-tooltip-content={name}
               data-tooltip-delay-show={150}
               disabled={!canOpen}
               onClick={() => toggleApp({ id, canOpen })}
-            ><img
+            >
+              <img
                 src={`/images/${icon}`}
                 alt={name}
+                width={56}
+                height={56}
                 loading="lazy"
                 decoding="async"
                 className={canOpen ? "" : "opacity-60"}
-              /></button></div>
+              />
+            </button>
+          </div>
         ))}
-        <Tooltip id="dock-tooltip" place="top" className="tooltip" /></div></section>
+        <Tooltip id="dock-tooltip" place="top" className="tooltip" />
+      </div>
+    </section>
   );
 });
 

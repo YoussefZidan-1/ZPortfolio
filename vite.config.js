@@ -32,4 +32,18 @@ export default defineConfig({
       '#windows': resolve(__dirname, 'src/windows'),
     },
   },
+  // ADD THIS BUILD SECTION FOR MASSIVE PERFORMANCE GAINS
+  build: {
+    target: 'esnext',
+    minify: 'esbuild',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'zustand', 'dayjs'],
+          animations:['gsap', '@gsap/react'],
+          pdf: ['react-pdf']
+        }
+      }
+    }
+  }
 })
