@@ -388,32 +388,24 @@ input::selection {
         }
     }
 
+    
     #txtfile {
-        @apply w-md absolute top-36 right-32 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
-
-        h2 {
-            @apply font-bold text-sm text-center w-full;
-        }
+        @apply absolute bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
+        top: 15%;
+        left: 60%; /* Replaced the tailwind "right-32" with a safe left anchor */
+        width: 500px;
+        height: 600px;
+        transition: none !important;
     }
-
+    
     #imgfile {
-        @apply w-xl absolute top-40 left-2/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
-
-        #window-header {
-            p {
-                @apply font-bold text-[#5f6266];
-            }
-        }
-
-        .preview {
-            @apply p-2 bg-gray-200 max-h-[70vh];
-
-            img {
-                @apply w-full h-fit object-contain object-center;
-            }
-        }
+        @apply absolute bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
+        top: 20%;
+        left: 20%; 
+        width: 650px;
+        height: 500px;
+        transition: none !important;
     }
-
     #home {
         @apply relative z-0 max-sm:hidden;
 

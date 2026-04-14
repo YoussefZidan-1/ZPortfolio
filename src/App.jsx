@@ -8,11 +8,20 @@
  * "If you're using this template, a star on GitHub would mean a lot! ⭐"
  */
 
+import React, { Suspense, lazy } from "react";
 import { Navbar, Welcome, Dock, Home } from "#components";
-import { Contact, Finder, Image, Photos, Resume, Terminal, Text, ZenBrowser } from "#windows";
 import gsap from "gsap";
 import { Draggable } from "gsap/Draggable";
 gsap.registerPlugin(Draggable);
+
+const Terminal = lazy(() => import("#windows/Terminal.jsx"));
+const ZenBrowser = lazy(() => import("#windows/ZenBrowser.jsx"));
+const Resume = lazy(() => import("#windows/Resume.jsx"));
+const Finder = lazy(() => import("#windows/Finder.jsx"));
+const Text = lazy(() => import("#windows/Text.jsx"));
+const Image = lazy(() => import("#windows/Image.jsx"));
+const Contact = lazy(() => import("#windows/Contact.jsx"));
+const Photos = lazy(() => import("#windows/Photos.jsx"));
 
 // 🕵️‍♂️ The "ZED" Signature - Visible only in the browser console
 
@@ -32,14 +41,16 @@ const App = () => {
       <Welcome />
       <Home />
       <Dock />
-      <Terminal />
-      <ZenBrowser />
-      <Resume />
-      <Finder />
-      <Text />
-      <Image />
-      <Contact />
-      <Photos />
+      <Suspense fallback={null}>
+        <Terminal />
+        <ZenBrowser />
+        <Resume />
+        <Finder />
+        <Text />
+        <Image />
+        <Contact />
+        <Photos />
+      </Suspense>
     </main>
   );
 };

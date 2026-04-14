@@ -1,36 +1,35 @@
 import WindowWrapper from "#hoc/WindowWrapper.jsx";
 import { WindowControls } from "#components";
 import useWindowStore from "#store/window.js";
+import { memo } from "react";
 
-const Image = () => {
-  const { windows } = useWindowStore();
-  const data = windows.imgfile?.data;
+const Image = memo(() => {
+  const data = useWindowStore((s) => s.windows.imgfile?.data);
 
-  if (!data) return null;
+  if (!data) return <div className="flex-1 bg-white/50" />;
 
   const { name, imageUrl } = data;
 
   return (
     <>
-      <div id="window-header">
+      <div id="window-header" className="shrink-0 bg-white/10 backdrop-blur-md z-10 relative">
         <WindowControls target="imgfile" />
-        <h2>{name}</h2>
+        <h2 className="text-sm font-medium pr-4 truncate">{name}</h2>
       </div>
 
-      <div className="p-5 space-y-6 bg-white">
+      <div className="flex-1 w-full bg-white/95 flex items-center justify-center p-4 min-h-0">
         {imageUrl ? (
-          <div className="w-full">
-            <img
-              src={imageUrl}
-              alt={name}
-              className="w-full h-auto rounded max-h-[70vh] object-contain"
-            />
-          </div>
+          <img
+            src={imageUrl}
+            alt={name}
+            className="max-w-full max-h-full object-contain rounded drop-shadow-md"
+            decoding="async"
+          />
         ) : null}
       </div>
     </>
   );
-};
+});
 
 const ImageWindow = WindowWrapper(Image, "imgfile");
 export default ImageWindow;

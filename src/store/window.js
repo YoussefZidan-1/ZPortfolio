@@ -9,6 +9,7 @@ const useWindowStore = create(
     openWindow: (windowKey, data = null) =>
       set((state) => {
         const win = state.windows[windowKey];
+        if (!win) return;
         win.isOpen = true;
         win.zIndex = state.nextZIndex;
         win.data = data ?? win.data;
@@ -18,17 +19,19 @@ const useWindowStore = create(
       const win = state.windows[windowKey];
       if (!win) return;
       win.isOpen = false;
-      win.isMaximized = false; // Reset maximize on close
+      win.isMaximized = false;
       win.zIndex = INITIAL_Z_INDEX;
+      // We keep the data for a split second or let the component handle the null
+      // The components are now updated to handle this gracefully.
       win.data = null;
     }),
-    // ADD THIS FUNCTION
     toggleMaximize: (windowKey) => set((state) => {
       const win = state.windows[windowKey];
       if (win) win.isMaximized = !win.isMaximized;
     }),
     focusWindow: (windowKey) => set((state) => {
       const win = state.windows[windowKey];
+      if (!win) return;
       win.zIndex = state.nextZIndex++;
     }),
   })),

@@ -2,11 +2,14 @@ import { dockApps } from "#constants/index.js";
 import useWindowStore from "#store/window.js";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "gsap";
-import { useRef } from "react";
+import { useRef, memo } from "react";
 import { Tooltip } from "react-tooltip";
 
-const Dock = () => {
-  const { openWindow, closeWindow, focusWindow, windows} = useWindowStore();
+const Dock = memo(() => {
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const closeWindow = useWindowStore((s) => s.closeWindow);
+  const windows = useWindowStore((s) => s.windows);
+  
   const dockRef = useRef(null);
 
   useGSAP(() => {
@@ -46,7 +49,7 @@ const Dock = () => {
         }),
       );
 
-    dock.addEventListener("mousemove", handleMouseMove);
+    dock.addEventListener("mousemove", handleMouseMove, { passive: true });
     dock.addEventListener("mouseleave", resetIcons);
 
     return () => {
@@ -58,14 +61,14 @@ const Dock = () => {
   const toggleApp = (app) => {
     if (!app.canOpen) return;
 
-    const window = windows[app.id];
+    const windowState = windows[app.id];
 
-    if (!window) {
+    if (!windowState) {
       console.error(`Window is not found for app: ${app.id}`);
       return;
     }
 
-    if (window.isOpen) {
+    if (windowState.isOpen) {
       closeWindow(app.id);
     } else {
       openWindow(app.id);
@@ -73,11 +76,9 @@ const Dock = () => {
   };
 
   return (
-    <section id="dock">
-      <div ref={dockRef} className="dock-container">
+    <section id="dock"><div ref={dockRef} className="dock-container">
         {dockApps.map(({ id, name, icon, canOpen }) => (
-          <div key={id ?? name} className="relative flex justify-center">
-            <button
+          <div key={id ?? name} className="relative flex justify-center"><button
               type="button"
               className="dock-icon"
               aria-label={name}
@@ -86,20 +87,16 @@ const Dock = () => {
               data-tooltip-delay-show={150}
               disabled={!canOpen}
               onClick={() => toggleApp({ id, canOpen })}
-            >
-              <img
+            ><img
                 src={`/images/${icon}`}
                 alt={name}
                 loading="lazy"
+                decoding="async"
                 className={canOpen ? "" : "opacity-60"}
-              />
-            </button>
-          </div>
+              /></button></div>
         ))}
-        <Tooltip id="dock-tooltip" place="top" className="tooltip" />
-      </div>
-    </section>
+        <Tooltip id="dock-tooltip" place="top" className="tooltip" /></div></section>
   );
-};
+});
 
 export default Dock;

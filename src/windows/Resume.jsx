@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, memo } from 'react';
 import { pdfjs, Document, Page } from 'react-pdf';
 import { WindowControls } from "#components/index.js";
 import WindowWrapper from "#hoc/WindowWrapper.jsx";
@@ -9,7 +9,7 @@ import 'react-pdf/dist/Page/TextLayer.css';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-const Resume = () => {
+const Resume = memo(() => {
   const [numPages, setNumPages] = useState(null);
 
   const options = useMemo(() => ({
@@ -23,28 +23,17 @@ const Resume = () => {
   }
 
   return (
-    <>
-      <div id="window-header">
-        <WindowControls target={"resume"} />
-        <h2>Resume.pdf</h2>
-
-        <a
+    <><div id="window-header"><WindowControls target={"resume"} /><h2>Resume.pdf</h2><a
           href="files/resume.pdf"
           download
           className="cursor-pointer"
           title="Download resume"
-        >
-          <Download className="icon"/>
-        </a>
-      </div>
-
-      <div className="flex justify-center overflow-auto h-[calc(100%-40px)] p-4 bg-gray-100">
-        <Document 
+        ><Download className="icon"/></a></div><div className="flex justify-center overflow-auto h-[calc(100%-40px)] p-4 bg-gray-100"><Document 
           file="files/resume.pdf" 
           onLoadSuccess={onDocumentLoadSuccess}
           options={options}
           className="flex flex-col items-center"
-          loading={<p className="py-10">Loading PDF...</p>}
+          loading={<p className="py-10 text-gray-400 font-medium">Loading PDF...</p>}
         >
           {Array.from(new Array(numPages), (el, index) => (
             <Page 
@@ -54,13 +43,12 @@ const Resume = () => {
               renderAnnotationLayer={true}
               scale={1.2}
               className="mb-4 shadow-md"
+              loading=""
             />
           ))}
-        </Document>
-      </div>
-    </>
+        </Document></div></>
   );
-};
+});
 
 const ResumeWindow = WindowWrapper(Resume, "resume");
 export default ResumeWindow;

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useCallback } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 
@@ -19,7 +19,7 @@ const Welcome = () => {
             key={i}
             aria-hidden="true"
             className={`${className} inline-block select-none`}
-            style={{ fontVariationSettings: `'wght' ${baseWeight}` }}
+            style={{ fontVariationSettings: `'wght' ${baseWeight}`, willChange: "font-variation-settings" }}
           >
             {char === " " ? "\u00A0" : char}
           </span>
@@ -43,45 +43,52 @@ const Welcome = () => {
       };
 
       updateCenters();
-      window.addEventListener("resize", updateCenters);
+      window.addEventListener("resize", updateCenters, { passive: true });
 
+      let ticking = false;
       const handleMouseMove = (e) => {
-        const mouseX = e.clientX;
-        letters.forEach((letter, i) => {
-          const distance = Math.abs(mouseX - centers[i]);
-          
-          if (distance > 600) {
-            gsap.to(letter, {
-              fontVariationSettings: `'wght' ${config.default}`,
-              duration: 0.4,
-              overwrite: true,
+        if (!ticking) {
+          requestAnimationFrame(() => {
+            const mouseX = e.clientX;
+            letters.forEach((letter, i) => {
+              const distance = Math.abs(mouseX - centers[i]);
+              
+              if (distance > 600) {
+                gsap.to(letter, {
+                  fontVariationSettings: `'wght' ${config.default}`,
+                  duration: 0.4,
+                  overwrite: true,
+                });
+                return;
+              }
+
+              const intensity = Math.exp(-(distance ** 2) / 15000);
+              const weight = config.min + (config.max - config.min) * intensity;
+
+              gsap.to(letter, {
+                fontVariationSettings: `'wght' ${weight}`,
+                duration: 0.1,
+                overwrite: true,
+                ease: "none",
+              });
             });
-            return;
-          }
-
-          const intensity = Math.exp(-(distance ** 2) / 15000);
-          const weight = config.min + (config.max - config.min) * intensity;
-
-          gsap.to(letter, {
-            fontVariationSettings: `'wght' ${weight}`,
-            duration: 0.1,
-            overwrite: true,
-            ease: "power1.out",
+            ticking = false;
           });
-        });
+          ticking = true;
+        }
       };
 
       const handleMouseLeave = () => {
         gsap.to(letters, {
           fontVariationSettings: `'wght' ${config.default}`,
           duration: 0.5,
-          stagger: 0.02,
+          stagger: 0.01,
           overwrite: true,
           ease: "power2.out",
         });
       };
 
-      container.addEventListener("mousemove", handleMouseMove);
+      container.addEventListener("mousemove", handleMouseMove, { passive: true });
       container.addEventListener("mouseleave", handleMouseLeave);
 
       return () => {
@@ -101,17 +108,11 @@ const Welcome = () => {
   }, []);
 
   return (
-    <section id="welcome" className="flex flex-col items-center justify-center min-h-screen">
-      <div ref={subtitleRef} className="cursor-default">
+    <section id="welcome" className="flex flex-col items-center justify-center min-h-screen"><div ref={subtitleRef} className="cursor-default">
         {renderText("Hey, I'm Yousef Zedan! Welcome to my", "text-3xl font-georama", 150)}
-      </div>
-      <div ref={titleRef} className="mt-7 cursor-default">
+      </div><div ref={titleRef} className="mt-7 cursor-default">
         {renderText("ZPortfolio", "text-9xl italic font-georama", 400)}
-      </div>
-      <div className="small-screen mt-10">
-        <p>This Portfolio is designed for desktop/tablet screens only.</p>
-      </div>
-    </section>
+      </div><div className="small-screen mt-10"><p>This Portfolio is designed for desktop/tablet screens only.</p></div></section>
   );
 };
 
