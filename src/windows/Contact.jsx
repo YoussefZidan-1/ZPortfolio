@@ -10,7 +10,7 @@ const Contact = () => {
         <h2>Contact Me!</h2>
       </div>
       <div className="p-5 space-y-5">
-        <img src="/images/yousef-5.png" alt="Yousef" className="w-20 rounded-full" />
+        <img src="/images/yousef-5.webp" alt="Yousef" className="w-20 rounded-full" />
         <h3>Let's Connect</h3>
         <p>Got an idea? A bug to squash? Or just wanna talk tech? I'm in.</p>
         <p><a href="mailto:zedstudios.devs@gmail.com" target="_blank" className="text-indigo-600 hover:text-indigo-700 hover:font-bold transition-all duration-300 ease-in-out">
