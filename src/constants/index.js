@@ -179,10 +179,10 @@ const photosLinks = [
 ];
 
 const gallery = [
-  { id: 1, img: "/images/gal5.png" },
-  { id: 2, img: "/images/gal3.png" },
-  { id: 3, img: "/images/gal1.jpg" },
-  { id: 4, img: "/images/gal4.png" },
+  { id: 1, img: "/images/yousef-3.webp" },
+  { id: 2, img: "/images/yousef.webp" },
+  { id: 3, img: "/images/yousef-4.webp" },
+  { id: 4, img: "/images/yousef-2.webp" },
 ];
 
 const WORK_LOCATION = {
@@ -293,7 +293,7 @@ const ABOUT_LOCATION = {
       kind: "file",
       fileType: "img",
       position: "top-10 left-5",
-      imageUrl: "/images/yousef-2.png",
+      imageUrl: "/images/yousef-2.webp",
     },
     {
       id: 22,
@@ -302,7 +302,7 @@ const ABOUT_LOCATION = {
       kind: "file",
       fileType: "img",
       position: "top-10 left-32",
-      imageUrl: "/images/yousef-3.png",
+      imageUrl: "/images/yousef-3.webp",
     },
     {
       id: 23,
@@ -311,7 +311,7 @@ const ABOUT_LOCATION = {
       kind: "file",
       fileType: "img",
       position: "top-10 left-60",
-      imageUrl: "/images/yousef-4.jpg",
+      imageUrl: "/images/yousef-4.webp",
     },
     {
       id: 24,
@@ -321,7 +321,7 @@ const ABOUT_LOCATION = {
       fileType: "txt",
       position: "top-40 left-5",
       subtitle: "Meet the Developer Behind the Code",
-      image: "/images/yousef.png",
+      image: "/images/yousef.webp",
       description: [
         "Hey! I’m Youssef 👋, a Creative developer who enjoys building sleek, interactive websites that actually work well.",
         "I specialize in JavaScript, React, and GSAP—and I love making things feel smooth, fast, and just a little bit delightful.",
