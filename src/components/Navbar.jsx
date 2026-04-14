@@ -31,7 +31,7 @@ const Navbar = memo(() => {
         <ul>
           {navIcons.map(({ id, img }) => (
             <li key={id}>
-              <img src={img} alt={`icon-${id}`} width={18} height={18} className="icon-hover w-[18px] h-[18px]" loading="lazy" />
+              <img src={img} alt={`icon-${id}`} width={18} height={18} className="icon-hover w-4.5 h-4.5" loading="lazy" />
             </li>
           ))}
         </ul>
