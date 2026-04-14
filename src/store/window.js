@@ -6,13 +6,14 @@ const useWindowStore = create(
   immer((set) => ({
     windows: WINDOW_CONFIG,
     nextZIndex: INITIAL_Z_INDEX + 1,
-    openWindow: (windowKey, data = null) =>
+    openWindow: (windowKey, data = null, launchPos = null) =>
       set((state) => {
         const win = state.windows[windowKey];
         if (!win) return;
         win.isOpen = true;
         win.zIndex = state.nextZIndex;
         win.data = data ?? win.data;
+        win.launchPos = launchPos;
         state.nextZIndex++;
       }),
     closeWindow: (windowKey) => set((state) => {
@@ -21,9 +22,8 @@ const useWindowStore = create(
       win.isOpen = false;
       win.isMaximized = false;
       win.zIndex = INITIAL_Z_INDEX;
-      // We keep the data for a split second or let the component handle the null
-      // The components are now updated to handle this gracefully.
       win.data = null;
+      win.launchPos = null;
     }),
     toggleMaximize: (windowKey) => set((state) => {
       const win = state.windows[windowKey];

@@ -10,15 +10,17 @@ const WindowWrapper = (Component, windowKey) => {
     const zIndex = useWindowStore((s) => s.windows[windowKey].zIndex);
     const isMaximized = useWindowStore((s) => s.windows[windowKey].isMaximized);
     const dataId = useWindowStore((s) => s.windows[windowKey].data?.id);
+    const launchPos = useWindowStore((s) => s.windows[windowKey].launchPos);
     const focusWindow = useWindowStore((s) => s.focusWindow);
+    const closeWindow = useWindowStore((s) => s.closeWindow);
 
     const ref = useRef(null);
     const dragInstance = useRef(null);
     const resizeInstances = useRef([]);
-    const[isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
+    const [isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
     const preMaxState = useRef(null);
+    const [isMobile, setIsMobile] = useState(false);
 
-    const[isMobile, setIsMobile] = useState(false);
     useEffect(() => {
       const checkMobile = () => setIsMobile(window.innerWidth < 768);
       checkMobile();
@@ -26,18 +28,36 @@ const WindowWrapper = (Component, windowKey) => {
       return () => window.removeEventListener("resize", checkMobile);
     },[]);
 
-    // 1. OPEN / CLOSE 
     useGSAP(() => {
       const el = ref.current;
       if (!el) return;
       if (isOpen) {
         setIsActuallyVisible(true);
         if (isMobile) {
-          // FIX: yPercent uses raw GPU power. dvh/vh forces CPU layout recalc.
-          gsap.fromTo(el, 
-            { yPercent: 100, y: 0, opacity: 1, scale: 1 },
-            { yPercent: 0, duration: 0.35, ease: "power3.out", overwrite: "auto" }
-          );
+          if (launchPos) {
+            gsap.fromTo(el, 
+              { 
+                clipPath: `circle(0% at ${launchPos.x}px ${launchPos.y}px)`,
+                opacity: 0,
+                scale: 0.8,
+                borderRadius: "50px"
+              },
+              { 
+                clipPath: `circle(150% at ${launchPos.x}px ${launchPos.y}px)`,
+                opacity: 1, 
+                scale: 1,
+                borderRadius: "0px",
+                duration: 0.4, 
+                ease: "elastic.out(1, 0.8)", 
+                overwrite: "auto" 
+              }
+            );
+          } else {
+            gsap.fromTo(el, 
+              { yPercent: 100, opacity: 1 },
+              { yPercent: 0, duration: 0.35, ease: "power3.out", overwrite: "auto" }
+            );
+          }
         } else {
           gsap.fromTo(el, 
             { scale: 0.9, opacity: 0, y: 20, yPercent: 0 },
@@ -46,9 +66,13 @@ const WindowWrapper = (Component, windowKey) => {
         }
       } else {
         if (isMobile) {
-          // FIX: yPercent 100 pushes it exactly 100% of its own height downwards
           gsap.to(el, {
-            yPercent: 100, duration: 0.3, ease: "power3.in", overwrite: "auto",
+            yPercent: 100, 
+            opacity: 0,
+            scale: 0.9,
+            duration: 0.3, 
+            ease: "power3.in", 
+            overwrite: "auto",
             onComplete: () => setIsActuallyVisible(false),
           });
         } else {
@@ -60,7 +84,6 @@ const WindowWrapper = (Component, windowKey) => {
       }
     },[isOpen, dataId, isMobile]);
 
-    // 2. MAXIMIZE LOGIC
     useGSAP(() => {
       if (isMobile) return; 
       const el = ref.current;
@@ -70,48 +93,39 @@ const WindowWrapper = (Component, windowKey) => {
         const currentX = gsap.getProperty(el, "x");
         const currentY = gsap.getProperty(el, "y");
         const rect = el.getBoundingClientRect();
-
-        preMaxState.current = {
-          width: el.offsetWidth,
-          height: el.offsetHeight,
-          x: currentX,
-          y: currentY,
-        };
-
+        preMaxState.current = { width: el.offsetWidth, height: el.offsetHeight, x: currentX, y: currentY };
         if (dragInstance.current) dragInstance.current.disable();
         resizeInstances.current.forEach(i => i.disable());
-
-        gsap.to(el, {
-          x: currentX - rect.left,
-          y: currentY - rect.top,
-          width: "100vw",
-          height: "100vh",
-          borderRadius: "0px",
-          duration: 0.5,
-          ease: "expo.inOut",
-        });
+        gsap.to(el, { x: currentX - rect.left, y: currentY - rect.top, width: "100vw", height: "100vh", borderRadius: "0px", duration: 0.5, ease: "expo.inOut" });
       } else if (preMaxState.current) {
         if (dragInstance.current) dragInstance.current.enable();
         resizeInstances.current.forEach(i => i.enable());
-
-        gsap.to(el, {
-          x: preMaxState.current.x,
-          y: preMaxState.current.y,
-          width: preMaxState.current.width,
-          height: preMaxState.current.height,
-          borderRadius: "12px",
-          duration: 0.5,
-          ease: "expo.inOut",
-          onComplete: () => dragInstance.current.update()
-        });
+        gsap.to(el, { x: preMaxState.current.x, y: preMaxState.current.y, width: preMaxState.current.width, height: preMaxState.current.height, borderRadius: "12px", duration: 0.5, ease: "expo.inOut", onComplete: () => dragInstance.current.update() });
       }
     }, [isMaximized, isMobile]);
 
-    // 3. DRAGGING LOGIC
     useGSAP(() => {
-      if (isMobile) return; 
       const el = ref.current;
       if (!el) return;
+
+      if (isMobile) {
+        Draggable.create(el, {
+          type: "y",
+          edgeResistance: 0.65,
+          onDrag: function() {
+            if (this.y > 150) {
+              gsap.to(this.target, { yPercent: 100, opacity: 0, duration: 0.3 });
+              closeWindow(windowKey);
+            }
+          },
+          onDragEnd: function() {
+            if (this.y <= 150) {
+              gsap.to(this.target, { y: 0, duration: 0.3, ease: "elastic.out(1, 0.8)" });
+            }
+          }
+        });
+        return;
+      }
 
       [dragInstance.current] = Draggable.create(el, {
         onPress: () => focusWindow(windowKey),
@@ -131,7 +145,6 @@ const WindowWrapper = (Component, windowKey) => {
       handleConfigs.forEach(({ cls, type }) => {
         const hEl = el.querySelector(cls);
         if (!hEl) return;
-        
         const [instance] = Draggable.create(hEl, {
           type: "x,y",
           onPress: function(e) {
@@ -149,21 +162,18 @@ const WindowWrapper = (Component, windowKey) => {
             const deltaX = this.pointerX - this.startPointerX;
             const deltaY = this.pointerY - this.startPointerY;
             let w = this.startW, h = this.startH, x = this.startX, y = this.startY;
-
             if (type.includes("e")) w = this.startW + deltaX;
             if (type.includes("w")) {
               const constrainedDelta = Math.min(deltaX, this.startW - minW);
               w = this.startW - constrainedDelta;
               x = this.startX + constrainedDelta;
             }
-
             if (type.includes("s")) h = this.startH + deltaY;
             if (type.includes("n")) {
               const constrainedDelta = Math.min(deltaY, this.startH - minH);
               h = this.startH - constrainedDelta;
               y = this.startY + constrainedDelta;
             }
-
             gsap.set(el, { width: Math.max(w, minW), height: Math.max(h, minH), x, y });
           },
           onDragEnd: function() {
@@ -188,7 +198,7 @@ const WindowWrapper = (Component, windowKey) => {
         style={{ 
             zIndex, 
             display: isActuallyVisible ? "flex" : "none",
-            willChange: "transform, width, height",
+            willChange: "transform, width, height, clip-path",
             transform: "translate3d(0,0,0)",
         }}
       >

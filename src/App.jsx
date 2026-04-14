@@ -37,6 +37,7 @@ if (typeof window !== "undefined") {
 const App = () => {
   return (
     <main>
+      <div className="ios-home-indicator" />
       <Navbar />
       <Welcome />
       <Home />
