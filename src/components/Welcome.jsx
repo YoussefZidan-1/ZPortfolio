@@ -1,4 +1,4 @@
-import { useRef, useCallback } from "react";
+import { useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 
@@ -19,7 +19,7 @@ const Welcome = () => {
             key={i}
             aria-hidden="true"
             className={`${className} inline-block select-none`}
-            style={{ fontVariationSettings: `'wght' ${baseWeight}`, willChange: "font-variation-settings" }}
+            style={{ fontVariationSettings: `'wght' ${baseWeight}` }}
           >
             {char === " " ? "\u00A0" : char}
           </span>
@@ -34,41 +34,50 @@ const Welcome = () => {
       const letters = container.querySelectorAll("span[aria-hidden='true']");
       const config = FONT_WEIGHT[type];
 
-      let centers = [];
+      let centers =[];
       const updateCenters = () => {
         centers = Array.from(letters).map((letter) => {
           const rect = letter.getBoundingClientRect();
-          return rect.left + rect.width / 2;
+          return {
+            x: rect.left + rect.width / 2,
+            y: rect.top + rect.height / 2, // FIX: Now tracking the Y axis too!
+          };
         });
       };
 
-      updateCenters();
+      setTimeout(updateCenters, 100);
       window.addEventListener("resize", updateCenters, { passive: true });
 
       let ticking = false;
-      const handleMouseMove = (e) => {
+      
+      // FIX: Now accepts both X and Y mouse coordinates
+      const animateLetters = (clientX, clientY) => {
         if (!ticking) {
           requestAnimationFrame(() => {
-            const mouseX = e.clientX;
             letters.forEach((letter, i) => {
-              const distance = Math.abs(mouseX - centers[i]);
-              
-              if (distance > 600) {
+              // 2D Euclidean Distance Math (Calculates a perfect circle around the mouse)
+              const dx = clientX - centers[i].x;
+              const dy = clientY - centers[i].y;
+              const distance = Math.hypot(dx, dy); 
+
+              // FIX: Tightened the radius from 600px to 250px so it only triggers near the text
+              if (distance > 250) {
                 gsap.to(letter, {
                   fontVariationSettings: `'wght' ${config.default}`,
                   duration: 0.4,
-                  overwrite: true,
+                  overwrite: "auto",
                 });
                 return;
               }
 
-              const intensity = Math.exp(-(distance ** 2) / 15000);
+              // Smoother falloff
+              const intensity = Math.exp(-(distance ** 2) / 10000);
               const weight = config.min + (config.max - config.min) * intensity;
-
+              
               gsap.to(letter, {
                 fontVariationSettings: `'wght' ${weight}`,
                 duration: 0.1,
-                overwrite: true,
+                overwrite: "auto",
                 ease: "none",
               });
             });
@@ -78,23 +87,31 @@ const Welcome = () => {
         }
       };
 
+      // Pass both X and Y coordinates to the animation function
+      const handleMouseMove = (e) => animateLetters(e.clientX, e.clientY);
+      const handleTouchMove = (e) => animateLetters(e.touches[0].clientX, e.touches[0].clientY);
+
       const handleMouseLeave = () => {
         gsap.to(letters, {
           fontVariationSettings: `'wght' ${config.default}`,
           duration: 0.5,
           stagger: 0.01,
-          overwrite: true,
+          overwrite: "auto",
           ease: "power2.out",
         });
       };
 
-      container.addEventListener("mousemove", handleMouseMove, { passive: true });
-      container.addEventListener("mouseleave", handleMouseLeave);
+      window.addEventListener("mousemove", handleMouseMove, { passive: true });
+      window.addEventListener("touchmove", handleTouchMove, { passive: true });
+      window.addEventListener("mouseleave", handleMouseLeave);
+      window.addEventListener("touchend", handleMouseLeave);
 
       return () => {
         window.removeEventListener("resize", updateCenters);
-        container.removeEventListener("mousemove", handleMouseMove);
-        container.removeEventListener("mouseleave", handleMouseLeave);
+        window.removeEventListener("mousemove", handleMouseMove);
+        window.removeEventListener("touchmove", handleTouchMove);
+        window.removeEventListener("mouseleave", handleMouseLeave);
+        window.removeEventListener("touchend", handleMouseLeave);
       };
     };
 
@@ -105,14 +122,17 @@ const Welcome = () => {
       cleanupTitle?.();
       cleanupSubtitle?.();
     };
-  }, []);
+  },[]);
 
   return (
-    <section id="welcome" className="flex flex-col items-center justify-center min-h-screen"><div ref={subtitleRef} className="cursor-default">
-        {renderText("Hey, I'm Yousef Zedan! Welcome to my", "text-3xl font-georama", 150)}
-      </div><div ref={titleRef} className="mt-7 cursor-default">
-        {renderText("ZPortfolio", "text-9xl italic font-georama", 400)}
-      </div><div className="small-screen mt-10"><p>This Portfolio is designed for desktop/tablet screens only.</p></div></section>
+    <section id="welcome" className="pointer-events-none w-full">
+      <div ref={subtitleRef} className="cursor-default text-center px-4">
+        {renderText("Hey, I'm Yousef Zedan! Welcome to my", "text-[5vw] sm:text-2xl md:text-3xl font-georama", 150)}
+      </div>
+      <div ref={titleRef} className="mt-4 md:mt-7 cursor-default text-center">
+        {renderText("ZPortfolio", "text-[10.5vw] sm:text-7xl md:text-9xl italic font-georama", 400)}
+      </div>
+    </section>
   );
 };
 

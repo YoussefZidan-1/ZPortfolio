@@ -1,8 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Georama:ital,wght@0,100..900;1,100..900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap");
 @font-face {
     font-family: "JetBrainsMonoNF";
-    src: url("/fonts/JetBrainsMono/JetBrainsMonoNerdFont-Regular.ttf")
-        format("truetype");
+    src: url("/fonts/JetBrainsMono/JetBrainsMonoNerdFont-Regular.ttf") format("truetype");
     font-weight: 400;
     font-style: normal;
     font-display: swap;
@@ -14,11 +13,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
-html,
-body {
-    width: 100dvw;
-    overflow: hidden;
+html, body {
+    width: 100%;
+    max-width: 100vw;
     height: 100dvh;
+    overflow: hidden;
+    position: fixed; /* Ultimate scroll lock for mobile browsers */
+    top: 0;
+    left: 0;
     background-image: url("/images/wallpaper.webp");
     background-size: cover;
     background-repeat: no-repeat;
@@ -34,7 +36,6 @@ body {
     --breakpoint-3xl: 1920px;
 }
 
-/* Hide scrollbar but allow scrolling */
 .scrollbar-hide::-webkit-scrollbar {
     display: none;
 }
@@ -43,7 +44,6 @@ body {
     scrollbar-width: none;
 }
 
-/* Custom caret animation */
 input::selection {
     background: rgba(236, 72, 153, 0.3);
 }
@@ -62,6 +62,7 @@ input::selection {
 
 @layer base {
     main {
+        @apply fixed inset-0 w-full h-full overflow-hidden;
         @apply w-dvw h-dvh overflow-hidden;
     }
 
@@ -88,14 +89,14 @@ input::selection {
             @apply text-sm font-medium text-black;
         }
     }
-  * {
-    @apply border-border outline-ring/50;
+    * {
+        @apply border-border outline-ring/50;
     }
-  body {
-    @apply bg-background text-foreground;
+    body {
+        @apply bg-background text-foreground;
     }
-  html {
-    @apply font-sans;
+    html {
+        @apply font-sans;
     }
 }
 
@@ -105,22 +106,15 @@ input::selection {
     }
 
     #welcome {
-        @apply text-gray-200 flex flex-col justify-center items-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none max-sm:h-screen max-sm:w-full max-sm:px-10;
-
-        .small-screen {
-            @apply sm:hidden m-7 bg-red-300/20 backdrop-blur-lg p-3 rounded-md absolute top-10;
-
-            p {
-                @apply flex-1 text-[16px] text-center font-terminal text-gray-400;
-            }
+            /* FIX: Changed top-[18%] to top-[34vh] to safely sit under the clock on mobile */
+            @apply text-gray-200 flex flex-col justify-center items-center absolute top-[60vh] md:top-1/2 left-1/2 -translate-x-1/2 md:-translate-y-1/2 select-none w-full px-5;
         }
-    }
 
     #dock {
-        @apply absolute bottom-5 left-1/2 -translate-x-1/2 z-50 select-none max-sm:hidden;
+        @apply absolute bottom-5 left-1/2 -translate-x-1/2 z-50 select-none;
 
         .dock-container {
-            @apply bg-white/20 backdrop-blur-md justify-between rounded-2xl p-1.5 flex items-end gap-1.5;
+            @apply bg-white/20 backdrop-blur-2xl border border-white/20 justify-between rounded-3xl p-2.5 flex items-end gap-2;
         }
 
         .tooltip {
@@ -235,7 +229,7 @@ input::selection {
             .footnote {
                 @apply text-[#00A154] space-y-1;
 
-                p {
+                    p {
                     @apply flex items-center;
 
                     svg {
@@ -388,30 +382,30 @@ input::selection {
         }
     }
 
-    
     #txtfile {
         @apply absolute bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
         top: 15%;
-        left: 60%; /* Replaced the tailwind "right-32" with a safe left anchor */
+        left: 60%;
         width: 500px;
         height: 600px;
         transition: none !important;
     }
-    
+
     #imgfile {
         @apply absolute bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
         top: 20%;
-        left: 20%; 
+        left: 20%;
         width: 650px;
         height: 500px;
         transition: none !important;
     }
+
     #home {
-        @apply relative z-0 max-sm:hidden;
+        @apply relative z-0 w-full h-full;
 
         ul {
             li {
-                @apply absolute z-0 select-none flex items-center flex-col;
+                @apply absolute z-0 select-none flex items-center flex-col cursor-pointer;
 
                 img {
                     @apply group-hover:bg-gray-950/10 p-1 rounded-md;
@@ -422,6 +416,66 @@ input::selection {
                 }
             }
         }
+    }
+}
+
+@media (max-width: 768px) {
+    .os-window {
+        top: 0 !important;
+        left: 0 !important;
+        width: 100dvw !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+    }
+
+    #window-header {
+        @apply pt-14 pb-3 bg-white/95 backdrop-blur-3xl rounded-none border-b border-gray-200/50;
+    }
+
+    #home ul {
+        @apply grid grid-cols-4 gap-2 sm:gap-4 px-4 relative z-30 w-full max-w-full box-border;
+        margin-top: 38vh; /* THIS PUSHES THE FOLDERS EXACTLY BELOW THE CLOCK WIDGET */
+    }
+    
+    #home ul li {
+        @apply relative top-auto left-auto transform-none flex items-center flex-col gap-1;
+    }
+    
+    #home ul li img {
+        @apply w-[14vw] max-w-[60px] h-[14vw] max-h-[60px] p-0 rounded-[20%] shadow-sm bg-transparent group-hover:bg-transparent;
+    }
+    
+    #home ul li p {
+        @apply text-[11px] font-medium mt-1 bg-transparent group-hover:bg-transparent drop-shadow-md text-center leading-tight;
+    }
+
+
+    #dock {
+        @apply w-[92%] bottom-6 z-40;
+    }
+    
+    #dock .dock-container {
+        @apply rounded-[32px] px-4 py-3 gap-3 w-full shadow-2xl;
+    }
+    
+    #dock .dock-icon {
+        @apply size-12 flex-1 flex justify-center;
+    }
+    
+    #dock .dock-icon img {
+        @apply rounded-[14px];
+    }
+    
+    #dock .tooltip {
+        display: none !important;
+    }
+
+    #window-controls .close {
+        @apply w-8 h-8 bg-gray-200/80 flex items-center justify-center rounded-full;
+    }
+
+    #window-controls .minimize, #window-controls .maximize {
+        @apply hidden;
     }
 }
 
