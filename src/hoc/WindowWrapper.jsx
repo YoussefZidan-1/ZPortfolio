@@ -2,7 +2,7 @@ import useWindowStore from "#store/window.js";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Draggable } from "gsap/Draggable";
-import { useRef, useState, memo } from "react";
+import { useRef, useState, useEffect, memo } from "react";
 
 const WindowWrapper = (Component, windowKey) => {
   const Wrapped = memo((props) => {
@@ -15,8 +15,16 @@ const WindowWrapper = (Component, windowKey) => {
     const ref = useRef(null);
     const dragInstance = useRef(null);
     const resizeInstances = useRef([]);
-    const [isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
+    const[isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
     const preMaxState = useRef(null);
+
+    const[isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+      const checkMobile = () => setIsMobile(window.innerWidth < 768);
+      checkMobile();
+      window.addEventListener("resize", checkMobile, { passive: true });
+      return () => window.removeEventListener("resize", checkMobile);
+    },[]);
 
     // 1. OPEN / CLOSE 
     useGSAP(() => {
@@ -24,20 +32,37 @@ const WindowWrapper = (Component, windowKey) => {
       if (!el) return;
       if (isOpen) {
         setIsActuallyVisible(true);
-        gsap.fromTo(el, 
-          { scale: 0.9, opacity: 0, y: 20 },
-          { scale: 1, opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.5)", overwrite: "auto" }
-        );
+        if (isMobile) {
+          // FIX: yPercent uses raw GPU power. dvh/vh forces CPU layout recalc.
+          gsap.fromTo(el, 
+            { yPercent: 100, y: 0, opacity: 1, scale: 1 },
+            { yPercent: 0, duration: 0.35, ease: "power3.out", overwrite: "auto" }
+          );
+        } else {
+          gsap.fromTo(el, 
+            { scale: 0.9, opacity: 0, y: 20, yPercent: 0 },
+            { scale: 1, opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.5)", overwrite: "auto" }
+          );
+        }
       } else {
-        gsap.to(el, {
-          scale: 0.8, opacity: 0, y: 50, duration: 0.25, ease: "power2.in", overwrite: "auto",
-          onComplete: () => setIsActuallyVisible(false),
-        });
+        if (isMobile) {
+          // FIX: yPercent 100 pushes it exactly 100% of its own height downwards
+          gsap.to(el, {
+            yPercent: 100, duration: 0.3, ease: "power3.in", overwrite: "auto",
+            onComplete: () => setIsActuallyVisible(false),
+          });
+        } else {
+          gsap.to(el, {
+            scale: 0.8, opacity: 0, y: 50, duration: 0.25, ease: "power2.in", overwrite: "auto",
+            onComplete: () => setIsActuallyVisible(false),
+          });
+        }
       }
-    },[isOpen, dataId]);
+    },[isOpen, dataId, isMobile]);
 
-    // 2. PERFECT MAXIMIZE LOGIC
+    // 2. MAXIMIZE LOGIC
     useGSAP(() => {
+      if (isMobile) return; 
       const el = ref.current;
       if (!el || !isOpen) return;
 
@@ -80,10 +105,11 @@ const WindowWrapper = (Component, windowKey) => {
           onComplete: () => dragInstance.current.update()
         });
       }
-    }, [isMaximized]);
+    }, [isMaximized, isMobile]);
 
-    // 3. FLAWLESS POINTER-BASED RESIZING
+    // 3. DRAGGING LOGIC
     useGSAP(() => {
+      if (isMobile) return; 
       const el = ref.current;
       if (!el) return;
 
@@ -115,18 +141,13 @@ const WindowWrapper = (Component, windowKey) => {
             this.startH = el.offsetHeight;
             this.startX = gsap.getProperty(el, "x");
             this.startY = gsap.getProperty(el, "y");
-            // Store Absolute Pointer position
             this.startPointerX = this.pointerX;
             this.startPointerY = this.pointerY;
           },
           onDrag: function() {
-            // Instantly clear the handle's movement to stop feedback loops
             gsap.set(this.target, { x: 0, y: 0 });
-
-            // Calculate absolute mouse movement delta
             const deltaX = this.pointerX - this.startPointerX;
             const deltaY = this.pointerY - this.startPointerY;
-
             let w = this.startW, h = this.startH, x = this.startX, y = this.startY;
 
             if (type.includes("e")) w = this.startW + deltaX;
@@ -157,13 +178,13 @@ const WindowWrapper = (Component, windowKey) => {
         dragInstance.current?.kill();
         resizeInstances.current.forEach(i => i.kill());
       };
-    },[]);
+    },[isMobile]);
 
     return (
       <section
         id={windowKey}
         ref={ref}
-        className="absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none"
+        className="os-window absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none"
         style={{ 
             zIndex, 
             display: isActuallyVisible ? "flex" : "none",
@@ -172,7 +193,7 @@ const WindowWrapper = (Component, windowKey) => {
         }}
       >
         <Component {...props} />
-        {!isMaximized && (
+        {!isMaximized && !isMobile && (
           <><div className="resizer-n absolute top-0 left-0 w-full h-1.5 cursor-ns-resize z-50" /><div className="resizer-s absolute bottom-0 left-0 w-full h-1.5 cursor-ns-resize z-50" /><div className="resizer-w absolute top-0 left-0 h-full w-1.5 cursor-ew-resize z-50" /><div className="resizer-e absolute top-0 right-0 h-full w-1.5 cursor-ew-resize z-50" /><div className="resizer-nw absolute top-0 left-0 size-4 cursor-nwse-resize z-[60]" /><div className="resizer-ne absolute top-0 right-0 size-4 cursor-nesw-resize z-[60]" /><div className="resizer-sw absolute bottom-0 left-0 size-4 cursor-nesw-resize z-[60]" /><div className="resizer-se absolute bottom-0 right-0 size-4 cursor-nwse-resize z-[60]" /></>
         )}
       </section>
