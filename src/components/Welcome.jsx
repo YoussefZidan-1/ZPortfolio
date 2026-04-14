@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useCallback } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 
@@ -34,11 +34,6 @@ const Welcome = () => {
       const letters = container.querySelectorAll("span[aria-hidden='true']");
       const config = FONT_WEIGHT[type];
 
-      // Create quickTo instances for every letter (Professional high-perf way)
-      const quickSetters = Array.from(letters).map(letter => 
-        gsap.quickTo(letter, "fontVariationSettings", { duration: 0.1, ease: "none" })
-      );
-
       let centers = [];
       const updateCenters = () => {
         centers = Array.from(letters).map((letter) => {
@@ -50,20 +45,37 @@ const Welcome = () => {
       updateCenters();
       window.addEventListener("resize", updateCenters, { passive: true });
 
+      let ticking = false;
       const handleMouseMove = (e) => {
-        const mouseX = e.clientX;
-        letters.forEach((_, i) => {
-          const distance = Math.abs(mouseX - centers[i]);
-          
-          if (distance > 600) {
-            quickSetters[i](`'wght' ${config.default}`);
-            return;
-          }
+        if (!ticking) {
+          requestAnimationFrame(() => {
+            const mouseX = e.clientX;
+            letters.forEach((letter, i) => {
+              const distance = Math.abs(mouseX - centers[i]);
+              
+              if (distance > 600) {
+                gsap.to(letter, {
+                  fontVariationSettings: `'wght' ${config.default}`,
+                  duration: 0.4,
+                  overwrite: true,
+                });
+                return;
+              }
 
-          const intensity = Math.exp(-(distance ** 2) / 15000);
-          const weight = config.min + (config.max - config.min) * intensity;
-          quickSetters[i](`'wght' ${weight}`);
-        });
+              const intensity = Math.exp(-(distance ** 2) / 15000);
+              const weight = config.min + (config.max - config.min) * intensity;
+
+              gsap.to(letter, {
+                fontVariationSettings: `'wght' ${weight}`,
+                duration: 0.1,
+                overwrite: true,
+                ease: "none",
+              });
+            });
+            ticking = false;
+          });
+          ticking = true;
+        }
       };
 
       const handleMouseLeave = () => {
@@ -96,15 +108,11 @@ const Welcome = () => {
   }, []);
 
   return (
-    <section id="welcome" className="flex flex-col items-center justify-center min-h-screen">
-      <div ref={subtitleRef} className="cursor-default">
+    <section id="welcome" className="flex flex-col items-center justify-center min-h-screen"><div ref={subtitleRef} className="cursor-default">
         {renderText("Hey, I'm Yousef Zedan! Welcome to my", "text-3xl font-georama", 150)}
-      </div>
-      <div ref={titleRef} className="mt-7 cursor-default">
+      </div><div ref={titleRef} className="mt-7 cursor-default">
         {renderText("ZPortfolio", "text-9xl italic font-georama", 400)}
-      </div>
-      <div className="small-screen mt-10"><p>This Portfolio is designed for desktop/tablet screens only.</p></div>
-    </section>
+      </div><div className="small-screen mt-10"><p>This Portfolio is designed for desktop/tablet screens only.</p></div></section>
   );
 };
 
