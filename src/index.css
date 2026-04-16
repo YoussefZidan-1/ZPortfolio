@@ -13,7 +13,7 @@ html, body {
     max-width: 100vw;
     height: 100dvh;
     overflow: hidden;
-    position: fixed; 
+    position: fixed;
     top: 0;
     left: 0;
     background-image: url("/images/wallpaper.webp");
@@ -325,17 +325,17 @@ input::selection {
 
     #home ul {
         @apply grid grid-cols-4 gap-2 sm:gap-4 px-4 relative z-30 w-full max-w-full box-border;
-        margin-top: 38vh; 
+        margin-top: 38vh;
     }
-    
+
     #home ul li {
         @apply relative top-auto left-auto transform-none flex items-center flex-col gap-1;
     }
-    
+
     #home ul li img {
         @apply w-[14vw] max-w-[60px] h-[14vw] max-h-[60px] p-0 rounded-[20%] shadow-sm bg-transparent group-hover:bg-transparent;
     }
-    
+
     #home ul li p {
         @apply text-[11px] font-medium mt-1 bg-transparent group-hover:bg-transparent drop-shadow-md text-center leading-tight;
     }
@@ -343,19 +343,19 @@ input::selection {
     #dock {
         @apply w-[92%] bottom-6 z-40;
     }
-    
+
     #dock .dock-container {
         @apply rounded-[32px] px-4 py-3 gap-3 w-full shadow-2xl;
     }
-    
+
     #dock .dock-icon {
         @apply size-12 flex-1 flex justify-center;
     }
-    
+
     #dock .dock-icon img {
         @apply rounded-[14px];
     }
-    
+
     #dock .tooltip {
         display: none;
     }
