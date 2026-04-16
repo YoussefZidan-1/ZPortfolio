@@ -50,17 +50,15 @@ const Welcome = () => {
 
       let ticking = false;
       
-      // FIX: Now accepts both X and Y mouse coordinates
       const animateLetters = (clientX, clientY) => {
         if (!ticking) {
           requestAnimationFrame(() => {
             letters.forEach((letter, i) => {
-              // 2D Euclidean Distance Math (Calculates a perfect circle around the mouse)
               const dx = clientX - centers[i].x;
               const dy = clientY - centers[i].y;
               const distance = Math.hypot(dx, dy); 
 
-              // FIX: Tightened the radius from 600px to 250px so it only triggers near the text
+              
               if (distance > 250) {
                 gsap.to(letter, {
                   fontVariationSettings: `'wght' ${config.default}`,
@@ -70,7 +68,6 @@ const Welcome = () => {
                 return;
               }
 
-              // Smoother falloff
               const intensity = Math.exp(-(distance ** 2) / 10000);
               const weight = config.min + (config.max - config.min) * intensity;
               
@@ -86,8 +83,6 @@ const Welcome = () => {
           ticking = true;
         }
       };
-
-      // Pass both X and Y coordinates to the animation function
       const handleMouseMove = (e) => animateLetters(e.clientX, e.clientY);
       const handleTouchMove = (e) => animateLetters(e.touches[0].clientX, e.touches[0].clientY);
 

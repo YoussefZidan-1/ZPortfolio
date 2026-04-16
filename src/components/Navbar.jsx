@@ -16,8 +16,7 @@ const Navbar = memo(() => {
 
   return (
     <nav className="relative z-50 max-md:bg-transparent max-md:border-none max-md:pt-4 max-md:px-6">
-      
-      {/* Desktop Left Side */}
+    
       <div className="flex items-center gap-4 max-md:hidden">
         <img src="/images/logo.svg" alt="logo" width={20} height={20} className="w-5 h-5" />
         <p className="font-bold whitespace-nowrap">Yousef's Portfolio</p>
@@ -30,7 +29,6 @@ const Navbar = memo(() => {
         </ul>
       </div>
       
-      {/* iOS Mobile Status Bar */}
       <div className="hidden max-md:flex w-full items-center justify-between text-white drop-shadow-md">
         <span className="text-xs font-semibold tracking-wider">ZED</span>
         <time className="text-[15px] font-bold absolute left-1/2 -translate-x-1/2">
@@ -45,7 +43,6 @@ const Navbar = memo(() => {
         </ul>
       </div>
 
-      {/* Desktop Right Side */}
       <div className="max-md:hidden">
         <ul>
           {navIcons.map(({ id, img }) => (
