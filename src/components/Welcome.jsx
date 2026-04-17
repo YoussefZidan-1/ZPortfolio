@@ -34,7 +34,6 @@ const Welcome = () => {
       const letters = container.querySelectorAll("span[aria-hidden='true']");
       const config = FONT_WEIGHT[type];
 
-      // Smart State Tracking: Prevents GSAP from spamming tweens when the mouse is far away
       const states = Array.from(letters).map(() => ({ isOutside: true }));
 
       let centers =[];
@@ -64,18 +63,17 @@ const Welcome = () => {
               const distance = Math.hypot(dx, dy); 
 
               if (distance > 250) {
-                // If the letter is far away, tween back to default ONCE and stop animating it
                 if (!states[i].isOutside) {
                   gsap.to(letter, {
                     fontVariationSettings: `'wght' ${config.default}`,
                     duration: 0.4,
-                    overwrite: true, // "true" is faster than "auto" for GSAP to process
+                    overwrite: true,
                     ease: "power2.out",
                   });
                   states[i].isOutside = true;
                 }
               } else {
-                // Mouse is close: animate the weight smoothly like your original code
+                
                 const intensity = Math.exp(-(distance ** 2) / 10000);
                 const weight = config.min + (config.max - config.min) * intensity;
                 
@@ -100,7 +98,6 @@ const Welcome = () => {
       const handleMouseLeave = () => {
         const activeLetters =[];
         
-        // Only target letters that are currently modified to save performance
         letters.forEach((letter, i) => {
           if (!states[i].isOutside) {
             activeLetters.push(letter);
