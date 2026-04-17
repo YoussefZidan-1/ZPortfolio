@@ -546,189 +546,6 @@ PhotosWindow.displayName = "Photos";
 export default PhotosWindow;
 </file>
 
-<file path="src/windows/Terminal.jsx">
-import React, { useState, useRef, useEffect } from "react";
-import { techStack } from "#constants";
-import WindowWrapper from "#hoc/WindowWrapper.jsx";
-import { Check, Terminal as TerminalIcon } from "lucide-react";
-import WindowControls from "#components/WindowControls.jsx";
-
-const Terminal = () => {
-  const [input, setInput] = useState("");
-  const [history, setHistory] = useState([
-    { type: "system", content: "Welcome to Z-Shell v1.0.4 (stable)" },
-    { type: "system", content: "Type 'help' to see available commands." },
-  ]);
-  const scrollRef = useRef(null);
-  const inputRef = useRef(null);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [history]);
-
-  const handleTerminalClick = () => {
-    inputRef.current?.focus();
-  };
-
-  const executeCommand = (cmd) => {
-    const cleanCmd = cmd.trim().toLowerCase();
-    let response = null;
-
-    switch (cleanCmd) {
-      case "help":
-        response = (
-          <div className="text-gray-400">
-            Available commands: <br />
-            <span className="text-blue-400 font-bold">- help:</span> Show this menu <br />
-            <span className="text-blue-400 font-bold">- ls:</span> List directory contents <br />
-            <span className="text-blue-400 font-bold">- cat techstack.md:</span> Display skills <br />
-            <span className="text-blue-400 font-bold">- whoami:</span> About the developer <br />
-            <span className="text-blue-400 font-bold">- clear:</span> Clear terminal output <br />
-            <span className="text-blue-400 font-bold">- neofetch:</span> System information
-          </div>
-        );
-        break;
-
-      case "ls":
-        response = <span className="text-white">about_me.txt  certificates/  projects/  techstack.md  contact.ink</span>;
-        break;
-
-      case "whoami":
-        response = <span className="text-white">Yousef Zedan - Creative Developer & GSAP Wizard.</span>;
-        break;
-
-      case "cat techstack.md":
-        response = (
-          <div className="mt-2 border-l-2 border-indigo-500 pl-4 py-2 bg-white/5">
-            <div className="label mb-2 flex opacity-50 text-xs uppercase tracking-widest">
-              <p className="w-32 text-white font-bold">Category</p>
-              <p className="text-white font-bold">Technologies</p>
-            </div>
-            <ul className="space-y-2">
-              {techStack.map(({ category, items }) => (
-                <li key={category} className="flex items-start">
-                  <Check className="text-[#00A154] mr-2 mt-1" size={14} />
-                  <h3 className="w-32 font-bold text-[#00A154] text-xs">{category}</h3>
-                  <p className="flex-1 text-white text-xs">{items.join(", ")}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        );
-        break;
-
-      case "neofetch":
-        response = (
-          <div className="flex gap-4 text-xs mt-2">
-            <pre className="text-blue-500 font-bold leading-tight">
-              {`
-    /zzzzzzzz
-   |_____ zz 
-        /zz/ 
-       /zz/  
-      /zz/   
-     /zz/    
-    /zzzzzzzz
-   |________/
-              `}
-            </pre>
-            <div className="space-y-1 text-white">
-              <p><span className="text-blue-500 font-bold">OS:</span> ZED OS v1.0</p>
-              <p><span className="text-blue-500 font-bold">Host:</span> Yousef's-PC</p>
-              <p><span className="text-blue-500 font-bold">Kernel:</span> React-19.0.0</p>
-              <p><span className="text-blue-500 font-bold">Shell:</span> zsh 5.8</p>
-              <p><span className="text-blue-500 font-bold">WM:</span> GSAP-Draggable</p>
-              <p><span className="text-blue-500 font-bold">CPU:</span> Intel Core 2 Duo e4600</p>
-              <p><span className="text-blue-500 font-bold">RAM:</span> 4GB RAM (DDR2)</p>
-              <p><span className="text-blue-500 font-bold">GPU:</span> AMD R5 240 1GB</p>
-            </div>
-          </div>
-        );
-        break;
-
-      case "clear":
-        setHistory([]);
-        return;
-
-      default:
-        response = cleanCmd ? <span className="text-red-400">zsh: command not found: {cleanCmd}</span> : "";
-    }
-
-    if (response !== null) {
-      setHistory((prev) => [...prev, { type: "output", content: response }]);
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (input.trim()) {
-      setHistory((prev) => [...prev, { type: "command", content: input }]);
-      executeCommand(input);
-      setInput("");
-    }
-  };
-
-  return (
-    /* FIXED: Added min-h-[450px] so it has a default size, but h-full keeps it synced with resize */
-    <div className="flex flex-col h-full min-h-[450px] w-full overflow-hidden rounded-xl">
-      <div id="window-header" className="!bg-transparent !border-none shrink-0">
-        <WindowControls target="terminal" />
-        <div className="flex items-center gap-2 text-white/50">
-            <TerminalIcon size={14} />
-            <h2 className="font-mono text-xs">zsh — yousef@zportfolio</h2>
-        </div>
-        <div className="w-10" />
-      </div>
-
-      <div 
-        /* FIXED: Removed h-[400px]. flex-1 now fills the entire window background automatically */
-        className="flex-1 bg-[#0A0B1A] text-white p-4 font-terminal text-sm overflow-y-auto scrollbar-hide border-t border-white/5"
-        onClick={handleTerminalClick}
-        ref={scrollRef}
-      >
-        <div className="space-y-2">
-          {history.map((line, i) => (
-            <div key={i} className="animate-in fade-in slide-in-from-left-2 duration-300">
-              {line.type === "command" ? (
-                <div className="flex gap-2">
-                  <span className="text-blue-400 font-bold"> yousef </span>
-                  <span className="text-indigo-400">➜</span>
-                  <span className="text-white">{line.content}</span>
-                </div>
-              ) : (
-                <div className={line.type === "system" ? "text-gray-500 italic text-xs" : ""}>
-                  {line.content}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex gap-2 mt-2">
-          <span className="text-blue-400 font-bold whitespace-nowrap"> yousef </span>
-          <span className="text-indigo-400">➜</span>
-          <input
-            ref={inputRef}
-            type="text"
-            className="flex-1 bg-transparent border-none outline-none text-white caret-pink-500"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            autoFocus
-            spellCheck={false}
-            autoComplete="off"
-          />
-        </form>
-      </div>
-    </div>
-  );
-};
-
-const TerminalWindow = WindowWrapper(Terminal, "terminal");
-export default TerminalWindow;
-</file>
-
 <file path="src/windows/Text.jsx">
 import WindowWrapper from "#hoc/WindowWrapper.jsx";
 import { WindowControls } from "#components";
@@ -799,102 +616,6 @@ export default TextWindow;
 </html>
 </file>
 
-<file path="src/components/Home.jsx">
-import { locations } from "#constants";
-import clsx from "clsx";
-import { useGSAP } from "@gsap/react";
-import Draggable from "gsap/Draggable";
-import gsap from "gsap"; // FIX: Imported GSAP
-import useWindowStore from "#store/window.js";
-import useLocationStore from "#store/location.js";
-import { useState, useEffect } from "react";
-import dayjs from "dayjs";
-
-const projects = locations.work?.children ??[];
-
-const Home = () => {
-  const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
-  const openWindow = useWindowStore((s) => s.openWindow);
-  const [time, setTime] = useState(dayjs());
-
-  useEffect(() => {
-    const timer = setInterval(() => setTime(dayjs()), 1000);
-    return () => clearInterval(timer);
-  },[]);
-
-  const handleOpenProjectFinder = (project) => {
-    setActiveLocation(project);
-    openWindow("finder");
-  };
-
-  useGSAP(() => {
-    let draggables =[];
-    
-    const initDrag = () => {
-      if (window.innerWidth > 768) {
-        // Desktop: Enable Dragging
-        if (draggables.length === 0) {
-          draggables = Draggable.create(".folder", {
-            type: "x,y",
-            bounds: "body",
-            dragClickables: true // FIX: This guarantees that clicking the folder still opens it!
-          });
-        } else {
-          draggables.forEach(d => d.enable());
-        }
-      } else {
-        // Mobile: Disable Dragging and reset positions
-        if (draggables.length > 0) {
-          draggables.forEach(d => d.disable());
-          gsap.set(".folder", { clearProps: "x,y,transform" });
-        }
-      }
-    };
-
-    initDrag();
-    window.addEventListener("resize", initDrag);
-    return () => window.removeEventListener("resize", initDrag);
-  },[]);
-
-  return (
-    <section id="home" className="absolute inset-0 w-full h-full z-0 overflow-hidden">
-      
-      {/* Clock Widget */}
-      <div className="absolute top-[12vh] left-0 w-full flex flex-col items-center justify-center md:hidden text-white drop-shadow-xl z-20 pointer-events-none select-none">
-        <h1 className="text-[5.5rem] font-light tracking-tight leading-none text-center">
-          {time.format("h:mm")}
-        </h1>
-        <p className="text-[1.2rem] font-medium mt-2 tracking-wide text-center">
-          {time.format("dddd, MMMM D")}
-        </p>
-      </div>
-
-      <ul className="w-full h-full">
-        {projects.map((project) => (
-          <li
-            key={project.id}
-            className={clsx("group folder", project.windowPosition)}
-            onClick={() => handleOpenProjectFinder(project)}
-          >
-            <img 
-              src="/images/folder.png" 
-              alt={project.name}
-              width={64}
-              height={64}
-              loading="eager"
-              className="pointer-events-none" 
-            />
-            <p>{project.name}</p>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-};
-
-export default Home;
-</file>
-
 <file path="src/store/location.js">
 import { locations } from "#constants";
 import { create } from "zustand";
@@ -919,6 +640,246 @@ const useLocationStore = create(
 );
 
 export default useLocationStore;
+</file>
+
+<file path="src/windows/Terminal.jsx">
+import React, { useState, useRef, useEffect } from "react";
+import { techStack } from "#constants";
+import WindowWrapper from "#hoc/WindowWrapper.jsx";
+import { Check, Terminal as TerminalIcon } from "lucide-react";
+import WindowControls from "#components/WindowControls.jsx";
+
+const Terminal = () => {
+  const [input, setInput] = useState("");
+  const [history, setHistory] = useState([
+    { type: "system", content: "Welcome to Z-Shell v1.0.4 (stable)" },
+    { type: "system", content: "Type 'help' to see available commands." },
+  ]);
+  const scrollRef = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [history]);
+
+  const handleTerminalClick = () => {
+    inputRef.current?.focus();
+  };
+
+  const executeCommand = (cmd) => {
+    const cleanCmd = cmd.trim().toLowerCase();
+    let response = null;
+
+    switch (cleanCmd) {
+      case "help":
+        response = (
+          <div className="text-gray-400">
+            Available commands: <br />
+            <span className="text-blue-400 font-bold">- help:</span> Show this
+            menu <br />
+            <span className="text-blue-400 font-bold">- ls:</span> List
+            directory contents <br />
+            <span className="text-blue-400 font-bold">
+              - cat techstack.md:
+            </span>{" "}
+            Display skills <br />
+            <span className="text-blue-400 font-bold">- whoami:</span> About the
+            developer <br />
+            <span className="text-blue-400 font-bold">- clear:</span> Clear
+            terminal output <br />
+            <span className="text-blue-400 font-bold">- neofetch:</span> System
+            information
+          </div>
+        );
+        break;
+
+      case "ls":
+        response = (
+          <span className="text-white">
+            about_me.txt certificates/ projects/ techstack.md contact.ink
+          </span>
+        );
+        break;
+
+      case "whoami":
+        response = (
+          <span className="text-white">
+            Yousef Zedan - Creative Developer & GSAP Wizard.
+          </span>
+        );
+        break;
+
+      case "cat techstack.md":
+        response = (
+          <div className="mt-2 border-l-2 border-indigo-500 pl-4 py-2 bg-white/5">
+            <div className="label mb-2 flex opacity-50 text-xs uppercase tracking-widest">
+              <p className="w-32 text-white font-bold">Category</p>
+              <p className="text-white font-bold">Technologies</p>
+            </div>
+            <ul className="space-y-2">
+              {techStack.map(({ category, items }) => (
+                <li key={category} className="flex items-start">
+                  <Check className="text-[#00A154] mr-2 mt-1" size={14} />
+                  <h3 className="w-32 font-bold text-[#00A154] text-xs">
+                    {category}
+                  </h3>
+                  <p className="flex-1 text-white text-xs">
+                    {items.join(", ")}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+        break;
+
+      case "neofetch":
+        response = (
+          <div className="flex gap-4 text-xs mt-2">
+            <pre className="text-blue-500 font-bold leading-tight">
+              {`
+    /zzzzzzzz
+   |_____ zz
+        /zz/
+       /zz/
+      /zz/
+     /zz/
+    /zzzzzzzz
+   |________/
+              `}
+            </pre>
+            <div className="space-y-1 text-white">
+              <p>
+                <span className="text-blue-500 font-bold">OS:</span> ZED OS v1.0
+              </p>
+              <p>
+                <span className="text-blue-500 font-bold">Host:</span>{" "}
+                Yousef's-PC
+              </p>
+              <p>
+                <span className="text-blue-500 font-bold">Kernel:</span>{" "}
+                React-19.0.0
+              </p>
+              <p>
+                <span className="text-blue-500 font-bold">Shell:</span> zsh 5.8
+              </p>
+              <p>
+                <span className="text-blue-500 font-bold">WM:</span>{" "}
+                GSAP-Draggable
+              </p>
+              <p>
+                <span className="text-blue-500 font-bold">CPU:</span> Intel Core
+                2 Duo e4600
+              </p>
+              <p>
+                <span className="text-blue-500 font-bold">RAM:</span> 4GB RAM
+                (DDR2)
+              </p>
+              <p>
+                <span className="text-blue-500 font-bold">GPU:</span> AMD R5 240
+                1GB
+              </p>
+            </div>
+          </div>
+        );
+        break;
+
+      case "clear":
+        setHistory([]);
+        return;
+
+      default:
+        response = cleanCmd ? (
+          <span className="text-red-400">
+            zsh: command not found: {cleanCmd}
+          </span>
+        ) : (
+          ""
+        );
+    }
+
+    if (response !== null) {
+      setHistory((prev) => [...prev, { type: "output", content: response }]);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (input.trim()) {
+      setHistory((prev) => [...prev, { type: "command", content: input }]);
+      executeCommand(input);
+      setInput("");
+    }
+  };
+
+  return (
+    /* FIXED: Added min-h-[450px] so it has a default size, but h-full keeps it synced with resize */
+    <div className="flex flex-col h-full min-h-[450px] w-full overflow-hidden rounded-xl">
+      <div id="window-header" className="!bg-transparent !border-none shrink-0">
+        <WindowControls target="terminal" />
+        <div className="flex items-center gap-2 text-white/50">
+          <TerminalIcon size={14} />
+          <h2 className="font-mono text-xs">zsh — yousef@zportfolio</h2>
+        </div>
+        <div className="w-10" />
+      </div>
+
+      <div
+        /* FIXED: Removed h-[400px]. flex-1 now fills the entire window background automatically */
+        className="flex-1 bg-[#0A0B1A] text-white p-4 font-terminal text-sm overflow-y-auto scrollbar-hide border-t border-white/5"
+        onClick={handleTerminalClick}
+        ref={scrollRef}
+      >
+        <div className="space-y-2">
+          {history.map((line, i) => (
+            <div
+              key={i}
+              className="animate-in fade-in slide-in-from-left-2 duration-300"
+            >
+              {line.type === "command" ? (
+                <div className="flex gap-2">
+                  <span className="text-blue-400 font-bold"> yousef </span>
+                  <span className="text-indigo-400">➜</span>
+                  <span className="text-white">{line.content}</span>
+                </div>
+              ) : (
+                <div
+                  className={
+                    line.type === "system" ? "text-gray-500 italic text-xs" : ""
+                  }
+                >
+                  {line.content}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex gap-2 mt-2">
+          <span className="text-blue-400 font-bold whitespace-nowrap">
+             yousef 
+          </span>
+          <span className="text-indigo-400">➜</span>
+          <input
+            ref={inputRef}
+            type="text"
+            className="flex-1 bg-transparent border-none outline-none text-white caret-pink-500"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            autoFocus
+            spellCheck={false}
+            autoComplete="off"
+          />
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const TerminalWindow = WindowWrapper(Terminal, "terminal");
+export default TerminalWindow;
 </file>
 
 <file path="src/windows/ZenBrowser.jsx">
@@ -977,6 +938,102 @@ const ZenWindow = WindowWrapper(ZenBrowser, 'safari')
 export default ZenWindow;
 </file>
 
+<file path="src/components/Home.jsx">
+import { locations } from "#constants";
+import clsx from "clsx";
+import { useGSAP } from "@gsap/react";
+import Draggable from "gsap/Draggable";
+import gsap from "gsap";
+import useWindowStore from "#store/window.js";
+import useLocationStore from "#store/location.js";
+import { useState, useEffect } from "react";
+import dayjs from "dayjs";
+
+const projects = locations.work?.children ??[];
+
+const Home = () => {
+  const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const [time, setTime] = useState(dayjs());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(dayjs()), 1000);
+    return () => clearInterval(timer);
+  },[]);
+
+  const handleOpenProjectFinder = (e, project) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const launchPos = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+      width: rect.width,
+      height: rect.height,
+    };
+    setActiveLocation(project);
+    openWindow("finder", null, launchPos);
+  };
+
+  useGSAP(() => {
+    let draggables =[];
+    const initDrag = () => {
+      if (window.innerWidth > 768) {
+        if (draggables.length === 0) {
+          draggables = Draggable.create(".folder", {
+            type: "x,y",
+            bounds: "body",
+            dragClickables: true
+          });
+        } else {
+          draggables.forEach(d => d.enable());
+        }
+      } else {
+        if (draggables.length > 0) {
+          draggables.forEach(d => d.disable());
+          gsap.set(".folder", { clearProps: "x,y,transform" });
+        }
+      }
+    };
+    initDrag();
+    window.addEventListener("resize", initDrag);
+    return () => window.removeEventListener("resize", initDrag);
+  },[]);
+
+  return (
+    <section id="home" className="absolute inset-0 w-full h-full z-0 overflow-hidden">
+      <div className="absolute top-[12vh] left-0 w-full flex flex-col items-center justify-center md:hidden text-white drop-shadow-xl z-20 pointer-events-none select-none">
+        <h1 className="text-[5.5rem] font-light tracking-tight leading-none text-center">
+          {time.format("h:mm")}
+        </h1>
+        <p className="text-[1.2rem] font-medium mt-2 tracking-wide text-center">
+          {time.format("dddd, MMMM D")}
+        </p>
+      </div>
+      <ul className="w-full h-full">
+        {projects.map((project) => (
+          <li
+            key={project.id}
+            className={clsx("group folder", project.windowPosition)}
+            onClick={(e) => handleOpenProjectFinder(e, project)}
+          >
+            <img 
+              src="/images/folder.png" 
+              alt={project.name}
+              width={64}
+              height={64}
+              loading="eager"
+              className="pointer-events-none" 
+            />
+            <p>{project.name}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+};
+
+export default Home;
+</file>
+
 <file path="src/components/index.js">
 import Navbar from "#components/Navbar.jsx";
 import Welcome from "#components/Welcome.jsx";
@@ -1029,258 +1086,6 @@ const WindowControls = ({ target }) => {
 }
 
 export default WindowControls;
-</file>
-
-<file path="src/hoc/WindowWrapper.jsx">
-import useWindowStore from "#store/window.js";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
-import { Draggable } from "gsap/Draggable";
-import { useRef, useState, useEffect, memo } from "react";
-
-const WindowWrapper = (Component, windowKey) => {
-  const Wrapped = memo((props) => {
-    const isOpen = useWindowStore((s) => s.windows[windowKey].isOpen);
-    const zIndex = useWindowStore((s) => s.windows[windowKey].zIndex);
-    const isMaximized = useWindowStore((s) => s.windows[windowKey].isMaximized);
-    const dataId = useWindowStore((s) => s.windows[windowKey].data?.id);
-    const focusWindow = useWindowStore((s) => s.focusWindow);
-
-    const ref = useRef(null);
-    const dragInstance = useRef(null);
-    const resizeInstances = useRef([]);
-    const[isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
-    const preMaxState = useRef(null);
-
-    const[isMobile, setIsMobile] = useState(false);
-    useEffect(() => {
-      const checkMobile = () => setIsMobile(window.innerWidth < 768);
-      checkMobile();
-      window.addEventListener("resize", checkMobile, { passive: true });
-      return () => window.removeEventListener("resize", checkMobile);
-    },[]);
-
-    // 1. OPEN / CLOSE 
-    useGSAP(() => {
-      const el = ref.current;
-      if (!el) return;
-      if (isOpen) {
-        setIsActuallyVisible(true);
-        if (isMobile) {
-          // FIX: yPercent uses raw GPU power. dvh/vh forces CPU layout recalc.
-          gsap.fromTo(el, 
-            { yPercent: 100, y: 0, opacity: 1, scale: 1 },
-            { yPercent: 0, duration: 0.35, ease: "power3.out", overwrite: "auto" }
-          );
-        } else {
-          gsap.fromTo(el, 
-            { scale: 0.9, opacity: 0, y: 20, yPercent: 0 },
-            { scale: 1, opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.5)", overwrite: "auto" }
-          );
-        }
-      } else {
-        if (isMobile) {
-          // FIX: yPercent 100 pushes it exactly 100% of its own height downwards
-          gsap.to(el, {
-            yPercent: 100, duration: 0.3, ease: "power3.in", overwrite: "auto",
-            onComplete: () => setIsActuallyVisible(false),
-          });
-        } else {
-          gsap.to(el, {
-            scale: 0.8, opacity: 0, y: 50, duration: 0.25, ease: "power2.in", overwrite: "auto",
-            onComplete: () => setIsActuallyVisible(false),
-          });
-        }
-      }
-    },[isOpen, dataId, isMobile]);
-
-    // 2. MAXIMIZE LOGIC
-    useGSAP(() => {
-      if (isMobile) return; 
-      const el = ref.current;
-      if (!el || !isOpen) return;
-
-      if (isMaximized) {
-        const currentX = gsap.getProperty(el, "x");
-        const currentY = gsap.getProperty(el, "y");
-        const rect = el.getBoundingClientRect();
-
-        preMaxState.current = {
-          width: el.offsetWidth,
-          height: el.offsetHeight,
-          x: currentX,
-          y: currentY,
-        };
-
-        if (dragInstance.current) dragInstance.current.disable();
-        resizeInstances.current.forEach(i => i.disable());
-
-        gsap.to(el, {
-          x: currentX - rect.left,
-          y: currentY - rect.top,
-          width: "100vw",
-          height: "100vh",
-          borderRadius: "0px",
-          duration: 0.5,
-          ease: "expo.inOut",
-        });
-      } else if (preMaxState.current) {
-        if (dragInstance.current) dragInstance.current.enable();
-        resizeInstances.current.forEach(i => i.enable());
-
-        gsap.to(el, {
-          x: preMaxState.current.x,
-          y: preMaxState.current.y,
-          width: preMaxState.current.width,
-          height: preMaxState.current.height,
-          borderRadius: "12px",
-          duration: 0.5,
-          ease: "expo.inOut",
-          onComplete: () => dragInstance.current.update()
-        });
-      }
-    }, [isMaximized, isMobile]);
-
-    // 3. DRAGGING LOGIC
-    useGSAP(() => {
-      if (isMobile) return; 
-      const el = ref.current;
-      if (!el) return;
-
-      [dragInstance.current] = Draggable.create(el, {
-        onPress: () => focusWindow(windowKey),
-        trigger: el.querySelector("#window-header") || el,
-        bounds: "main",
-      });
-
-      const minW = 350;
-      const minH = 250;
-      const handleConfigs =[
-        { cls: ".resizer-n", type: "n" }, { cls: ".resizer-s", type: "s" },
-        { cls: ".resizer-e", type: "e" }, { cls: ".resizer-w", type: "w" },
-        { cls: ".resizer-nw", type: "nw" }, { cls: ".resizer-ne", type: "ne" },
-        { cls: ".resizer-sw", type: "sw" }, { cls: ".resizer-se", type: "se" },
-      ];
-
-      handleConfigs.forEach(({ cls, type }) => {
-        const hEl = el.querySelector(cls);
-        if (!hEl) return;
-        
-        const [instance] = Draggable.create(hEl, {
-          type: "x,y",
-          onPress: function(e) {
-            e.stopPropagation();
-            focusWindow(windowKey);
-            this.startW = el.offsetWidth;
-            this.startH = el.offsetHeight;
-            this.startX = gsap.getProperty(el, "x");
-            this.startY = gsap.getProperty(el, "y");
-            this.startPointerX = this.pointerX;
-            this.startPointerY = this.pointerY;
-          },
-          onDrag: function() {
-            gsap.set(this.target, { x: 0, y: 0 });
-            const deltaX = this.pointerX - this.startPointerX;
-            const deltaY = this.pointerY - this.startPointerY;
-            let w = this.startW, h = this.startH, x = this.startX, y = this.startY;
-
-            if (type.includes("e")) w = this.startW + deltaX;
-            if (type.includes("w")) {
-              const constrainedDelta = Math.min(deltaX, this.startW - minW);
-              w = this.startW - constrainedDelta;
-              x = this.startX + constrainedDelta;
-            }
-
-            if (type.includes("s")) h = this.startH + deltaY;
-            if (type.includes("n")) {
-              const constrainedDelta = Math.min(deltaY, this.startH - minH);
-              h = this.startH - constrainedDelta;
-              y = this.startY + constrainedDelta;
-            }
-
-            gsap.set(el, { width: Math.max(w, minW), height: Math.max(h, minH), x, y });
-          },
-          onDragEnd: function() {
-            gsap.set(this.target, { x: 0, y: 0 });
-            dragInstance.current.update();
-          }
-        });
-        resizeInstances.current.push(instance);
-      });
-
-      return () => {
-        dragInstance.current?.kill();
-        resizeInstances.current.forEach(i => i.kill());
-      };
-    },[isMobile]);
-
-    return (
-      <section
-        id={windowKey}
-        ref={ref}
-        className="os-window absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none"
-        style={{ 
-            zIndex, 
-            display: isActuallyVisible ? "flex" : "none",
-            willChange: "transform, width, height",
-            transform: "translate3d(0,0,0)",
-        }}
-      >
-        <Component {...props} />
-        {!isMaximized && !isMobile && (
-          <><div className="resizer-n absolute top-0 left-0 w-full h-1.5 cursor-ns-resize z-50" /><div className="resizer-s absolute bottom-0 left-0 w-full h-1.5 cursor-ns-resize z-50" /><div className="resizer-w absolute top-0 left-0 h-full w-1.5 cursor-ew-resize z-50" /><div className="resizer-e absolute top-0 right-0 h-full w-1.5 cursor-ew-resize z-50" /><div className="resizer-nw absolute top-0 left-0 size-4 cursor-nwse-resize z-[60]" /><div className="resizer-ne absolute top-0 right-0 size-4 cursor-nesw-resize z-[60]" /><div className="resizer-sw absolute bottom-0 left-0 size-4 cursor-nesw-resize z-[60]" /><div className="resizer-se absolute bottom-0 right-0 size-4 cursor-nwse-resize z-[60]" /></>
-        )}
-      </section>
-    );
-  });
-
-  Wrapped.displayName = `WindowWrapper(${Component.displayName || Component.name || "Component"})`;
-  return Wrapped;
-};
-
-export default WindowWrapper;
-</file>
-
-<file path="src/store/window.js">
-import { INITIAL_Z_INDEX, WINDOW_CONFIG } from "#constants";
-import { create } from "zustand";
-import { immer } from "zustand/middleware/immer";
-
-const useWindowStore = create(
-  immer((set) => ({
-    windows: WINDOW_CONFIG,
-    nextZIndex: INITIAL_Z_INDEX + 1,
-    openWindow: (windowKey, data = null) =>
-      set((state) => {
-        const win = state.windows[windowKey];
-        if (!win) return;
-        win.isOpen = true;
-        win.zIndex = state.nextZIndex;
-        win.data = data ?? win.data;
-        state.nextZIndex++;
-      }),
-    closeWindow: (windowKey) => set((state) => {
-      const win = state.windows[windowKey];
-      if (!win) return;
-      win.isOpen = false;
-      win.isMaximized = false;
-      win.zIndex = INITIAL_Z_INDEX;
-      // We keep the data for a split second or let the component handle the null
-      // The components are now updated to handle this gracefully.
-      win.data = null;
-    }),
-    toggleMaximize: (windowKey) => set((state) => {
-      const win = state.windows[windowKey];
-      if (win) win.isMaximized = !win.isMaximized;
-    }),
-    focusWindow: (windowKey) => set((state) => {
-      const win = state.windows[windowKey];
-      if (!win) return;
-      win.zIndex = state.nextZIndex++;
-    }),
-  })),
-);
-export default useWindowStore;
 </file>
 
 <file path="vite.config.js">
@@ -1543,6 +1348,268 @@ const Dock = memo(() => {
 export default Dock;
 </file>
 
+<file path="src/hoc/WindowWrapper.jsx">
+import useWindowStore from "#store/window.js";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+import { Draggable } from "gsap/Draggable";
+import { useRef, useState, useEffect, memo } from "react";
+
+const WindowWrapper = (Component, windowKey) => {
+  const Wrapped = memo((props) => {
+    const isOpen = useWindowStore((s) => s.windows[windowKey].isOpen);
+    const zIndex = useWindowStore((s) => s.windows[windowKey].zIndex);
+    const isMaximized = useWindowStore((s) => s.windows[windowKey].isMaximized);
+    const dataId = useWindowStore((s) => s.windows[windowKey].data?.id);
+    const launchPos = useWindowStore((s) => s.windows[windowKey].launchPos);
+    const focusWindow = useWindowStore((s) => s.focusWindow);
+    const closeWindow = useWindowStore((s) => s.closeWindow);
+
+    const ref = useRef(null);
+    const dragInstance = useRef(null);
+    const resizeInstances = useRef([]);
+    const [isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
+    const preMaxState = useRef(null);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+      const checkMobile = () => setIsMobile(window.innerWidth < 768);
+      checkMobile();
+      window.addEventListener("resize", checkMobile, { passive: true });
+      return () => window.removeEventListener("resize", checkMobile);
+    },[]);
+
+    useGSAP(() => {
+      const el = ref.current;
+      if (!el) return;
+      if (isOpen) {
+        setIsActuallyVisible(true);
+        if (isMobile) {
+          if (launchPos) {
+            gsap.fromTo(el, 
+              { 
+                clipPath: `circle(0% at ${launchPos.x}px ${launchPos.y}px)`,
+                opacity: 0,
+                scale: 0.8,
+                borderRadius: "50px"
+              },
+              { 
+                clipPath: `circle(150% at ${launchPos.x}px ${launchPos.y}px)`,
+                opacity: 1, 
+                scale: 1,
+                borderRadius: "0px",
+                duration: 0.4, 
+                ease: "elastic.out(1, 0.8)", 
+                overwrite: "auto" 
+              }
+            );
+          } else {
+            gsap.fromTo(el, 
+              { yPercent: 100, opacity: 1 },
+              { yPercent: 0, duration: 0.35, ease: "power3.out", overwrite: "auto" }
+            );
+          }
+        } else {
+          gsap.fromTo(el, 
+            { scale: 0.9, opacity: 0, y: 20, yPercent: 0 },
+            { scale: 1, opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.5)", overwrite: "auto" }
+          );
+        }
+      } else {
+        if (isMobile) {
+          gsap.to(el, {
+            yPercent: 100, 
+            opacity: 0,
+            scale: 0.9,
+            duration: 0.3, 
+            ease: "power3.in", 
+            overwrite: "auto",
+            onComplete: () => setIsActuallyVisible(false),
+          });
+        } else {
+          gsap.to(el, {
+            scale: 0.8, opacity: 0, y: 50, duration: 0.25, ease: "power2.in", overwrite: "auto",
+            onComplete: () => setIsActuallyVisible(false),
+          });
+        }
+      }
+    },[isOpen, dataId, isMobile]);
+
+    useGSAP(() => {
+      if (isMobile) return; 
+      const el = ref.current;
+      if (!el || !isOpen) return;
+
+      if (isMaximized) {
+        const currentX = gsap.getProperty(el, "x");
+        const currentY = gsap.getProperty(el, "y");
+        const rect = el.getBoundingClientRect();
+        preMaxState.current = { width: el.offsetWidth, height: el.offsetHeight, x: currentX, y: currentY };
+        if (dragInstance.current) dragInstance.current.disable();
+        resizeInstances.current.forEach(i => i.disable());
+        gsap.to(el, { x: currentX - rect.left, y: currentY - rect.top, width: "100vw", height: "100vh", borderRadius: "0px", duration: 0.5, ease: "expo.inOut" });
+      } else if (preMaxState.current) {
+        if (dragInstance.current) dragInstance.current.enable();
+        resizeInstances.current.forEach(i => i.enable());
+        gsap.to(el, { x: preMaxState.current.x, y: preMaxState.current.y, width: preMaxState.current.width, height: preMaxState.current.height, borderRadius: "12px", duration: 0.5, ease: "expo.inOut", onComplete: () => dragInstance.current.update() });
+      }
+    }, [isMaximized, isMobile]);
+
+    useGSAP(() => {
+      const el = ref.current;
+      if (!el) return;
+
+      if (isMobile) {
+        Draggable.create(el, {
+          type: "y",
+          edgeResistance: 0.65,
+          onDrag: function() {
+            if (this.y > 150) {
+              gsap.to(this.target, { yPercent: 100, opacity: 0, duration: 0.3 });
+              closeWindow(windowKey);
+            }
+          },
+          onDragEnd: function() {
+            if (this.y <= 150) {
+              gsap.to(this.target, { y: 0, duration: 0.3, ease: "elastic.out(1, 0.8)" });
+            }
+          }
+        });
+        return;
+      }
+
+      [dragInstance.current] = Draggable.create(el, {
+        onPress: () => focusWindow(windowKey),
+        trigger: el.querySelector("#window-header") || el,
+        bounds: "main",
+      });
+
+      const minW = 350;
+      const minH = 250;
+      const handleConfigs =[
+        { cls: ".resizer-n", type: "n" }, { cls: ".resizer-s", type: "s" },
+        { cls: ".resizer-e", type: "e" }, { cls: ".resizer-w", type: "w" },
+        { cls: ".resizer-nw", type: "nw" }, { cls: ".resizer-ne", type: "ne" },
+        { cls: ".resizer-sw", type: "sw" }, { cls: ".resizer-se", type: "se" },
+      ];
+
+      handleConfigs.forEach(({ cls, type }) => {
+        const hEl = el.querySelector(cls);
+        if (!hEl) return;
+        const [instance] = Draggable.create(hEl, {
+          type: "x,y",
+          onPress: function(e) {
+            e.stopPropagation();
+            focusWindow(windowKey);
+            this.startW = el.offsetWidth;
+            this.startH = el.offsetHeight;
+            this.startX = gsap.getProperty(el, "x");
+            this.startY = gsap.getProperty(el, "y");
+            this.startPointerX = this.pointerX;
+            this.startPointerY = this.pointerY;
+          },
+          onDrag: function() {
+            gsap.set(this.target, { x: 0, y: 0 });
+            const deltaX = this.pointerX - this.startPointerX;
+            const deltaY = this.pointerY - this.startPointerY;
+            let w = this.startW, h = this.startH, x = this.startX, y = this.startY;
+            if (type.includes("e")) w = this.startW + deltaX;
+            if (type.includes("w")) {
+              const constrainedDelta = Math.min(deltaX, this.startW - minW);
+              w = this.startW - constrainedDelta;
+              x = this.startX + constrainedDelta;
+            }
+            if (type.includes("s")) h = this.startH + deltaY;
+            if (type.includes("n")) {
+              const constrainedDelta = Math.min(deltaY, this.startH - minH);
+              h = this.startH - constrainedDelta;
+              y = this.startY + constrainedDelta;
+            }
+            gsap.set(el, { width: Math.max(w, minW), height: Math.max(h, minH), x, y });
+          },
+          onDragEnd: function() {
+            gsap.set(this.target, { x: 0, y: 0 });
+            dragInstance.current.update();
+          }
+        });
+        resizeInstances.current.push(instance);
+      });
+
+      return () => {
+        dragInstance.current?.kill();
+        resizeInstances.current.forEach(i => i.kill());
+      };
+    },[isMobile]);
+
+    return (
+      <section
+        id={windowKey}
+        ref={ref}
+        className="os-window absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none"
+        style={{ 
+            zIndex, 
+            display: isActuallyVisible ? "flex" : "none",
+            willChange: "transform, width, height, clip-path",
+            transform: "translate3d(0,0,0)",
+        }}
+      >
+        <Component {...props} />
+        {!isMaximized && !isMobile && (
+          <><div className="resizer-n absolute top-0 left-0 w-full h-1.5 cursor-ns-resize z-50" /><div className="resizer-s absolute bottom-0 left-0 w-full h-1.5 cursor-ns-resize z-50" /><div className="resizer-w absolute top-0 left-0 h-full w-1.5 cursor-ew-resize z-50" /><div className="resizer-e absolute top-0 right-0 h-full w-1.5 cursor-ew-resize z-50" /><div className="resizer-nw absolute top-0 left-0 size-4 cursor-nwse-resize z-[60]" /><div className="resizer-ne absolute top-0 right-0 size-4 cursor-nesw-resize z-[60]" /><div className="resizer-sw absolute bottom-0 left-0 size-4 cursor-nesw-resize z-[60]" /><div className="resizer-se absolute bottom-0 right-0 size-4 cursor-nwse-resize z-[60]" /></>
+        )}
+      </section>
+    );
+  });
+
+  Wrapped.displayName = `WindowWrapper(${Component.displayName || Component.name || "Component"})`;
+  return Wrapped;
+};
+
+export default WindowWrapper;
+</file>
+
+<file path="src/store/window.js">
+import { INITIAL_Z_INDEX, WINDOW_CONFIG } from "#constants";
+import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
+
+const useWindowStore = create(
+  immer((set) => ({
+    windows: WINDOW_CONFIG,
+    nextZIndex: INITIAL_Z_INDEX + 1,
+    openWindow: (windowKey, data = null, launchPos = null) =>
+      set((state) => {
+        const win = state.windows[windowKey];
+        if (!win) return;
+        win.isOpen = true;
+        win.zIndex = state.nextZIndex;
+        win.data = data ?? win.data;
+        win.launchPos = launchPos;
+        state.nextZIndex++;
+      }),
+    closeWindow: (windowKey) => set((state) => {
+      const win = state.windows[windowKey];
+      if (!win) return;
+      win.isOpen = false;
+      win.isMaximized = false;
+      win.zIndex = INITIAL_Z_INDEX;
+      win.data = null;
+      win.launchPos = null;
+    }),
+    toggleMaximize: (windowKey) => set((state) => {
+      const win = state.windows[windowKey];
+      if (win) win.isMaximized = !win.isMaximized;
+    }),
+    focusWindow: (windowKey) => set((state) => {
+      const win = state.windows[windowKey];
+      if (!win) return;
+      win.zIndex = state.nextZIndex++;
+    }),
+  })),
+);
+export default useWindowStore;
+</file>
+
 <file path="src/windows/Resume.jsx">
 import React, { useState, useMemo, memo } from 'react';
 import { pdfjs, Document, Page } from 'react-pdf';
@@ -1600,6 +1667,18 @@ const ResumeWindow = WindowWrapper(Resume, "resume");
 export default ResumeWindow;
 </file>
 
+<file path="src/windows/index.js">
+import Terminal from "#windows/Terminal.jsx";
+import ZenBrowser from "#windows/ZenBrowser.jsx";
+import Resume from "#windows/Resume.jsx";
+import Finder from "#windows/Finder.jsx";
+import Text from "#windows/Text.jsx";
+import Image from "#windows/Image.jsx";
+import Contact from "#windows/Contact.jsx";
+import Photos from "#windows/Photos.jsx"
+export { Terminal, ZenBrowser, Resume, Finder, Text, Image, Contact, Photos };
+</file>
+
 <file path="src/components/Navbar.jsx">
 import React, { memo, useState, useEffect } from "react";
 import { navIcons, navLinks } from "#constants";
@@ -1619,8 +1698,7 @@ const Navbar = memo(() => {
 
   return (
     <nav className="relative z-50 max-md:bg-transparent max-md:border-none max-md:pt-4 max-md:px-6">
-      
-      {/* Desktop Left Side */}
+    
       <div className="flex items-center gap-4 max-md:hidden">
         <img src="/images/logo.svg" alt="logo" width={20} height={20} className="w-5 h-5" />
         <p className="font-bold whitespace-nowrap">Yousef's Portfolio</p>
@@ -1633,7 +1711,6 @@ const Navbar = memo(() => {
         </ul>
       </div>
       
-      {/* iOS Mobile Status Bar */}
       <div className="hidden max-md:flex w-full items-center justify-between text-white drop-shadow-md">
         <span className="text-xs font-semibold tracking-wider">ZED</span>
         <time className="text-[15px] font-bold absolute left-1/2 -translate-x-1/2">
@@ -1648,7 +1725,6 @@ const Navbar = memo(() => {
         </ul>
       </div>
 
-      {/* Desktop Right Side */}
       <div className="max-md:hidden">
         <ul>
           {navIcons.map(({ id, img }) => (
@@ -1666,16 +1742,54 @@ const Navbar = memo(() => {
 export default Navbar;
 </file>
 
-<file path="src/windows/index.js">
-import Terminal from "#windows/Terminal.jsx";
-import ZenBrowser from "#windows/ZenBrowser.jsx";
-import Resume from "#windows/Resume.jsx";
-import Finder from "#windows/Finder.jsx";
-import Text from "#windows/Text.jsx";
-import Image from "#windows/Image.jsx";
-import Contact from "#windows/Contact.jsx";
-import Photos from "#windows/Photos.jsx"
-export { Terminal, ZenBrowser, Resume, Finder, Text, Image, Contact, Photos };
+<file path="package.json">
+{
+  "name": "zportfolio",
+  "private": false, 
+  "version": "1.0.0",
+  "author": "Yousef Zedan (ZED Studios) <zedstudios.devs@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.2.8",
+    "@gsap/react": "^2.1.2",
+    "@tailwindcss/vite": "^4.2.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "dayjs": "^1.11.20",
+    "gsap": "^3.14.2",
+    "immer": "^11.1.4",
+    "lucide-react": "^1.7.0",
+    "radix-ui": "^1.4.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-pdf": "^10.4.1",
+    "react-tooltip": "^5.30.0",
+    "shadcn": "^4.2.0",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.2",
+    "tw-animate-css": "^1.4.0",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.4.0",
+    "vite": "^8.0.1",
+    "vite-plugin-static-copy": "^4.0.0"
+  }
+}
 </file>
 
 <file path="src/components/Welcome.jsx">
@@ -1731,17 +1845,15 @@ const Welcome = () => {
 
       let ticking = false;
       
-      // FIX: Now accepts both X and Y mouse coordinates
       const animateLetters = (clientX, clientY) => {
         if (!ticking) {
           requestAnimationFrame(() => {
             letters.forEach((letter, i) => {
-              // 2D Euclidean Distance Math (Calculates a perfect circle around the mouse)
               const dx = clientX - centers[i].x;
               const dy = clientY - centers[i].y;
               const distance = Math.hypot(dx, dy); 
 
-              // FIX: Tightened the radius from 600px to 250px so it only triggers near the text
+              
               if (distance > 250) {
                 gsap.to(letter, {
                   fontVariationSettings: `'wght' ${config.default}`,
@@ -1751,7 +1863,6 @@ const Welcome = () => {
                 return;
               }
 
-              // Smoother falloff
               const intensity = Math.exp(-(distance ** 2) / 10000);
               const weight = config.min + (config.max - config.min) * intensity;
               
@@ -1767,8 +1878,6 @@ const Welcome = () => {
           ticking = true;
         }
       };
-
-      // Pass both X and Y coordinates to the animation function
       const handleMouseMove = (e) => animateLetters(e.clientX, e.clientY);
       const handleTouchMove = (e) => animateLetters(e.touches[0].clientX, e.touches[0].clientY);
 
@@ -1820,651 +1929,6 @@ const Welcome = () => {
 export default Welcome;
 </file>
 
-<file path="package.json">
-{
-  "name": "zportfolio",
-  "private": false, 
-  "version": "1.0.0",
-  "author": "Yousef Zedan (ZED Studios) <zedstudios.devs@gmail.com>",
-  "license": "MIT",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@fontsource-variable/geist": "^5.2.8",
-    "@gsap/react": "^2.1.2",
-    "@tailwindcss/vite": "^4.2.2",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "dayjs": "^1.11.20",
-    "gsap": "^3.14.2",
-    "immer": "^11.1.4",
-    "lucide-react": "^1.7.0",
-    "radix-ui": "^1.4.3",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-pdf": "^10.4.1",
-    "react-tooltip": "^5.30.0",
-    "shadcn": "^4.2.0",
-    "tailwind-merge": "^3.5.0",
-    "tailwindcss": "^4.2.2",
-    "tw-animate-css": "^1.4.0",
-    "zustand": "^5.0.12"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.4",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
-    "eslint": "^9.39.4",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
-    "globals": "^17.4.0",
-    "vite": "^8.0.1",
-    "vite-plugin-static-copy": "^4.0.0"
-  }
-}
-</file>
-
-<file path="src/index.css">
-@import url("https://fonts.googleapis.com/css2?family=Georama:ital,wght@0,100..900;1,100..900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap");
-@font-face {
-    font-family: "JetBrainsMonoNF";
-    src: url("/fonts/JetBrainsMono/JetBrainsMonoNerdFont-Regular.ttf") format("truetype");
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
-}
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
-
-@custom-variant dark (&:is(.dark *));
-
-html, body {
-    width: 100%;
-    max-width: 100vw;
-    height: 100dvh;
-    overflow: hidden;
-    position: fixed; /* Ultimate scroll lock for mobile browsers */
-    top: 0;
-    left: 0;
-    background-image: url("/images/wallpaper.webp");
-    background-size: cover;
-    background-repeat: no-repeat;
-    background-position: center;
-}
-
-@theme {
-    --font-georama: "Georama", sans-serif;
-    --font-terminal: "JetBrainsMonoNF", "Roboto Mono", monospace;
-    --terminal-bg: #0f1720;
-    --terminal-foreground: #cbd5e1;
-    --terminal-accent: #00a154;
-    --breakpoint-3xl: 1920px;
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-    display: none;
-}
-.scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
-input::selection {
-    background: rgba(236, 72, 153, 0.3);
-}
-
-@utility flex-center {
-    @apply flex items-center justify-center;
-}
-
-@utility col-center {
-    @apply flex flex-col items-center justify-center;
-}
-
-@utility abs-center {
-    @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
-}
-
-@layer base {
-    main {
-        @apply fixed inset-0 w-full h-full overflow-hidden;
-        @apply w-dvw h-dvh overflow-hidden;
-    }
-
-    nav {
-        @apply flex justify-between items-center bg-white/30 backdrop-blur-xl p-2 px-5 select-none;
-
-        div {
-            @apply flex items-center max-sm:w-full max-sm:justify-center gap-5;
-
-            &:last-child {
-                @apply max-sm:hidden;
-            }
-        }
-
-        ul {
-            @apply flex items-center gap-5 max-sm:hidden;
-
-            p {
-                @apply p-1 rounded text-sm cursor-pointer hover:bg-blue-200 hover:text-blue-900 transition-all;
-            }
-        }
-
-        time {
-            @apply text-sm font-medium text-black;
-        }
-    }
-    * {
-        @apply border-border outline-ring/50;
-    }
-    body {
-        @apply bg-background text-foreground;
-    }
-    html {
-        @apply font-sans;
-    }
-}
-
-@layer components {
-    .icon {
-        @apply p-1 hover:bg-gray-200 rounded hover:cursor-default;
-    }
-
-    #welcome {
-            /* FIX: Changed top-[18%] to top-[34vh] to safely sit under the clock on mobile */
-            @apply text-gray-200 flex flex-col justify-center items-center absolute top-[60vh] md:top-1/2 left-1/2 -translate-x-1/2 md:-translate-y-1/2 select-none w-full px-5;
-        }
-
-    #dock {
-        @apply absolute bottom-5 left-1/2 -translate-x-1/2 z-50 select-none;
-
-        .dock-container {
-            @apply bg-white/20 backdrop-blur-2xl border border-white/20 justify-between rounded-3xl p-2.5 flex items-end gap-2;
-        }
-
-        .tooltip {
-            @apply !py-1 !px-3 !w-fit !text-center !text-xs !rounded-md !bg-blue-200 !text-blue-900 !shadow-2xl;
-        }
-
-        .dock-icon {
-            @apply size-14 3xl:size-20 cursor-pointer;
-
-            img {
-                @apply object-cover object-center;
-            }
-        }
-    }
-
-    #window-controls {
-        @apply flex gap-2;
-
-        .close {
-            @apply size-3.5 rounded-full bg-[#ff6157] cursor-pointer;
-        }
-
-        .minimize {
-            @apply size-3.5 rounded-full bg-[#ffc030];
-        }
-
-        .maximize {
-            @apply size-3.5 rounded-full bg-[#2acb42];
-        }
-    }
-
-    #window-header {
-        @apply flex items-center justify-between px-4 py-3 rounded-t-lg bg-white/10 border-b border-white/20 select-none text-sm text-indigo-500;
-    }
-
-    #safari {
-        @apply w-4xl absolute top-40 left-2/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
-
-        .search {
-            @apply flex items-center gap-3 w-2/3 bg-white/30 backdrop-blur-xl border border-gray-300 rounded-lg px-3 py-2;
-
-            input {
-                @apply placeholder:text-indigo-400;
-            }
-        }
-
-        .blog {
-            @apply bg-transparent backdrop-blur-xl p-10 max-w-3xl mx-auto;
-
-            h2 {
-                @apply text-xl font-bold text-pink-600 mb-10;
-            }
-
-            .blog-post {
-                @apply grid grid-cols-12 space-x-5;
-
-                img {
-                    @apply size-full rounded-md object-cover;
-                }
-
-                .content {
-                    @apply col-span-10 space-y-3;
-
-                    p {
-                        @apply text-xs text-gray-600;
-                    }
-
-                    h3 {
-                        @apply font-semibold text-base text-gray-800;
-                    }
-
-                    a {
-                        @apply text-blue-600 text-xs hover:underline flex items-center gap-3;
-                    }
-                }
-            }
-        }
-    }
-
-    #terminal {
-        @apply w-xl absolute top-32 left-1/12 bg-black/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
-
-        h2 {
-            @apply font-bold text-sm text-center w-full;
-        }
-
-        .techstack {
-            @apply text-sm font-terminal p-5 text-white;
-
-            .label {
-                @apply flex items-center ms-10 mt-7;
-            }
-
-            .content {
-                @apply py-5 my-5 border-y border-dashed space-y-1;
-
-                li {
-                    .check {
-                        @apply text-[#00A154] w-5;
-                    }
-
-                    h3 {
-                        @apply font-semibold text-[#00A154] w-32 ms-5;
-                    }
-
-                    ul {
-                        @apply flex items-center gap-3;
-                    }
-                }
-            }
-
-            .footnote {
-                @apply text-[#00A154] space-y-1;
-
-                    p {
-                    @apply flex items-center;
-
-                    svg {
-                        @apply w-5 me-5;
-                    }
-                }
-            }
-        }
-    }
-
-    #contact {
-        @apply max-w-2xl absolute top-60 left-5/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
-
-        h2 {
-            @apply font-bold text-sm text-center w-full;
-        }
-
-        h3 {
-            @apply text-xl font-semibold;
-        }
-
-        ul {
-            @apply flex items-center gap-3;
-
-            li {
-                @apply rounded-lg p-3 w-60 hover:-translate-y-0.5 hover:scale-105 origin-center transition-all duration-300;
-
-                a {
-                    @apply space-y-5;
-                }
-
-                p {
-                    @apply font-semibold text-sm text-white;
-                }
-            }
-        }
-    }
-
-    #photos {
-        @apply max-w-3xl absolute top-96 left-1/2 -translate-y-1/2 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
-
-        .sidebar {
-            @apply w-3/12 flex-none bg-black/10 border-r border-black/10 flex flex-col p-5;
-
-            h2 {
-                @apply text-xs font-medium text-black mb-1;
-            }
-
-            ul {
-                li {
-                    @apply flex space-y-1 items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors;
-
-                    &:first-child {
-                        @apply bg-blue-100 text-blue-700;
-                    }
-
-                    img {
-                        @apply w-4;
-                    }
-
-                    p {
-                        @apply text-sm font-medium;
-                    }
-                }
-            }
-        }
-
-        .gallery {
-            @apply p-5;
-
-            ul {
-                @apply grid grid-cols-5 grid-rows-5 gap-2.5;
-
-                li {
-                    img {
-                        @apply size-full object-cover rounded-lg;
-                    }
-
-                    &:first-child {
-                        @apply row-start-1 row-span-3 col-start-1 col-span-3;
-                    }
-
-                    &:nth-child(2) {
-                        @apply row-start-1 row-span-3 col-start-4 col-span-2;
-                    }
-
-                    &:nth-child(3) {
-                        @apply row-start-4 row-span-2 col-start-3 col-span-3;
-                    }
-
-                    &:last-child {
-                        @apply row-start-4 row-span-2 col-start-1 col-span-2;
-                    }
-                }
-            }
-        }
-    }
-
-    #resume {
-        @apply w-fit h-fit absolute top-16 left-7/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
-
-        #window-header {
-            h2 {
-                @apply font-bold text-sm text-center flex-1;
-            }
-        }
-    }
-
-    #finder {
-        @apply backdrop-blur-xl absolute w-3xl left-40 top-20 shadow-2xl drop-shadow-2xl overflow-hidden rounded-xl;
-
-        .sidebar {
-            @apply w-48 bg-gray-50 border-r border-gray-200 flex flex-col p-5 space-y-3;
-
-            h3 {
-                @apply text-xs font-medium text-gray-400 mb-1;
-            }
-
-            ul {
-                @apply space-y-1;
-
-                .active {
-                    @apply bg-blue-100 text-blue-700;
-                }
-
-                .not-active {
-                    @apply text-gray-700 hover:bg-gray-200;
-                }
-
-                li {
-                    @apply flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors;
-                }
-            }
-        }
-
-        .content {
-            @apply flex-1 p-8 max-w-2xl relative;
-
-            li {
-                @apply absolute flex items-center flex-col gap-3;
-
-                img {
-                    @apply object-contain object-center size-16 relative group-hover:scale-105;
-                }
-
-                p {
-                    @apply text-sm text-center font-medium w-40;
-                }
-            }
-        }
-    }
-
-    #txtfile {
-        @apply absolute bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
-        top: 15%;
-        left: 60%;
-        width: 500px;
-        height: 600px;
-        transition: none !important;
-    }
-
-    #imgfile {
-        @apply absolute bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
-        top: 20%;
-        left: 20%;
-        width: 650px;
-        height: 500px;
-        transition: none !important;
-    }
-
-    #home {
-        @apply relative z-0 w-full h-full;
-
-        ul {
-            li {
-                @apply absolute z-0 select-none flex items-center flex-col cursor-pointer;
-
-                img {
-                    @apply group-hover:bg-gray-950/10 p-1 rounded-md;
-                }
-
-                p {
-                    @apply text-sm text-white text-center px-1 rounded-md group-hover:bg-blue-500 transition-colors max-w-40;
-                }
-            }
-        }
-    }
-}
-
-@media (max-width: 768px) {
-    .os-window {
-        top: 0 !important;
-        left: 0 !important;
-        width: 100dvw !important;
-        height: 100dvh !important;
-        border-radius: 0 !important;
-    }
-
-    #window-header {
-        @apply pt-14 pb-3 bg-white/95 backdrop-blur-3xl rounded-none border-b border-gray-200/50;
-    }
-
-    #home ul {
-        @apply grid grid-cols-4 gap-2 sm:gap-4 px-4 relative z-30 w-full max-w-full box-border;
-        margin-top: 38vh; /* THIS PUSHES THE FOLDERS EXACTLY BELOW THE CLOCK WIDGET */
-    }
-    
-    #home ul li {
-        @apply relative top-auto left-auto transform-none flex items-center flex-col gap-1;
-    }
-    
-    #home ul li img {
-        @apply w-[14vw] max-w-[60px] h-[14vw] max-h-[60px] p-0 rounded-[20%] shadow-sm bg-transparent group-hover:bg-transparent;
-    }
-    
-    #home ul li p {
-        @apply text-[11px] font-medium mt-1 bg-transparent group-hover:bg-transparent drop-shadow-md text-center leading-tight;
-    }
-
-
-    #dock {
-        @apply w-[92%] bottom-6 z-40;
-    }
-    
-    #dock .dock-container {
-        @apply rounded-[32px] px-4 py-3 gap-3 w-full shadow-2xl;
-    }
-    
-    #dock .dock-icon {
-        @apply size-12 flex-1 flex justify-center;
-    }
-    
-    #dock .dock-icon img {
-        @apply rounded-[14px];
-    }
-    
-    #dock .tooltip {
-        display: none !important;
-    }
-
-    #window-controls .close {
-        @apply w-8 h-8 bg-gray-200/80 flex items-center justify-center rounded-full;
-    }
-
-    #window-controls .minimize, #window-controls .maximize {
-        @apply hidden;
-    }
-}
-
-@theme inline {
-    --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', sans-serif;
-    --color-sidebar-ring: var(--sidebar-ring);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar: var(--sidebar);
-    --color-chart-5: var(--chart-5);
-    --color-chart-4: var(--chart-4);
-    --color-chart-3: var(--chart-3);
-    --color-chart-2: var(--chart-2);
-    --color-chart-1: var(--chart-1);
-    --color-ring: var(--ring);
-    --color-input: var(--input);
-    --color-border: var(--border);
-    --color-destructive: var(--destructive);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-accent: var(--accent);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-muted: var(--muted);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-secondary: var(--secondary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-primary: var(--primary);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-popover: var(--popover);
-    --color-card-foreground: var(--card-foreground);
-    --color-card: var(--card);
-    --color-foreground: var(--foreground);
-    --color-background: var(--background);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
-}
-
-:root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
-}
-</file>
-
 <file path="src/App.jsx">
 /**
  * 💻 ZPortfolio — MacOS Inspired Creative Portfolio
@@ -2505,6 +1969,7 @@ if (typeof window !== "undefined") {
 const App = () => {
   return (
     <main>
+      <div className="ios-home-indicator" />
       <Navbar />
       <Welcome />
       <Home />
@@ -2938,6 +2403,425 @@ export {
   photosLinks,
   gallery
 };
+</file>
+
+<file path="src/index.css">
+@import url("https://fonts.googleapis.com/css2?family=Georama:ital,wght@0,100..900;1,100..900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap");
+@font-face {
+    font-family: "JetBrainsMonoNF";
+    src: url("/fonts/JetBrainsMono/JetBrainsMonoNerdFont-Regular.ttf") format("truetype");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@import "tailwindcss";
+html, body {
+    width: 100%;
+    max-width: 100vw;
+    height: 100dvh;
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background-image: url("/images/wallpaper.webp");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+@theme {
+    --font-georama: "Georama", sans-serif;
+    --font-terminal: "JetBrainsMonoNF", "Roboto Mono", monospace;
+    --terminal-bg: #0f1720;
+    --terminal-foreground: #cbd5e1;
+    --terminal-accent: #00a154;
+    --breakpoint-3xl: 1920px;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+input::selection {
+    background: rgba(236, 72, 153, 0.3);
+}
+
+@utility flex-center {
+    @apply flex items-center justify-center;
+}
+
+@utility col-center {
+    @apply flex flex-col items-center justify-center;
+}
+
+@utility abs-center {
+    @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
+}
+
+@layer base {
+    main {
+        @apply fixed inset-0 w-full h-full overflow-hidden w-dvw h-dvh;
+    }
+
+    nav {
+        @apply flex justify-between items-center bg-white/30 backdrop-blur-xl p-2 px-5 select-none;
+        div {
+            @apply flex items-center max-sm:w-full max-sm:justify-center gap-5;
+            &:last-child {
+                @apply max-sm:hidden;
+            }
+        }
+        ul {
+            @apply flex items-center gap-5 max-sm:hidden;
+            p {
+                @apply p-1 rounded text-sm cursor-pointer hover:bg-blue-200 hover:text-blue-900 transition-all;
+            }
+        }
+        time {
+            @apply text-sm font-medium text-black;
+        }
+    }
+}
+
+@layer components {
+    .icon {
+        @apply p-1 hover:bg-gray-200 rounded hover:cursor-default;
+    }
+
+    #welcome {
+            @apply text-gray-200 flex flex-col justify-center items-center absolute top-[60vh] md:top-1/2 left-1/2 -translate-x-1/2 md:-translate-y-1/2 select-none w-full px-5;
+        }
+
+    #dock {
+        @apply absolute bottom-5 left-1/2 -translate-x-1/2 z-50 select-none;
+        .dock-container {
+            @apply bg-white/20 backdrop-blur-2xl border border-white/20 justify-between rounded-3xl p-2.5 flex items-end gap-2;
+        }
+        .tooltip {
+            @apply !py-1 !px-3 !w-fit !text-center !text-xs !rounded-md !bg-blue-200 !text-blue-900 !shadow-2xl;
+        }
+        .dock-icon {
+            @apply size-14 3xl:size-20 cursor-pointer;
+            img {
+                @apply object-cover object-center;
+            }
+        }
+    }
+
+    #window-controls {
+        @apply flex gap-2;
+        .close {
+            @apply size-3.5 rounded-full bg-[#ff6157] cursor-pointer;
+        }
+        .minimize {
+            @apply size-3.5 rounded-full bg-[#ffc030];
+        }
+        .maximize {
+            @apply size-3.5 rounded-full bg-[#2acb42];
+        }
+    }
+
+    #window-header {
+        @apply flex items-center justify-between px-4 py-3 rounded-t-lg bg-white/10 border-b border-white/20 select-none text-sm text-indigo-500;
+    }
+
+    #safari {
+        @apply w-4xl absolute top-40 left-2/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
+        .search {
+            @apply flex items-center gap-3 w-2/3 bg-white/30 backdrop-blur-xl border border-gray-300 rounded-lg px-3 py-2;
+            input {
+                @apply placeholder:text-indigo-400;
+            }
+        }
+        .blog {
+            @apply bg-transparent backdrop-blur-xl p-10 max-w-3xl mx-auto;
+            h2 {
+                @apply text-xl font-bold text-pink-600 mb-10;
+            }
+            .blog-post {
+                @apply grid grid-cols-12 space-x-5;
+                img {
+                    @apply size-full rounded-md object-cover;
+                }
+                .content {
+                    @apply col-span-10 space-y-3;
+                    p {
+                        @apply text-xs text-gray-600;
+                    }
+                    h3 {
+                        @apply font-semibold text-base text-gray-800;
+                    }
+                    a {
+                        @apply text-blue-600 text-xs hover:underline flex items-center gap-3;
+                    }
+                }
+            }
+        }
+    }
+
+    #terminal {
+        @apply w-xl absolute top-32 left-1/12 bg-black/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
+        h2 {
+            @apply font-bold text-sm text-center w-full;
+        }
+    }
+
+    #contact {
+        @apply max-w-2xl absolute top-60 left-5/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
+        h2 {
+            @apply font-bold text-sm text-center w-full;
+        }
+        h3 {
+            @apply text-xl font-semibold;
+        }
+        ul {
+            @apply flex items-center gap-3;
+            li {
+                @apply rounded-lg p-3 w-60 hover:-translate-y-0.5 hover:scale-105 origin-center transition-all duration-300;
+                a {
+                    @apply space-y-5;
+                }
+                p {
+                    @apply font-semibold text-sm text-white;
+                }
+            }
+        }
+    }
+
+    #photos {
+        @apply max-w-3xl absolute top-96 left-1/2 -translate-y-1/2 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
+        .sidebar {
+            @apply w-3/12 flex-none bg-black/10 border-r border-black/10 flex flex-col p-5;
+            h2 {
+                @apply text-xs font-medium text-black mb-1;
+            }
+            ul {
+                li {
+                    @apply flex space-y-1 items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors;
+                    &:first-child {
+                        @apply bg-blue-100 text-blue-700;
+                    }
+                    img {
+                        @apply w-4;
+                    }
+                    p {
+                        @apply text-sm font-medium;
+                    }
+                }
+            }
+        }
+        .gallery {
+            @apply p-5;
+            ul {
+                @apply grid grid-cols-5 grid-rows-5 gap-2.5;
+                li {
+                    img {
+                        @apply size-full object-cover rounded-lg;
+                    }
+                    &:first-child {
+                        @apply row-start-1 row-span-3 col-start-1 col-span-3;
+                    }
+                    &:nth-child(2) {
+                        @apply row-start-1 row-span-3 col-start-4 col-span-2;
+                    }
+                    &:nth-child(3) {
+                        @apply row-start-4 row-span-2 col-start-3 col-span-3;
+                    }
+                    &:last-child {
+                        @apply row-start-4 row-span-2 col-start-1 col-span-2;
+                    }
+                }
+            }
+        }
+    }
+
+    #resume {
+        @apply w-fit h-fit absolute top-16 left-7/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
+        #window-header {
+            h2 {
+                @apply font-bold text-sm text-center flex-1;
+            }
+        }
+    }
+
+    #finder {
+        @apply backdrop-blur-xl absolute w-3xl left-40 top-20 shadow-2xl drop-shadow-2xl overflow-hidden rounded-xl;
+        .sidebar {
+            @apply w-48 bg-gray-50 border-r border-gray-200 flex flex-col p-5 space-y-3;
+            h3 {
+                @apply text-xs font-medium text-gray-400 mb-1;
+            }
+            ul {
+                @apply space-y-1;
+                .active {
+                    @apply bg-blue-100 text-blue-700;
+                }
+                .not-active {
+                    @apply text-gray-700 hover:bg-gray-200;
+                }
+                li {
+                    @apply flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors;
+                }
+            }
+        }
+        .content {
+            @apply flex-1 p-8 max-w-2xl relative;
+            li {
+                @apply absolute flex items-center flex-col gap-3;
+                img {
+                    @apply object-contain object-center size-16 relative group-hover:scale-105;
+                }
+                p {
+                    @apply text-sm text-center font-medium w-40;
+                }
+            }
+        }
+    }
+
+    #txtfile {
+        @apply absolute bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
+        top: 15%;
+        left: 60%;
+        width: 500px;
+        height: 600px;
+        transition: none;
+    }
+
+    #imgfile {
+        @apply absolute bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
+        top: 20%;
+        left: 20%;
+        width: 650px;
+        height: 500px;
+        transition: none;
+    }
+
+    #home {
+        @apply relative z-0 w-full h-full;
+        ul {
+            li {
+                @apply absolute z-0 select-none flex items-center flex-col cursor-pointer;
+                img {
+                    @apply group-hover:bg-gray-950/10 p-1 rounded-md;
+                }
+                p {
+                    @apply text-sm text-white text-center px-1 rounded-md group-hover:bg-blue-500 transition-colors max-w-40;
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: 768px) {
+    .os-window {
+        top: 0 ;
+        left: 0 ;
+        width: 100dvw ;
+        height: 100dvh;
+        border-radius: 0;
+        z-index: 100;
+    }
+
+    #window-header {
+        @apply pt-14 pb-3 bg-white/95 backdrop-blur-3xl rounded-none border-b border-gray-200/50;
+    }
+
+    #home ul {
+        @apply grid grid-cols-4 gap-2 sm:gap-4 px-4 relative z-30 w-full max-w-full box-border;
+        margin-top: 38vh;
+    }
+
+    #home ul li {
+        @apply relative top-auto left-auto transform-none flex items-center flex-col gap-1;
+    }
+
+    #home ul li img {
+        @apply w-[14vw] max-w-[60px] h-[14vw] max-h-[60px] p-0 rounded-[20%] shadow-sm bg-transparent group-hover:bg-transparent;
+    }
+
+    #home ul li p {
+        @apply text-[11px] font-medium mt-1 bg-transparent group-hover:bg-transparent drop-shadow-md text-center leading-tight;
+    }
+
+    #dock {
+        @apply w-[92%] bottom-6 z-40;
+    }
+
+    #dock .dock-container {
+        @apply rounded-[32px] px-4 py-3 gap-3 w-full shadow-2xl;
+    }
+
+    #dock .dock-icon {
+        @apply size-12 flex-1 flex justify-center;
+    }
+
+    #dock .dock-icon img {
+        @apply rounded-[14px];
+    }
+
+    #dock .tooltip {
+        display: none;
+    }
+
+    #window-controls .close {
+        @apply w-8 h-8 bg-gray-200/80 flex items-center justify-center rounded-full;
+    }
+
+    #window-controls .minimize, #window-controls .maximize {
+        @apply hidden;
+    }
+
+    .os-window > div:last-child {
+        @apply h-full overflow-y-auto overflow-x-hidden;
+    }
+
+    #finder .sidebar {
+        @apply hidden;
+    }
+
+    #finder .content {
+        @apply block w-full p-6 overflow-y-auto relative;
+        ul {
+            @apply grid grid-cols-3 gap-6 relative;
+        }
+        li {
+            @apply relative top-auto left-auto flex flex-col items-center justify-center w-full;
+        }
+    }
+
+    #photos .sidebar {
+        @apply hidden;
+    }
+
+    #photos .gallery {
+        @apply w-full overflow-y-auto;
+        ul {
+            @apply grid grid-cols-2 gap-3 relative;
+        }
+        li {
+            @apply relative top-auto left-auto col-span-1 row-span-1;
+            img {
+                @apply aspect-square w-full;
+            }
+        }
+    }
+
+    #contact ul {
+        @apply flex-col items-start px-4;
+        li {
+            @apply w-full mb-3;
+        }
+    }
+
+    .ios-home-indicator {
+        @apply fixed bottom-2 left-1/2 -translate-x-1/2 w-32 h-1.5 bg-white/40 rounded-full z-[1000] pointer-events-none;
+    }
+}
 </file>
 
 </files>

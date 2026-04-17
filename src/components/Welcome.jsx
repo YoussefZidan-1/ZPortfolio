@@ -34,13 +34,16 @@ const Welcome = () => {
       const letters = container.querySelectorAll("span[aria-hidden='true']");
       const config = FONT_WEIGHT[type];
 
+      // Smart State Tracking: Prevents GSAP from spamming tweens when the mouse is far away
+      const states = Array.from(letters).map(() => ({ isOutside: true }));
+
       let centers =[];
       const updateCenters = () => {
         centers = Array.from(letters).map((letter) => {
           const rect = letter.getBoundingClientRect();
           return {
             x: rect.left + rect.width / 2,
-            y: rect.top + rect.height / 2, // FIX: Now tracking the Y axis too!
+            y: rect.top + rect.height / 2,
           };
         });
       };
@@ -54,46 +57,66 @@ const Welcome = () => {
         if (!ticking) {
           requestAnimationFrame(() => {
             letters.forEach((letter, i) => {
+              if (!centers[i]) return;
+              
               const dx = clientX - centers[i].x;
               const dy = clientY - centers[i].y;
               const distance = Math.hypot(dx, dy); 
 
-              
               if (distance > 250) {
+                // If the letter is far away, tween back to default ONCE and stop animating it
+                if (!states[i].isOutside) {
+                  gsap.to(letter, {
+                    fontVariationSettings: `'wght' ${config.default}`,
+                    duration: 0.4,
+                    overwrite: true, // "true" is faster than "auto" for GSAP to process
+                    ease: "power2.out",
+                  });
+                  states[i].isOutside = true;
+                }
+              } else {
+                // Mouse is close: animate the weight smoothly like your original code
+                const intensity = Math.exp(-(distance ** 2) / 10000);
+                const weight = config.min + (config.max - config.min) * intensity;
+                
                 gsap.to(letter, {
-                  fontVariationSettings: `'wght' ${config.default}`,
-                  duration: 0.4,
-                  overwrite: "auto",
+                  fontVariationSettings: `'wght' ${weight}`,
+                  duration: 0.1,
+                  overwrite: true,
+                  ease: "none",
                 });
-                return;
+                states[i].isOutside = false;
               }
-
-              const intensity = Math.exp(-(distance ** 2) / 10000);
-              const weight = config.min + (config.max - config.min) * intensity;
-              
-              gsap.to(letter, {
-                fontVariationSettings: `'wght' ${weight}`,
-                duration: 0.1,
-                overwrite: "auto",
-                ease: "none",
-              });
             });
             ticking = false;
           });
           ticking = true;
         }
       };
+      
       const handleMouseMove = (e) => animateLetters(e.clientX, e.clientY);
       const handleTouchMove = (e) => animateLetters(e.touches[0].clientX, e.touches[0].clientY);
 
       const handleMouseLeave = () => {
-        gsap.to(letters, {
-          fontVariationSettings: `'wght' ${config.default}`,
-          duration: 0.5,
-          stagger: 0.01,
-          overwrite: "auto",
-          ease: "power2.out",
+        const activeLetters =[];
+        
+        // Only target letters that are currently modified to save performance
+        letters.forEach((letter, i) => {
+          if (!states[i].isOutside) {
+            activeLetters.push(letter);
+            states[i].isOutside = true;
+          }
         });
+
+        if (activeLetters.length > 0) {
+          gsap.to(activeLetters, {
+            fontVariationSettings: `'wght' ${config.default}`,
+            duration: 0.5,
+            stagger: 0.01,
+            overwrite: true,
+            ease: "power2.out",
+          });
+        }
       };
 
       window.addEventListener("mousemove", handleMouseMove, { passive: true });
