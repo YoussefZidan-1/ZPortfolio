@@ -9,13 +9,13 @@ const Welcome = () => {
         splitBy="letter"
         global={true}
         config={{
+          duration: 1.5,
+          resetDuration: 1.5,
           ease: "elastic",
           resetEase: "elastic"
         }}
         reach={0.6}
         falloff={2}
-        duration={1}
-        resetDuration={1}
         className="cursor-default text-center px-4"
         textClassName="text-[5vw] sm:text-2xl md:text-3xl font-georama font-[150]"
       />
@@ -23,9 +23,9 @@ const Welcome = () => {
         text="ZPortfolio"
         preset="weight"
         global={true}
-        duration={1}
-        resetDuration={1}
         config={{
+          duration: 1,
+          resetDuration: 1,
           weight: [400, 900],
           ease: "elastic",
           resetEase: "elastic"
