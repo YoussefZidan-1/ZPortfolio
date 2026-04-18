@@ -65,6 +65,8 @@ This portfolio is a living project. I’m planning to implement the following fe
 - [ ] 🌓 **Light / Dark Mode:** Implement a full theme-switching mechanism using the existing `oklch` CSS variable structure.
 - [ ] 📱 **Mobile iOS Version:** Transform the desktop layout into a responsive iOS-inspired experience for mobile users.
 - [x] ⌨️ **Interactive Terminal:** Upgrade the static terminal into a functional CLI that accepts commands like `ls`, `cd`, and `cat` autocomplete, open apps and more.
+- [ ]  **Arch Linux Boot Sequence:** When The Website opens it shows a looding arch linux screen like GRUB & SDDM.
+- [ ]  **System Sounds:** Adding subtle sound effects (a mechanical keyboard click for the terminal, a swoosh when a window opens, a crumple sound when something goes to the trash) elevates the "feel" of the OS incredibly.
 
 ---
 
