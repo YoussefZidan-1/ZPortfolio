@@ -3,10 +3,9 @@ import { techStack } from "#constants";
 import WindowWrapper from "#hoc/WindowWrapper.jsx";
 import { Check, Terminal as TerminalIcon } from "lucide-react";
 import WindowControls from "#components/WindowControls.jsx";
-import useWindowStore from "#store/window.js"; // Imported to trigger graphical windows!
+import useWindowStore from "#store/window.js"; 
 
 // 📁 Virtual File System (VFS)
-// Professional Extensibility: Easily add new directories or files here in the future!
 const fileSystem = {
   "about_me.txt": { type: "file", content: "Hey! I'm Youssef 👋, a Creative developer who enjoys building sleek, interactive websites that actually work well.\nI specialize in JavaScript, React, and GSAP—and I love making things feel smooth, fast, and just a little bit delightful." },
   "certificates": { 
@@ -41,9 +40,9 @@ const SYSTEM_APPS = {
 };
 
 const Terminal = () => {
-  const openWindow = useWindowStore((s) => s.openWindow); // Zustand integration
-  const[input, setInput] = useState("");
-  const [cwd, setCwd] = useState([]); // Array represents path,[] is '~' (root)
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const [input, setInput] = useState("");
+  const[cwd, setCwd] = useState([]); // Array represents path,[] is '~' (root)
   const [history, setHistory] = useState([
     { type: "system", content: "Welcome to Z-Shell v1.0.5 (stable)" },
     { type: "system", content: "Type 'help' to see available commands." },
@@ -51,7 +50,6 @@ const Terminal = () => {
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Set default fixed height on mount so flex-1 scrolls instead of expanding infinitely
   useEffect(() => {
     const el = document.getElementById("terminal");
     if (el && !el.style.height) {
@@ -63,31 +61,29 @@ const Terminal = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [history]);
+  },[history]);
 
   const handleTerminalClick = () => {
     inputRef.current?.focus();
   };
 
-  // Resolve an absolute or relative path into a VFS Node
   const resolveNode = (pathArray) => {
     let node = { type: 'dir', content: fileSystem };
     for (const p of pathArray) {
       if (node.type === 'dir' && node.content[p]) {
         node = node.content[p];
       } else {
-        return null; // Invalid path
+        return null; 
       }
     }
     return node;
   };
 
-  // Helper to parse target strings (like "..", "projects", etc)
   const resolvePath = (target) => {
     if (!target) return { node: resolveNode(cwd), path: cwd };
     if (target === '~') return { node: resolveNode([]), path:[] };
     
-    let currentPath = target.startsWith('~') || target.startsWith('/') ? [] :[...cwd];
+    let currentPath = target.startsWith('~') || target.startsWith('/') ? [] : [...cwd];
     const parts = target.replace(/^~?\/?/, '').split('/').filter(Boolean);
     
     for (const p of parts) {
@@ -107,13 +103,11 @@ const Terminal = () => {
     const arg = args[1];
     let response = null;
 
-    // Direct App Launching!
     if (SYSTEM_APPS[cmd]) {
       openWindow(SYSTEM_APPS[cmd].id);
       response = <span className="text-blue-400">Launching {SYSTEM_APPS[cmd].name}...</span>;
     } 
     else {
-      // Standard Commands
       switch (cmd) {
         case "help":
           response = (
@@ -123,8 +117,8 @@ const Terminal = () => {
               <span className="text-blue-400 font-bold">- ls [dir]:</span> List directory contents <br />
               <span className="text-blue-400 font-bold">- cd [dir]:</span> Change directory <br />
               <span className="text-blue-400 font-bold">- pwd:</span> Print working directory <br />
-              <span className="text-blue-400 font-bold">- cat[file]:</span> Display file content in terminal <br />
-              <span className="text-blue-400 font-bold">- open [file]:</span> Open file in graphical window <br />
+              <span className="text-blue-400 font-bold">- cat [file]:</span> Display file content in terminal <br />
+              <span className="text-blue-400 font-bold">- xdg-open[file]:</span> Open file in graphical window <br />
               <span className="text-blue-400 font-bold">- whoami:</span> About the developer <br />
               <span className="text-blue-400 font-bold">- neofetch:</span> System information <br />
               <span className="text-blue-400 font-bold">- clear:</span> Clear terminal output <br /><br />
@@ -212,10 +206,10 @@ const Terminal = () => {
           break;
         }
 
-        // MacOS style "open" command! Opens the actual graphical window!
-        case "open": {
+        // Arch Linux standard for opening graphical files!
+        case "xdg-open": {
           if (!arg) {
-            response = <span className="text-red-400">open: missing file operand</span>;
+            response = <span className="text-red-400">xdg-open: missing file operand</span>;
             break;
           }
           if (SYSTEM_APPS[arg]) {
@@ -226,9 +220,9 @@ const Terminal = () => {
           
           const { node, path } = resolvePath(arg);
           if (!node) {
-            response = <span className="text-red-400">open: {arg}: No such file or directory</span>;
+            response = <span className="text-red-400">xdg-open: {arg}: No such file or directory</span>;
           } else if (node.type === "dir") {
-            response = <span className="text-red-400">open: {arg}: Is a directory</span>;
+            response = <span className="text-red-400">xdg-open: {arg}: Is a directory</span>;
           } else {
             const fileName = path[path.length - 1];
             if (fileName === "techstack.md") {
@@ -311,7 +305,7 @@ const Terminal = () => {
       executeCommand(input);
       setInput("");
     } else {
-      setHistory((prev) => [...prev, { type: "command", content: "", dir: currentDirStr }]);
+      setHistory((prev) =>[...prev, { type: "command", content: "", dir: currentDirStr }]);
     }
   };
 
