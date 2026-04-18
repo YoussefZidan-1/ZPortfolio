@@ -456,7 +456,7 @@ const Terminal = () => {
           <span className="text-indigo-400 whitespace-nowrap">{currentDirStr} ➜</span>
           
           <div className="relative flex-1 flex items-center h-[20px] overflow-hidden">
-            {/* 🎨 Syntax Highlighting & Suggestion Overlay */}
+
             <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center">
               <div ref={overlayRef} className="whitespace-pre font-terminal text-sm flex items-center w-max h-full">
                 <span className={`${cmdColor} font-bold`}>{cmdWord}</span>
@@ -465,7 +465,6 @@ const Terminal = () => {
               </div>
             </div>
             
-            {/* ⌨️ Invisible Native Input */}
             <input
               ref={inputRef}
               type="text"

@@ -321,243 +321,6 @@ createRoot(document.getElementById('root')).render(
 )
 </file>
 
-<file path="src/proximity-engine/Proximity.jsx">
-import { useRef, createContext, useContext } from "react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
-
-const PRESET_DEFAULTS = {
-  scale: [1, 1.5],
-  y: [0, -30],
-  opacity: [0.2, 1],
-  blur: [8, 0],
-  rotate: [0, 90],
-  weight: [100, 900],
-};
-
-const EASE_MAP = {
-  smooth: "power1.inOut",
-  heavy: "power4.out",
-  sharp: "expo.out",
-  fluid: "circ.inOut",
-  bouncy: "back.out(1.7)",
-  elastic: "elastic.out(1, 0.3)",
-  jello: "elastic.out(1.5, 0.2)",
-  bounce: "bounce.out",
-  swing: "back.inOut(3)",
-  vibrate: "rough({ strength: 2, points: 20, template: 'none', taper: 'none', randomize: true })",
-  robot: "steps(8)",
-  ghost: "slow(0.6, 0.8, false)",
-  expo: "expo.inOut",
-  circus: "back.out(4)",
-  glitch: "rough({ template: 'none', strength: 3, points: 50, taper: 'both', randomize: true })",
-  slowmo: "slow(0.7, 0.7, false)"
-};
-
-const calculatePresetValues = (presetString, intensity, userConfig = {}, isReset = false) => {
-  const props = presetString.split("-");
-  const result = {};
-
-  props.forEach((prop) => {
-    const bounds = userConfig[prop] || PRESET_DEFAULTS[prop];
-    if (!bounds) return;
-
-    const [base, max] = bounds;
-    const currentValue = isReset ? base : base + (max - base) * intensity;
-
-    if (prop === "blur") {
-      result.filter = `blur(${currentValue}px)`;
-    } else if (prop === "weight") {
-      const weightVal = Math.round(currentValue);
-      result.fontWeight = weightVal;
-      result.fontVariationSettings = `'wght' ${weightVal}`;
-    } else if (prop === "rotate") {
-      result.rotation = currentValue;
-    } else {
-      result[prop] = currentValue;
-    }
-  });
-
-  return result;
-};
-
-const ProximityContext = createContext({
-  defaultFont: "'Bricolage Grotesque', sans-serif",
-});
-
-export const ProximityProvider = ({ children, config }) => {
-  return (
-    <ProximityContext.Provider value={{ ...config }}>
-      {children}
-    </ProximityContext.Provider>
-  );
-};
-
-export const useProximityConfig = () => useContext(ProximityContext);
-
-export const Proximity = ({
-  children,
-  selector = ".prox-item",
-  preset = "",
-  config = {},
-  onCalculate,
-  onReset,
-  reach = 2,
-  falloff = 2.4,
-  duration = 0.2,
-  resetDuration = 0.4,
-  global = false,
-  className = "",
-  style = {},
-  ...props
-}) => {
-  const containerRef = useRef(null);
-
-  useGSAP(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const items = container.querySelectorAll(selector);
-    const states = Array.from(items).map(() => ({ isOutside: true }));
-    let centers = [];
-    let animationFrameId;
-
-    const setters = Array.from(items).map(item => ({
-      intensity: gsap.quickSetter(item, "--prox-intensity"),
-      dx: gsap.quickSetter(item, "--prox-dx", "px"),
-      dy: gsap.quickSetter(item, "--prox-dy", "px")
-    }));
-
-    const updateCenters = () => {
-      centers = Array.from(items).map((item) => {
-        const rect = item.getBoundingClientRect();
-        return {
-          left: rect.left + window.scrollX,
-          right: rect.right + window.scrollX,
-          top: rect.top + window.scrollY,
-          bottom: rect.bottom + window.scrollY,
-          x: rect.left + window.scrollX + rect.width / 2,
-          y: rect.top + window.scrollY + rect.height / 2,
-        };
-      });
-    };
-
-    const setInitialState = () => {
-      let initialProps = onReset ? onReset() : (preset ? calculatePresetValues(preset, 0, config, true) : {});
-      initialProps.willChange = "transform, filter, opacity, font-variation-settings";
-      if (Object.keys(initialProps).length > 0) gsap.set(items, initialProps);
-    };
-
-    if (document.fonts) {
-      document.fonts.ready.then(updateCenters);
-    } else {
-      setTimeout(updateCenters, 100);
-    }
-    
-    setInitialState();
-
-    window.addEventListener("resize", updateCenters);
-
-    const actualSpread = reach * 10000;
-    const maxDistance = reach * 200;
-
-    const handlePointerMove = (e) => {
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-      animationFrameId = requestAnimationFrame(() => {
-        const mouseX = e.pageX;
-        const mouseY = e.pageY;
-
-        items.forEach((item, i) => {
-          const bounds = centers[i];
-          if (!bounds) return;
-          
-          const dxEdge = Math.max(bounds.left - mouseX, 0, mouseX - bounds.right);
-          const dyEdge = Math.max(bounds.top - mouseY, 0, mouseY - bounds.bottom);
-          const distance = Math.sqrt(dxEdge * dxEdge + dyEdge * dyEdge);
-
-          if (distance > maxDistance) {
-            if (!states[i].isOutside) {
-              const resetProps = onReset ? onReset() : (preset ? calculatePresetValues(preset, 0, config, true) : {});
-              gsap.to(item, {
-                ...resetProps,
-                "--prox-intensity": 0,
-                duration: config.resetDuration ?? resetDuration,
-                overwrite: true,
-                ease: EASE_MAP[config.resetEase] || config.resetEase || "power2.out",
-              });
-              states[i].isOutside = true;
-            }
-            return;
-          }
-
-          const intensity = Math.exp(-(Math.pow(distance, falloff)) / actualSpread);
-
-          setters[i].intensity(intensity.toFixed(3));
-          setters[i].dx(mouseX - bounds.x);
-          setters[i].dy(mouseY - bounds.y);
-
-          const animationProps = onCalculate ? onCalculate(intensity, distance) : (preset ? calculatePresetValues(preset, intensity, config, false) : {});
-          const targetEase = EASE_MAP[config.ease] || config.ease || "power1.out";
-
-          gsap.to(item, {
-            ...animationProps,
-            duration: config.duration ?? duration,
-            overwrite: true,
-            ease: targetEase,
-          });
-          
-          states[i].isOutside = false;
-        });
-      });
-    };
-
-    const handlePointerLeave = () => {
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-      const resetProps = onReset ? onReset() : (preset ? calculatePresetValues(preset, 0, config, true) : {});
-      
-      const activeItems = [];
-      items.forEach((item, i) => {
-        if (!states[i].isOutside) {
-          activeItems.push(item);
-          states[i].isOutside = true;
-        }
-      });
-
-      if (activeItems.length > 0) {
-        gsap.to(activeItems, {
-          ...resetProps,
-          "--prox-intensity": 0,
-          duration: config.resetDuration ?? resetDuration,
-          overwrite: true,
-          ease: EASE_MAP[config.resetEase] || config.resetEase || "power2.out",
-        });
-      }
-    };
-
-    const targetElement = global ? window : container;
-    targetElement.addEventListener("pointermove", handlePointerMove);
-    targetElement.addEventListener("pointerleave", handlePointerLeave);
-    targetElement.addEventListener("pointerup", handlePointerLeave);
-    targetElement.addEventListener("pointercancel", handlePointerLeave);
-
-    return () => {
-      window.removeEventListener("resize", updateCenters);
-      targetElement.removeEventListener("pointermove", handlePointerMove);
-      targetElement.removeEventListener("pointerleave", handlePointerLeave);
-      targetElement.removeEventListener("pointerup", handlePointerLeave);
-      targetElement.removeEventListener("pointercancel", handlePointerLeave);
-      gsap.killTweensOf(items); 
-    };
-  }, [selector, preset, reach, falloff, duration, resetDuration, global, JSON.stringify(config)]);
-
-  return (
-    <div ref={containerRef} className={className} style={{ position: 'relative', touchAction: 'none', ...style }} {...props}>
-      {children}
-    </div>
-  );
-};
-</file>
-
 <file path="src/proximity-engine/ProximityContext.jsx">
 import { createContext, useContext } from "react";
 
@@ -677,6 +440,257 @@ export const ProximityText = ({
     }
   ]
 }
+</file>
+
+<file path="src/proximity-engine/Proximity.jsx">
+import { useRef, createContext, useContext } from "react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+
+const PRESET_DEFAULTS = {
+  scale: [1, 1.5],
+  y:[0, -30],
+  opacity: [0.2, 1],
+  blur: [8, 0],
+  rotate: [0, 90],
+  weight:[100, 900],
+};
+
+const EASE_MAP = {
+  smooth: "power1.inOut",
+  heavy: "power4.out",
+  sharp: "expo.out",
+  fluid: "circ.inOut",
+  bouncy: "back.out(1.7)",
+  elastic: "elastic.out(1, 0.3)",
+  jello: "elastic.out(1.5, 0.2)",
+  bounce: "bounce.out",
+  swing: "back.inOut(3)",
+  vibrate: "rough({ strength: 2, points: 20, template: 'none', taper: 'none', randomize: true })",
+  robot: "steps(8)",
+  ghost: "slow(0.6, 0.8, false)",
+  expo: "expo.inOut",
+  circus: "back.out(4)",
+  glitch: "rough({ template: 'none', strength: 3, points: 50, taper: 'both', randomize: true })",
+  slowmo: "slow(0.7, 0.7, false)"
+};
+
+const calculatePresetValues = (presetString, intensity, userConfig = {}, isReset = false) => {
+  const props = presetString.split("-");
+  const result = {};
+
+  props.forEach((prop) => {
+    const bounds = userConfig[prop] || PRESET_DEFAULTS[prop];
+    if (!bounds) return;
+
+    const [base, max] = bounds;
+    const currentValue = isReset ? base : base + (max - base) * intensity;
+
+    if (prop === "blur") {
+      result.filter = `blur(${currentValue}px)`;
+    } else if (prop === "weight") {
+      const weightVal = Math.round(currentValue);
+      result.fontWeight = weightVal;
+      result.fontVariationSettings = `'wght' ${weightVal}`;
+    } else if (prop === "rotate") {
+      result.rotation = currentValue;
+    } else {
+      result[prop] = currentValue;
+    }
+  });
+
+  return result;
+};
+
+const ProximityContext = createContext({
+  defaultFont: "'Bricolage Grotesque', sans-serif",
+});
+
+export const ProximityProvider = ({ children, config }) => {
+  return (
+    <ProximityContext.Provider value={{ ...config }}>
+      {children}
+    </ProximityContext.Provider>
+  );
+};
+
+export const useProximityConfig = () => useContext(ProximityContext);
+
+export const Proximity = ({
+  children,
+  selector = ".prox-item",
+  preset = "",
+  config = {},
+  onCalculate,
+  onReset,
+  reach = 2,
+  falloff = 2.4,
+  duration = 0.2,
+  resetDuration = 0.4,
+  global = false,
+  className = "",
+  style = {},
+  ...props
+}) => {
+  const containerRef = useRef(null);
+
+  useGSAP(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const items = container.querySelectorAll(selector);
+    const states = Array.from(items).map(() => ({ isOutside: true }));
+    let centers =[];
+    let animationFrameId;
+
+    const setters = Array.from(items).map(item => ({
+      intensity: gsap.quickSetter(item, "--prox-intensity"),
+      dx: gsap.quickSetter(item, "--prox-dx", "px"),
+      dy: gsap.quickSetter(item, "--prox-dy", "px")
+    }));
+
+    const updateCenters = () => {
+      centers = Array.from(items).map((item) => {
+        const rect = item.getBoundingClientRect();
+        return {
+          left: rect.left + window.scrollX,
+          right: rect.right + window.scrollX,
+          top: rect.top + window.scrollY,
+          bottom: rect.bottom + window.scrollY,
+          x: rect.left + window.scrollX + rect.width / 2,
+          y: rect.top + window.scrollY + rect.height / 2,
+        };
+      });
+    };
+
+    const setInitialState = () => {
+      let initialProps = onReset ? onReset() : (preset ? calculatePresetValues(preset, 0, config, true) : {});
+      initialProps.willChange = "transform, filter, opacity, font-variation-settings";
+      if (Object.keys(initialProps).length > 0) gsap.set(items, initialProps);
+    };
+
+    if (document.fonts) {
+      document.fonts.ready.then(updateCenters);
+    } else {
+      setTimeout(updateCenters, 100);
+    }
+    
+    setInitialState();
+
+    window.addEventListener("resize", updateCenters);
+
+    const actualSpread = reach * 10000;
+    const maxDistance = reach * 200;
+
+    const handlePointerMove = (e) => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      animationFrameId = requestAnimationFrame(() => {
+        const mouseX = e.pageX;
+        const mouseY = e.pageY;
+
+        items.forEach((item, i) => {
+          const bounds = centers[i];
+          if (!bounds) return;
+          
+          const dxEdge = Math.max(bounds.left - mouseX, 0, mouseX - bounds.right);
+          const dyEdge = Math.max(bounds.top - mouseY, 0, mouseY - bounds.bottom);
+          const distance = Math.sqrt(dxEdge * dxEdge + dyEdge * dyEdge);
+
+          if (distance > maxDistance) {
+            if (!states[i].isOutside) {
+              const resetProps = onReset ? onReset() : (preset ? calculatePresetValues(preset, 0, config, true) : {});
+              gsap.to(item, {
+                ...resetProps,
+                "--prox-intensity": 0,
+                duration: config.resetDuration ?? resetDuration,
+                overwrite: true,
+                ease: EASE_MAP[config.resetEase] || config.resetEase || "power2.out",
+              });
+              states[i].isOutside = true;
+            }
+            return;
+          }
+
+          const intensity = Math.exp(-(Math.pow(distance, falloff)) / actualSpread);
+
+          setters[i].intensity(intensity.toFixed(3));
+          setters[i].dx(mouseX - bounds.x);
+          setters[i].dy(mouseY - bounds.y);
+
+          const animationProps = onCalculate ? onCalculate(intensity, distance) : (preset ? calculatePresetValues(preset, intensity, config, false) : {});
+          const targetEase = EASE_MAP[config.ease] || config.ease || "power1.out";
+
+          gsap.to(item, {
+            ...animationProps,
+            duration: config.duration ?? duration,
+            overwrite: true,
+            ease: targetEase,
+          });
+          
+          states[i].isOutside = false;
+        });
+      });
+    };
+
+    const handlePointerLeave = () => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      const resetProps = onReset ? onReset() : (preset ? calculatePresetValues(preset, 0, config, true) : {});
+      
+      const activeItems =[];
+      items.forEach((item, i) => {
+        if (!states[i].isOutside) {
+          activeItems.push(item);
+          states[i].isOutside = true;
+        }
+      });
+
+      if (activeItems.length > 0) {
+        gsap.to(activeItems, {
+          ...resetProps,
+          "--prox-intensity": 0,
+          duration: config.resetDuration ?? resetDuration,
+          overwrite: true,
+          ease: EASE_MAP[config.resetEase] || config.resetEase || "power2.out",
+        });
+      }
+    };
+
+    const handleTouchMove = (e) => {
+      if (e.touches && e.touches.length > 0) {
+        handlePointerMove({ pageX: e.touches[0].pageX, pageY: e.touches[0].pageY });
+      }
+    };
+
+    const targetElement = global ? window : container;
+    targetElement.addEventListener("pointermove", handlePointerMove);
+    targetElement.addEventListener("pointerleave", handlePointerLeave);
+    targetElement.addEventListener("pointerup", handlePointerLeave);
+    targetElement.addEventListener("pointercancel", handlePointerLeave);
+    targetElement.addEventListener("touchmove", handleTouchMove, { passive: true });
+    targetElement.addEventListener("touchstart", handleTouchMove, { passive: true });
+    targetElement.addEventListener("touchend", handlePointerLeave);
+    targetElement.addEventListener("touchcancel", handlePointerLeave);
+
+    return () => {
+      window.removeEventListener("resize", updateCenters);
+      targetElement.removeEventListener("pointermove", handlePointerMove);
+      targetElement.removeEventListener("pointerleave", handlePointerLeave);
+      targetElement.removeEventListener("pointerup", handlePointerLeave);
+      targetElement.removeEventListener("pointercancel", handlePointerLeave);
+      targetElement.removeEventListener("touchmove", handleTouchMove);
+      targetElement.removeEventListener("touchstart", handleTouchMove);
+      targetElement.removeEventListener("touchend", handlePointerLeave);
+      targetElement.removeEventListener("touchcancel", handlePointerLeave);
+      gsap.killTweensOf(items); 
+    };
+  },[selector, preset, reach, falloff, duration, resetDuration, global, JSON.stringify(config)]);
+
+  return (
+    <div ref={containerRef} className={className} style={{ position: 'relative', touchAction: 'none', ...style }} {...props}>
+      {children}
+    </div>
+  );
+};
 </file>
 
 <file path="src/windows/Contact.jsx">
@@ -987,246 +1001,6 @@ const useLocationStore = create(
 export default useLocationStore;
 </file>
 
-<file path="src/windows/Terminal.jsx">
-import React, { useState, useRef, useEffect } from "react";
-import { techStack } from "#constants";
-import WindowWrapper from "#hoc/WindowWrapper.jsx";
-import { Check, Terminal as TerminalIcon } from "lucide-react";
-import WindowControls from "#components/WindowControls.jsx";
-
-const Terminal = () => {
-  const [input, setInput] = useState("");
-  const [history, setHistory] = useState([
-    { type: "system", content: "Welcome to Z-Shell v1.0.4 (stable)" },
-    { type: "system", content: "Type 'help' to see available commands." },
-  ]);
-  const scrollRef = useRef(null);
-  const inputRef = useRef(null);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [history]);
-
-  const handleTerminalClick = () => {
-    inputRef.current?.focus();
-  };
-
-  const executeCommand = (cmd) => {
-    const cleanCmd = cmd.trim().toLowerCase();
-    let response = null;
-
-    switch (cleanCmd) {
-      case "help":
-        response = (
-          <div className="text-gray-400">
-            Available commands: <br />
-            <span className="text-blue-400 font-bold">- help:</span> Show this
-            menu <br />
-            <span className="text-blue-400 font-bold">- ls:</span> List
-            directory contents <br />
-            <span className="text-blue-400 font-bold">
-              - cat techstack.md:
-            </span>{" "}
-            Display skills <br />
-            <span className="text-blue-400 font-bold">- whoami:</span> About the
-            developer <br />
-            <span className="text-blue-400 font-bold">- clear:</span> Clear
-            terminal output <br />
-            <span className="text-blue-400 font-bold">- neofetch:</span> System
-            information
-          </div>
-        );
-        break;
-
-      case "ls":
-        response = (
-          <span className="text-white">
-            about_me.txt certificates/ projects/ techstack.md contact.ink
-          </span>
-        );
-        break;
-
-      case "whoami":
-        response = (
-          <span className="text-white">
-            Yousef Zedan - Creative Developer & GSAP Wizard.
-          </span>
-        );
-        break;
-
-      case "cat techstack.md":
-        response = (
-          <div className="mt-2 border-l-2 border-indigo-500 pl-4 py-2 bg-white/5">
-            <div className="label mb-2 flex opacity-50 text-xs uppercase tracking-widest">
-              <p className="w-32 text-white font-bold">Category</p>
-              <p className="text-white font-bold">Technologies</p>
-            </div>
-            <ul className="space-y-2">
-              {techStack.map(({ category, items }) => (
-                <li key={category} className="flex items-start">
-                  <Check className="text-[#00A154] mr-2 mt-1" size={14} />
-                  <h3 className="w-32 font-bold text-[#00A154] text-xs">
-                    {category}
-                  </h3>
-                  <p className="flex-1 text-white text-xs">
-                    {items.join(", ")}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        );
-        break;
-
-      case "neofetch":
-        response = (
-          <div className="flex gap-4 text-xs mt-2">
-            <pre className="text-blue-500 font-bold leading-tight">
-              {`
-    /zzzzzzzz
-   |_____ zz
-        /zz/
-       /zz/
-      /zz/
-     /zz/
-    /zzzzzzzz
-   |________/
-              `}
-            </pre>
-            <div className="space-y-1 text-white">
-              <p>
-                <span className="text-blue-500 font-bold">OS:</span> ZED OS v1.0
-              </p>
-              <p>
-                <span className="text-blue-500 font-bold">Host:</span>{" "}
-                Yousef's-PC
-              </p>
-              <p>
-                <span className="text-blue-500 font-bold">Kernel:</span>{" "}
-                React-19.0.0
-              </p>
-              <p>
-                <span className="text-blue-500 font-bold">Shell:</span> zsh 5.8
-              </p>
-              <p>
-                <span className="text-blue-500 font-bold">WM:</span>{" "}
-                GSAP-Draggable
-              </p>
-              <p>
-                <span className="text-blue-500 font-bold">CPU:</span> Intel Core
-                2 Duo e4600
-              </p>
-              <p>
-                <span className="text-blue-500 font-bold">RAM:</span> 4GB RAM
-                (DDR2)
-              </p>
-              <p>
-                <span className="text-blue-500 font-bold">GPU:</span> AMD R5 240
-                1GB
-              </p>
-            </div>
-          </div>
-        );
-        break;
-
-      case "clear":
-        setHistory([]);
-        return;
-
-      default:
-        response = cleanCmd ? (
-          <span className="text-red-400">
-            zsh: command not found: {cleanCmd}
-          </span>
-        ) : (
-          ""
-        );
-    }
-
-    if (response !== null) {
-      setHistory((prev) => [...prev, { type: "output", content: response }]);
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (input.trim()) {
-      setHistory((prev) => [...prev, { type: "command", content: input }]);
-      executeCommand(input);
-      setInput("");
-    }
-  };
-
-  return (
-    /* FIXED: Added min-h-[450px] so it has a default size, but h-full keeps it synced with resize */
-    <div className="flex flex-col h-full min-h-[450px] w-full overflow-hidden rounded-xl">
-      <div id="window-header" className="!bg-transparent !border-none shrink-0">
-        <WindowControls target="terminal" />
-        <div className="flex items-center gap-2 text-white/50">
-          <TerminalIcon size={14} />
-          <h2 className="font-mono text-xs">zsh — yousef@zportfolio</h2>
-        </div>
-        <div className="w-10" />
-      </div>
-
-      <div
-        /* FIXED: Removed h-[400px]. flex-1 now fills the entire window background automatically */
-        className="flex-1 bg-[#0A0B1A] text-white p-4 font-terminal text-sm overflow-y-auto scrollbar-hide border-t border-white/5"
-        onClick={handleTerminalClick}
-        ref={scrollRef}
-      >
-        <div className="space-y-2">
-          {history.map((line, i) => (
-            <div
-              key={i}
-              className="animate-in fade-in slide-in-from-left-2 duration-300"
-            >
-              {line.type === "command" ? (
-                <div className="flex gap-2">
-                  <span className="text-blue-400 font-bold"> yousef </span>
-                  <span className="text-indigo-400">➜</span>
-                  <span className="text-white">{line.content}</span>
-                </div>
-              ) : (
-                <div
-                  className={
-                    line.type === "system" ? "text-gray-500 italic text-xs" : ""
-                  }
-                >
-                  {line.content}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex gap-2 mt-2">
-          <span className="text-blue-400 font-bold whitespace-nowrap">
-             yousef 
-          </span>
-          <span className="text-indigo-400">➜</span>
-          <input
-            ref={inputRef}
-            type="text"
-            className="flex-1 bg-transparent border-none outline-none text-white caret-pink-500"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            autoFocus
-            spellCheck={false}
-            autoComplete="off"
-          />
-        </form>
-      </div>
-    </div>
-  );
-};
-
-const TerminalWindow = WindowWrapper(Terminal, "terminal");
-export default TerminalWindow;
-</file>
-
 <file path="src/windows/ZenBrowser.jsx">
 import { WindowControls }  from "#components";
 import { blogPosts } from "#constants/index.js";
@@ -1469,228 +1243,6 @@ export default defineConfig({
     },
   },
 })
-</file>
-
-<file path="README.md">
-# 💻 ZPortfolio — MacOS Inspired Creative Portfolio
-
-Welcome to **ZPortfolio**, a highly interactive, MacOS-inspired personal portfolio designed and developed by **Yousef Zedan (ZED Studios)**. This project isn't just a website; it's a browser-based operating system experience built to showcase creative development skills through draggable windows, a functional file explorer, and high-end animations.
-
----
-
-## ✨ Features
-
-- 🖥️ **Desktop OS Experience:** A custom window manager handling minimize, maximize, and close actions with focus-based z-index logic.
-- 🖱️ **Draggable Windows:** Fluid, interactive window movements powered by **GSAP Draggable**.
-- 📁 **Finder (File Explorer):** A fully functional navigation system to browse projects, read text files, and view images.
-- 🌊 **Animated Dock:** A MacOS-style app dock with proximity-based scaling and magnification effects.
-- 📄 **Integrated PDF Viewer:** View and download my professional resume natively within the interface.
-- 🎨 **Dynamic Typography:** Interactive variable font weight adjustments that react to mouse movements.
-- ⚡ **Optimized State Management:** Powered by **Zustand** and **Immer** for seamless window and location handling.
-
----
-
-## 🛠️ Tech Stack
-
-- **Framework:** [React 19](https://react.dev/) & [Vite](https://vitejs.dev/)
-- **Animations:** [GSAP](https://gsap.com/) & [GSAP Draggable](https://gsap.com/docs/v3/Plugins/Draggable/)
-- **State Management:** [Zustand](https://github.com/pmndrs/zustand) (with Immer middleware)
-- **Styling:** [Tailwind CSS v4](https://tailwindcss.com/)
-- **Icons:** [Lucide React](https://lucide.dev/) & Custom SVGs
-- **PDF Rendering:** [React-PDF](https://github.com/wojtekmaj/react-pdf)
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-Ensure you have **Node.js** and **npm** installed on your machine.
-
-### Installation
-
-1. **Clone the repository:**
-   ```sh
-   git clone https://github.com/YoussefZidan-1/ZPortfolio.git
-   ```
-
-2. **Navigate to the project directory:**
-   ```sh
-   cd zportfolio
-   ```
-
-3. **Install dependencies:**
-   ```sh
-   npm install
-   ```
-
-4. **Start the development server:**
-   ```sh
-   npm run dev
-   ```
-
-5. **Open your browser:** Visit `http://localhost:5173` to see the magic.
-
----
-
-## 🗺️ Roadmap (Open Source Goals)
-
-This portfolio is a living project. I’m planning to implement the following features and would love for the community to contribute:
-
-- [ ] 🌓 **Light / Dark Mode:** Implement a full theme-switching mechanism using the existing `oklch` CSS variable structure.
-- [ ] 📱 **Mobile iOS Version:** Transform the desktop layout into a responsive iOS-inspired experience for mobile users.
-- [ ] ⌨️ **Interactive Terminal:** Upgrade the static terminal into a functional CLI that accepts commands like `ls`, `cd`, and `cat`.
-
----
-
-## 📂 Project Structure
-
-```text
-src/
-├── components/      # UI Components: Dock, Navbar, Welcome text, WindowControls
-├── constants/       # Core Data: Apps, Projects, Tech Stack, Social links
-├── hoc/             # HOCs: WindowWrapper for draggable and focus logic
-├── store/           # Zustand Stores: Window manager and directory state
-├── windows/         # App Windows: Finder, Safari, Photos, Terminal, etc.
-└── App.jsx          # Main application registry and layout
-```
-
----
-
-## 📫 Contact & Credits
-
-**Yousef Zedan (ZED Studios)**
-
-<div align="center">
-
-[![Email](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:zedstudios.devs@gmail.com)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/yousef-zedan-6a275a400/)
-[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/YoussefZidan-1/)
-[![X](https://img.shields.io/badge/X-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/YousefZeda59629)
-
-</div>
-<p align="center">
-  Developed with passion by <b>Yousef Zedan (ZED Studios)</b>. <br>
-  <i>"Always building, always learning."</i>
-</p>
-
----
-
-### 🎨 Visual Portfolio Preview
-> **Note:** The icons above will take you directly to my profiles. If you want to see the MacOS experience in action, check out the [Live Demo](https://yzportfolio.vercel.app/).
-
----
-
-## 📝 License
-
-Distributed under the **MIT License**. See `LICENSE` for more information.
-</file>
-
-<file path="src/components/Dock.jsx">
-import { dockApps } from "#constants/index.js";
-import useWindowStore from "#store/window.js";
-import { useGSAP } from "@gsap/react";
-import { gsap } from "gsap";
-import { useRef, memo } from "react";
-import { Tooltip } from "react-tooltip";
-
-const Dock = memo(() => {
-  const openWindow = useWindowStore((s) => s.openWindow);
-  const closeWindow = useWindowStore((s) => s.closeWindow);
-  const windows = useWindowStore((s) => s.windows);
-  
-  const dockRef = useRef(null);
-
-  useGSAP(() => {
-    const dock = dockRef.current;
-    if (!dock) return;
-
-    const icons = dock.querySelectorAll(".dock-icon");
-
-    const animateIcons = (mouseX) => {
-      const { left } = dock.getBoundingClientRect();
-
-      icons.forEach((icon) => {
-        const { left: iconLeft, width } = icon.getBoundingClientRect();
-        const center = iconLeft - left + width / 2;
-        const distance = Math.abs(mouseX - center);
-        const intensity = Math.exp(-(distance ** 2.4) / 20000);
-        gsap.to(icon, {
-          scale: 1 + 0.3 * intensity,
-          y: -20 * intensity,
-          duration: 0.3,
-          ease: "power1.out",
-        });
-      });
-    };
-    const handleMouseMove = (e) => {
-      const { left } = dock.getBoundingClientRect();
-      animateIcons(e.clientX - left);
-    };
-
-    const resetIcons = () =>
-      icons.forEach((icon) =>
-        gsap.to(icon, {
-          scale: 1,
-          y: 0,
-          duration: 0.4,
-          ease: "power1.out",
-        }),
-      );
-
-    dock.addEventListener("mousemove", handleMouseMove, { passive: true });
-    dock.addEventListener("mouseleave", resetIcons);
-
-    return () => {
-      dock.removeEventListener("mousemove", handleMouseMove);
-      dock.removeEventListener("mouseleave", resetIcons);
-    };
-  },[]);
-
-  const toggleApp = (app) => {
-    if (!app.canOpen) return;
-
-    const windowState = windows[app.id];
-    if (windowState?.isOpen) {
-      closeWindow(app.id);
-    } else {
-      openWindow(app.id);
-    }
-  };
-
-  return (
-    <section id="dock">
-      <div ref={dockRef} className="dock-container">
-        {dockApps.map(({ id, name, icon, canOpen }) => (
-          <div key={id ?? name} className="relative flex justify-center">
-            <button
-              type="button"
-              className="dock-icon flex items-center justify-center"
-              aria-label={name}
-              data-tooltip-id="dock-tooltip"
-              data-tooltip-content={name}
-              data-tooltip-delay-show={150}
-              disabled={!canOpen}
-              onClick={() => toggleApp({ id, canOpen })}
-            >
-              <img
-                src={`/images/${icon}`}
-                alt={name}
-                width={56}
-                height={56}
-                loading="lazy"
-                decoding="async"
-                className={canOpen ? "" : "opacity-60"}
-              />
-            </button>
-          </div>
-        ))}
-        <Tooltip id="dock-tooltip" place="top" className="tooltip" />
-      </div>
-    </section>
-  );
-});
-
-export default Dock;
 </file>
 
 <file path="src/hoc/WindowWrapper.jsx">
@@ -2012,6 +1564,193 @@ const ResumeWindow = WindowWrapper(Resume, "resume");
 export default ResumeWindow;
 </file>
 
+<file path="README.md">
+# 💻 ZPortfolio — MacOS Inspired Creative Portfolio
+
+Welcome to **ZPortfolio**, a highly interactive, MacOS-inspired personal portfolio designed and developed by **Yousef Zedan (ZED Studios)**. This project isn't just a website; it's a browser-based operating system experience built to showcase creative development skills through draggable windows, a functional file explorer, and high-end animations.
+
+---
+
+## ✨ Features
+
+- 🖥️ **Desktop OS Experience:** A custom window manager handling minimize, maximize, and close actions with focus-based z-index logic.
+- 🖱️ **Draggable Windows:** Fluid, interactive window movements powered by **GSAP Draggable**.
+- 📁 **Finder (File Explorer):** A fully functional navigation system to browse projects, read text files, and view images.
+- 🌊 **Animated Dock:** A MacOS-style app dock with proximity-based scaling and magnification effects.
+- 📄 **Integrated PDF Viewer:** View and download my professional resume natively within the interface.
+- 🎨 **Dynamic Typography:** Interactive variable font weight adjustments that react to mouse movements.
+- ⚡ **Optimized State Management:** Powered by **Zustand** and **Immer** for seamless window and location handling.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework:** [React 19](https://react.dev/) & [Vite](https://vitejs.dev/)
+- **Animations:** [GSAP](https://gsap.com/) & [GSAP Draggable](https://gsap.com/docs/v3/Plugins/Draggable/)
+- **State Management:** [Zustand](https://github.com/pmndrs/zustand) (with Immer middleware)
+- **Styling:** [Tailwind CSS v4](https://tailwindcss.com/)
+- **Icons:** [Lucide React](https://lucide.dev/) & Custom SVGs
+- **PDF Rendering:** [React-PDF](https://github.com/wojtekmaj/react-pdf)
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+Ensure you have **Node.js** and **npm** installed on your machine.
+
+### Installation
+
+1. **Clone the repository:**
+   ```sh
+   git clone https://github.com/YoussefZidan-1/ZPortfolio.git
+   ```
+
+2. **Navigate to the project directory:**
+   ```sh
+   cd zportfolio
+   ```
+
+3. **Install dependencies:**
+   ```sh
+   npm install
+   ```
+
+4. **Start the development server:**
+   ```sh
+   npm run dev
+   ```
+
+5. **Open your browser:** Visit `http://localhost:5173` to see the magic.
+
+---
+
+## 🗺️ Roadmap (Open Source Goals)
+
+This portfolio is a living project. I’m planning to implement the following features and would love for the community to contribute:
+
+- [ ] 🌓 **Light / Dark Mode:** Implement a full theme-switching mechanism using the existing `oklch` CSS variable structure.
+- [ ] 📱 **Mobile iOS Version:** Transform the desktop layout into a responsive iOS-inspired experience for mobile users.
+- [x] ⌨️ **Interactive Terminal:** Upgrade the static terminal into a functional CLI that accepts commands like `ls`, `cd`, and `cat` autocomplete, open apps and more.
+
+---
+
+## 📂 Project Structure
+
+```text
+src/
+├── components/      # UI Components: Dock, Navbar, Welcome text, WindowControls
+├── constants/       # Core Data: Apps, Projects, Tech Stack, Social links
+├── hoc/             # HOCs: WindowWrapper for draggable and focus logic
+├── store/           # Zustand Stores: Window manager and directory state
+├── windows/         # App Windows: Finder, Safari, Photos, Terminal, etc.
+└── App.jsx          # Main application registry and layout
+```
+
+---
+
+## 📫 Contact & Credits
+
+**Yousef Zedan (ZED Studios)**
+
+<div align="center">
+
+[![Email](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:zedstudios.devs@gmail.com)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/yousef-zedan-6a275a400/)
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/YoussefZidan-1/)
+[![X](https://img.shields.io/badge/X-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/YousefZeda59629)
+
+</div>
+<p align="center">
+  Developed with passion by <b>Yousef Zedan (ZED Studios)</b>. <br>
+  <i>"Always building, always learning."</i>
+</p>
+
+---
+
+### 🎨 Visual Portfolio Preview
+> **Note:** The icons above will take you directly to my profiles. If you want to see the MacOS experience in action, check out the [Live Demo](https://yzportfolio.vercel.app/).
+
+---
+
+## 📝 License
+
+Distributed under the **MIT License**. See `LICENSE` for more information.
+</file>
+
+<file path="src/components/Dock.jsx">
+import { dockApps } from "#constants/index.js";
+import useWindowStore from "#store/window.js";
+import { memo } from "react";
+import { Tooltip } from "react-tooltip";
+import { Proximity } from "../proximity-engine/Proximity.jsx";
+
+const Dock = memo(() => {
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const closeWindow = useWindowStore((s) => s.closeWindow);
+  const windows = useWindowStore((s) => s.windows);
+
+  const toggleApp = (app) => {
+    if (!app.canOpen) return;
+
+    const windowState = windows[app.id];
+    if (windowState?.isOpen) {
+      closeWindow(app.id);
+    } else {
+      openWindow(app.id);
+    }
+  };
+
+  return (
+    <section id="dock">
+      <Proximity
+        className="dock-container"
+        selector=".dock-icon"
+        preset="scale-y"
+        reach={1}
+        falloff={2.4}
+        config={{
+          scale:[1, 1.3],
+          y: [0, -20],
+          duration: 0.1,
+          resetDuration: 1,
+          ease: "power1.out",
+          resetEase: "elastic"
+        }}
+      >
+        {dockApps.map(({ id, name, icon, canOpen }) => (
+          <div key={id ?? name} className="relative flex justify-center">
+            <button
+              type="button"
+              className="dock-icon flex items-center justify-center will-change-transform"
+              aria-label={name}
+              data-tooltip-id="dock-tooltip"
+              data-tooltip-content={name}
+              data-tooltip-delay-show={150}
+              disabled={!canOpen}
+              onClick={() => toggleApp({ id, canOpen })}
+            >
+              <img
+                src={`/images/${icon}`}
+                alt={name}
+                width={56}
+                height={56}
+                loading="lazy"
+                decoding="async"
+                className={canOpen ? "" : "opacity-60"}
+              />
+            </button>
+          </div>
+        ))}
+        <Tooltip id="dock-tooltip" place="top" className="tooltip" />
+      </Proximity>
+    </section>
+  );
+});
+
+export default Dock;
+</file>
+
 <file path="src/windows/index.js">
 import Terminal from "#windows/Terminal.jsx";
 import ZenBrowser from "#windows/ZenBrowser.jsx";
@@ -2022,6 +1761,500 @@ import Image from "#windows/Image.jsx";
 import Contact from "#windows/Contact.jsx";
 import Photos from "#windows/Photos.jsx"
 export { Terminal, ZenBrowser, Resume, Finder, Text, Image, Contact, Photos };
+</file>
+
+<file path="src/windows/Terminal.jsx">
+import React, { useState, useRef, useEffect } from "react";
+import { techStack } from "#constants";
+import WindowWrapper from "#hoc/WindowWrapper.jsx";
+import { Check, Terminal as TerminalIcon } from "lucide-react";
+import WindowControls from "#components/WindowControls.jsx";
+import useWindowStore from "#store/window.js"; 
+
+// 📁 Virtual File System (VFS)
+const fileSystem = {
+  "about_me.txt": { type: "file", content: "Hey! I'm Youssef 👋, a Creative developer who enjoys building sleek, interactive websites that actually work well.\nI specialize in JavaScript, React, and GSAP—and I love making things feel smooth, fast, and just a little bit delightful." },
+  "certificates": { 
+    type: "dir", 
+    content: { 
+      "cs50x.md": { type: "file", content: "Harvard CS50x Certificate\nCompleted: June 27, 2025\nLink: https://cs50.harvard.edu/certificates/4e5fe04c-408a-40f9-9da4-126af12a296f" },
+      "responsive_web.md": { type: "file", content: "freeCodeCamp Responsive Web Design\nCompleted: Jan 11, 2026" },
+      "js_algorithms.md": { type: "file", content: "freeCodeCamp JavaScript Algorithms and Data Structures\nCompleted: Feb 19, 2026" }
+    } 
+  },
+  "projects": { 
+    type: "dir", 
+    content: { 
+      "zcinema.txt": { type: "file", content: "ZCinema\nA sleek and modern platform designed for searching films and trending lists.\nBuilt with React.js and Tailwind." },
+      "zproximity.txt": { type: "file", content: "ZProximity Engine\nA modern platform designed to help programmers make high-performance organic animations using GSAP." }
+    } 
+  },
+  "techstack.md": { type: "file", content: "SPECIAL" },
+  "contact.ink": { type: "file", content: "Email: zedstudios.devs@gmail.com\nLinkedIn: https://www.linkedin.com/in/yousef-zedan-6a275a400/\nGithub: https://github.com/YoussefZidan-1/" }
+};
+
+// 🚀 App Executables map
+const SYSTEM_APPS = {
+  "zen-browser": { id: "safari", name: "Zen Browser" },
+  "safari": { id: "safari", name: "Zen Browser" },
+  "projects": { id: "finder", name: "Projects Explorer" },
+  "finder": { id: "finder", name: "Projects Explorer" },
+  "gallery": { id: "photos", name: "Photos Gallery" },
+  "photos": { id: "photos", name: "Photos Gallery" },
+  "contact": { id: "contact", name: "Contact Manager" },
+  "resume": { id: "resume", name: "Resume Viewer" },
+};
+
+// Valid commands for Syntax Highlighting & Auto-complete
+const validCommands =[
+  "help", "ls", "cd", "pwd", "cat", "xdg-open", "whoami", "neofetch", "clear",
+  ...Object.keys(SYSTEM_APPS)
+];
+
+const Terminal = () => {
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const [input, setInput] = useState("");
+  const [cwd, setCwd] = useState([]); 
+  
+  // Terminal History states
+  const [history, setHistory] = useState([
+    { type: "system", content: "Welcome to Z-Shell v1.0.7 (stable)" },
+    { type: "system", content: "Type 'help' to see available commands." },
+  ]);
+  const [cmdHistory, setCmdHistory] = useState([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+
+  const scrollRef = useRef(null);
+  const inputRef = useRef(null);
+  const overlayRef = useRef(null);
+
+  useEffect(() => {
+    const el = document.getElementById("terminal");
+    if (el && !el.style.height) {
+      el.style.height = "450px"; 
+    }
+  },[]);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [history]);
+
+  const handleTerminalClick = () => {
+    inputRef.current?.focus();
+  };
+
+  const resolveNode = (pathArray) => {
+    let node = { type: 'dir', content: fileSystem };
+    for (const p of pathArray) {
+      if (node.type === 'dir' && node.content[p]) {
+        node = node.content[p];
+      } else {
+        return null; 
+      }
+    }
+    return node;
+  };
+
+  const resolvePath = (target) => {
+    if (!target) return { node: resolveNode(cwd), path: cwd };
+    if (target === '~') return { node: resolveNode([]), path:[] };
+    
+    let currentPath = target.startsWith('~') || target.startsWith('/') ? [] : [...cwd];
+    const parts = target.replace(/^~?\/?/, '').split('/').filter(Boolean);
+    
+    for (const p of parts) {
+      if (p === '.') continue;
+      if (p === '..') {
+        currentPath.pop();
+      } else {
+        currentPath.push(p);
+      }
+    }
+    return { node: resolveNode(currentPath), path: currentPath };
+  };
+
+  // 📝 Real-time ZSH Auto-Suggestion Engine
+  const getSuggestion = () => {
+    if (!input) return "";
+    
+    const parts = input.split(" ");
+    
+    // Command Suggestion
+    if (parts.length === 1) {
+      const matches = validCommands.filter(c => c.startsWith(input));
+      if (matches.length > 0) {
+        return matches[0].substring(input.length) + " "; 
+      }
+      return "";
+    }
+
+    // Path / File Suggestion
+    const target = parts[parts.length - 1];
+    if (!target) return ""; 
+
+    const lastSlashIdx = target.lastIndexOf("/");
+    const dirPart = lastSlashIdx !== -1 ? target.substring(0, lastSlashIdx) : "";
+    const filePart = lastSlashIdx !== -1 ? target.substring(lastSlashIdx + 1) : target;
+    
+    const { node } = resolvePath(dirPart);
+    if (node && node.type === "dir") {
+      const matches = Object.keys(node.content).filter(k => k.startsWith(filePart));
+      if (matches.length > 0) {
+        const match = matches[0]; // Suggest first alphabetical match
+        const isDir = node.content[match].type === "dir";
+        const remainder = match.substring(filePart.length);
+        return remainder + (isDir ? "/" : "");
+      }
+    }
+    return "";
+  };
+
+  const suggestionText = getSuggestion();
+
+  // ⌨️ Keyboard Shortcuts (Arrows & Tab)
+  const handleKeyDown = (e) => {
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (cmdHistory.length > 0) {
+        const nextIndex = historyIndex + 1 < cmdHistory.length ? historyIndex + 1 : historyIndex;
+        setHistoryIndex(nextIndex);
+        setInput(cmdHistory[cmdHistory.length - 1 - nextIndex]);
+      }
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (historyIndex > 0) {
+        const nextIndex = historyIndex - 1;
+        setHistoryIndex(nextIndex);
+        setInput(cmdHistory[cmdHistory.length - 1 - nextIndex]);
+      } else if (historyIndex === 0) {
+        setHistoryIndex(-1);
+        setInput("");
+      }
+    } else if (e.key === "Tab") {
+      e.preventDefault();
+      if (suggestionText) setInput(input + suggestionText);
+    } else if (e.key === "ArrowRight") {
+      // Accept suggestion if the user presses right arrow at the end of their input
+      if (inputRef.current?.selectionStart === input.length && suggestionText) {
+        e.preventDefault();
+        setInput(input + suggestionText);
+      }
+    }
+  };
+
+  const executeCommand = (cmdText) => {
+    const args = cmdText.trim().split(/\s+/);
+    const cmd = args[0].toLowerCase();
+    const arg = args[1];
+    let response = null;
+
+    if (SYSTEM_APPS[cmd]) {
+      openWindow(SYSTEM_APPS[cmd].id);
+      response = <span className="text-blue-400">Launching {SYSTEM_APPS[cmd].name}...</span>;
+    } 
+    else {
+      switch (cmd) {
+        case "help":
+          response = (
+            <div className="text-gray-400">
+              Available commands: <br />
+              <span className="text-blue-400 font-bold">- help:</span> Show this menu <br />
+              <span className="text-blue-400 font-bold">- ls [dir]:</span> List directory contents <br />
+              <span className="text-blue-400 font-bold">- cd [dir]:</span> Change directory <br />
+              <span className="text-blue-400 font-bold">- pwd:</span> Print working directory <br />
+              <span className="text-blue-400 font-bold">- cat [file]:</span> Display file content in terminal <br />
+              <span className="text-blue-400 font-bold">- xdg-open [file]:</span> Open file in graphical window <br />
+              <span className="text-blue-400 font-bold">- whoami:</span> About the developer <br />
+              <span className="text-blue-400 font-bold">- neofetch:</span> System information <br />
+              <span className="text-blue-400 font-bold">- clear:</span> Clear terminal output <br /><br />
+              <span className="text-gray-500">Global Executables:</span> <span className="text-white">zen-browser, projects, gallery, contact, resume</span>
+            </div>
+          );
+          break;
+
+        case "ls": {
+          const { node } = resolvePath(arg || "");
+          if (!node) {
+            response = <span className="text-red-400">ls: no such file or directory: {arg}</span>;
+          } else if (node.type === "file") {
+            response = <span className="text-white">{arg}</span>;
+          } else {
+            const keys = Object.keys(node.content);
+            response = (
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {keys.map(k => (
+                  <span key={k} className={node.content[k].type === "dir" ? "text-blue-400 font-bold" : "text-white"}>
+                    {k}{node.content[k].type === "dir" ? '/' : ''}
+                  </span>
+                ))}
+              </div>
+            );
+          }
+          break;
+        }
+
+        case "cd": {
+          const target = arg || "~";
+          const { node, path } = resolvePath(target);
+          if (!node) {
+            response = <span className="text-red-400">cd: no such file or directory: {arg}</span>;
+          } else if (node.type !== "dir") {
+            response = <span className="text-red-400">cd: not a directory: {arg}</span>;
+          } else {
+            setCwd(path);
+            return; 
+          }
+          break;
+        }
+
+        case "pwd":
+          response = <span className="text-white">~{cwd.length ? '/' + cwd.join('/') : ''}</span>;
+          break;
+
+        case "cat": {
+          if (!arg) {
+            response = <span className="text-red-400">cat: missing file operand</span>;
+            break;
+          }
+          const { node } = resolvePath(arg);
+          if (!node) {
+            response = <span className="text-red-400">cat: {arg}: No such file or directory</span>;
+          } else if (node.type === "dir") {
+            response = <span className="text-red-400">cat: {arg}: Is a directory</span>;
+          } else {
+            if (arg === "techstack.md" || arg.endsWith("/techstack.md")) {
+              response = (
+                <div className="mt-2 border-l-2 border-indigo-500 pl-4 py-2 bg-white/5">
+                  <div className="label mb-2 flex opacity-50 text-xs uppercase tracking-widest">
+                    <p className="w-32 text-white font-bold">Category</p>
+                    <p className="text-white font-bold">Technologies</p>
+                  </div>
+                  <ul className="space-y-2">
+                    {techStack.map(({ category, items }) => (
+                      <li key={category} className="flex items-start">
+                        <Check className="text-[#00A154] mr-2 mt-1" size={14} />
+                        <h3 className="w-32 font-bold text-[#00A154] text-xs">
+                          {category}
+                        </h3>
+                        <p className="flex-1 text-white text-xs">
+                          {items.join(", ")}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            } else {
+              response = <span className="text-white whitespace-pre-wrap leading-relaxed">{node.content}</span>;
+            }
+          }
+          break;
+        }
+
+        case "xdg-open": {
+          if (!arg) {
+            response = <span className="text-red-400">xdg-open: missing file operand</span>;
+            break;
+          }
+          if (SYSTEM_APPS[arg]) {
+            openWindow(SYSTEM_APPS[arg].id);
+            response = <span className="text-blue-400">Launching {SYSTEM_APPS[arg].name}...</span>;
+            break;
+          }
+          
+          const { node, path } = resolvePath(arg);
+          if (!node) {
+            response = <span className="text-red-400">xdg-open: {arg}: No such file or directory</span>;
+          } else if (node.type === "dir") {
+            response = <span className="text-red-400">xdg-open: {arg}: Is a directory</span>;
+          } else {
+            const fileName = path[path.length - 1];
+            if (fileName === "techstack.md") {
+              response = <span className="text-blue-400">techstack.md is a CLI-only module. Use 'cat techstack.md'</span>;
+            } else {
+              openWindow("txtfile", {
+                id: fileName,
+                name: fileName,
+                description: node.content.split('\n')
+              });
+              response = <span className="text-blue-400">Opening {fileName} in Text Editor...</span>;
+            }
+          }
+          break;
+        }
+
+        case "whoami":
+          response = (
+            <span className="text-white">
+              Yousef Zedan - Creative Developer & GSAP Wizard.
+            </span>
+          );
+          break;
+
+        case "neofetch":
+          response = (
+            <div className="flex gap-4 text-xs mt-2">
+              <pre className="text-blue-500 font-bold leading-tight">
+                {`
+      /zzzzzzzz
+     |_____ zz
+          /zz/
+         /zz/
+        /zz/
+       /zz/
+      /zzzzzzzz
+     |________/
+                `}
+              </pre>
+              <div className="space-y-1 text-white">
+                <p><span className="text-blue-500 font-bold">OS:</span> ZED OS v1.0</p>
+                <p><span className="text-blue-500 font-bold">Host:</span> Yousef's-PC</p>
+                <p><span className="text-blue-500 font-bold">Kernel:</span> React-19.0.0</p>
+                <p><span className="text-blue-500 font-bold">Shell:</span> zsh 5.8</p>
+                <p><span className="text-blue-500 font-bold">WM:</span> GSAP-Draggable</p>
+                <p><span className="text-blue-500 font-bold">CPU:</span> Intel Core 2 Duo e4600</p>
+                <p><span className="text-blue-500 font-bold">RAM:</span> 4GB RAM (DDR2)</p>
+                <p><span className="text-blue-500 font-bold">GPU:</span> AMD R5 240 1GB</p>
+              </div>
+            </div>
+          );
+          break;
+
+        case "clear":
+          setHistory([]);
+          return;
+
+        default:
+          response = cmd ? (
+            <span className="text-red-400">
+              zsh: command not found: {cmd}
+            </span>
+          ) : (
+            ""
+          );
+      }
+    }
+
+    if (response !== null) {
+      setHistory((prev) =>[...prev, { type: "output", content: response }]);
+    }
+  };
+
+  const currentDirStr = `~${cwd.length ? '/' + cwd.join('/') : ''}`;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const cleanInput = input.trim();
+    if (cleanInput) {
+      setHistory((prev) => [...prev, { type: "command", content: input, dir: currentDirStr }]);
+      
+      if (cmdHistory[cmdHistory.length - 1] !== cleanInput) {
+        setCmdHistory(prev => [...prev, cleanInput]);
+      }
+      
+      setHistoryIndex(-1);
+      executeCommand(input);
+      setInput("");
+    } else {
+      setHistory((prev) => [...prev, { type: "command", content: "", dir: currentDirStr }]);
+    }
+  };
+
+  const handleInputScroll = (e) => {
+    if (overlayRef.current) {
+      overlayRef.current.style.transform = `translateX(-${e.target.scrollLeft}px)`;
+    }
+  };
+
+  // 🌈 Syntax Highlighting Logic
+  const cmdWord = input.split(" ")[0];
+  const restOfCmd = input.substring(cmdWord.length);
+  const isKnownCommand = validCommands.includes(cmdWord);
+  const cmdColor = cmdWord ? (isKnownCommand ? "text-[#00A154]" : "text-red-500") : "";
+
+  return (
+    <div className="flex flex-col h-full w-full overflow-hidden rounded-xl">
+      <div id="window-header" className="!bg-transparent !border-none shrink-0">
+        <WindowControls target="terminal" />
+        <div className="flex items-center gap-2 text-white/50">
+          <TerminalIcon size={14} />
+          <h2 className="font-mono text-xs">zsh — yousef@zportfolio</h2>
+        </div>
+        <div className="w-10" />
+      </div>
+
+      <div
+        className="flex-1 bg-[#0A0B1A] text-white p-4 font-terminal text-sm overflow-y-auto scrollbar-hide border-t border-white/5"
+        onClick={handleTerminalClick}
+        ref={scrollRef}
+      >
+        <div className="space-y-2">
+          {history.map((line, i) => (
+            <div
+              key={i}
+              className="animate-in fade-in slide-in-from-left-2 duration-300"
+            >
+              {line.type === "command" ? (
+                <div className="flex gap-2">
+                  <span className="text-blue-400 font-bold whitespace-nowrap"> yousef </span>
+                  <span className="text-indigo-400 whitespace-nowrap">{line.dir} ➜</span>
+                  <span className="text-white break-all">{line.content}</span>
+                </div>
+              ) : (
+                <div
+                  className={
+                    line.type === "system" ? "text-gray-500 italic text-xs" : ""
+                  }
+                >
+                  {line.content}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex gap-2 mt-2 items-center relative">
+          <span className="text-blue-400 font-bold whitespace-nowrap">
+             yousef 
+          </span>
+          <span className="text-indigo-400 whitespace-nowrap">{currentDirStr} ➜</span>
+          
+          <div className="relative flex-1 flex items-center h-[20px] overflow-hidden">
+
+            <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center">
+              <div ref={overlayRef} className="whitespace-pre font-terminal text-sm flex items-center w-max h-full">
+                <span className={`${cmdColor} font-bold`}>{cmdWord}</span>
+                <span className="text-white">{restOfCmd}</span>
+                <span className="text-white/30">{suggestionText}</span>
+              </div>
+            </div>
+            
+            <input
+              ref={inputRef}
+              type="text"
+              className="w-full h-full bg-transparent border-none outline-none text-transparent caret-pink-500 font-terminal text-sm m-0 p-0"
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                setHistoryIndex(-1);
+              }}
+              onKeyDown={handleKeyDown}
+              onScroll={handleInputScroll}
+              autoFocus
+              spellCheck={false}
+              autoComplete="off"
+            />
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const TerminalWindow = WindowWrapper(Terminal, "terminal");
+export default TerminalWindow;
 </file>
 
 <file path="src/components/Navbar.jsx">
