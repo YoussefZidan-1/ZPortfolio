@@ -5,7 +5,6 @@ import { Check, Terminal as TerminalIcon } from "lucide-react";
 import WindowControls from "#components/WindowControls.jsx";
 import useWindowStore from "#store/window.js"; 
 
-// 📁 Virtual File System (VFS)
 const fileSystem = {
   "about_me.txt": { type: "file", content: "Hey! I'm Youssef 👋, a Creative developer who enjoys building sleek, interactive websites that actually work well.\nI specialize in JavaScript, React, and GSAP—and I love making things feel smooth, fast, and just a little bit delightful." },
   "certificates": { 
@@ -27,7 +26,6 @@ const fileSystem = {
   "contact.ink": { type: "file", content: "Email: zedstudios.devs@gmail.com\nLinkedIn: https://www.linkedin.com/in/yousef-zedan-6a275a400/\nGithub: https://github.com/YoussefZidan-1/" }
 };
 
-// 🚀 App Executables map
 const SYSTEM_APPS = {
   "zen-browser": { id: "safari", name: "Zen Browser" },
   "safari": { id: "safari", name: "Zen Browser" },
@@ -39,16 +37,26 @@ const SYSTEM_APPS = {
   "resume": { id: "resume", name: "Resume Viewer" },
 };
 
+const validCommands =[
+  "help", "ls", "cd", "pwd", "cat", "xdg-open", "whoami", "fastfetch", "clear",
+  ...Object.keys(SYSTEM_APPS)
+];
+
 const Terminal = () => {
   const openWindow = useWindowStore((s) => s.openWindow);
   const [input, setInput] = useState("");
-  const[cwd, setCwd] = useState([]); // Array represents path,[] is '~' (root)
+  const [cwd, setCwd] = useState([]); 
+  
   const [history, setHistory] = useState([
-    { type: "system", content: "Welcome to Z-Shell v1.0.5 (stable)" },
+    { type: "system", content: "Welcome to Z-Shell v1.0.6 (stable)" },
     { type: "system", content: "Type 'help' to see available commands." },
   ]);
+  const [cmdHistory, setCmdHistory] = useState([]);
+  const[historyIndex, setHistoryIndex] = useState(-1);
+
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
+  const overlayRef = useRef(null);
 
   useEffect(() => {
     const el = document.getElementById("terminal");
@@ -97,6 +105,60 @@ const Terminal = () => {
     return { node: resolveNode(currentPath), path: currentPath };
   };
 
+  const handleTabCompletion = () => {
+    const parts = input.split(" ");
+    
+    if (parts.length === 1) {
+
+      const matches = validCommands.filter(c => c.startsWith(input));
+      if (matches.length === 1) {
+        setInput(matches[0] + " ");
+      }
+    } else {
+      const target = parts[parts.length - 1];
+      const lastSlashIdx = target.lastIndexOf("/");
+      const dirPart = lastSlashIdx !== -1 ? target.substring(0, lastSlashIdx) : "";
+      const filePart = lastSlashIdx !== -1 ? target.substring(lastSlashIdx + 1) : target;
+      
+      const { node } = resolvePath(dirPart);
+      if (node && node.type === "dir") {
+        const matches = Object.keys(node.content).filter(k => k.startsWith(filePart));
+        if (matches.length === 1) {
+          const match = matches[0];
+          const isDir = node.content[match].type === "dir";
+          const newTarget = (dirPart ? dirPart + "/" : "") + match + (isDir ? "/" : "");
+          const newParts = [...parts];
+          newParts[newParts.length - 1] = newTarget;
+          setInput(newParts.join(" "));
+        }
+      }
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (cmdHistory.length > 0) {
+        const nextIndex = historyIndex + 1 < cmdHistory.length ? historyIndex + 1 : historyIndex;
+        setHistoryIndex(nextIndex);
+        setInput(cmdHistory[cmdHistory.length - 1 - nextIndex]);
+      }
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (historyIndex > 0) {
+        const nextIndex = historyIndex - 1;
+        setHistoryIndex(nextIndex);
+        setInput(cmdHistory[cmdHistory.length - 1 - nextIndex]);
+      } else if (historyIndex === 0) {
+        setHistoryIndex(-1);
+        setInput("");
+      }
+    } else if (e.key === "Tab") {
+      e.preventDefault();
+      handleTabCompletion();
+    }
+  };
+
   const executeCommand = (cmdText) => {
     const args = cmdText.trim().split(/\s+/);
     const cmd = args[0].toLowerCase();
@@ -118,9 +180,9 @@ const Terminal = () => {
               <span className="text-blue-400 font-bold">- cd [dir]:</span> Change directory <br />
               <span className="text-blue-400 font-bold">- pwd:</span> Print working directory <br />
               <span className="text-blue-400 font-bold">- cat [file]:</span> Display file content in terminal <br />
-              <span className="text-blue-400 font-bold">- xdg-open[file]:</span> Open file in graphical window <br />
+              <span className="text-blue-400 font-bold">- xdg-open [file]:</span> Open file in graphical window <br />
               <span className="text-blue-400 font-bold">- whoami:</span> About the developer <br />
-              <span className="text-blue-400 font-bold">- neofetch:</span> System information <br />
+              <span className="text-blue-400 font-bold">- fastfetch:</span> System information <br />
               <span className="text-blue-400 font-bold">- clear:</span> Clear terminal output <br /><br />
               <span className="text-gray-500">Global Executables:</span> <span className="text-white">zen-browser, projects, gallery, contact, resume</span>
             </div>
@@ -206,7 +268,6 @@ const Terminal = () => {
           break;
         }
 
-        // Arch Linux standard for opening graphical files!
         case "xdg-open": {
           if (!arg) {
             response = <span className="text-red-400">xdg-open: missing file operand</span>;
@@ -247,7 +308,7 @@ const Terminal = () => {
           );
           break;
 
-        case "neofetch":
+        case "fastfetch":
           response = (
             <div className="flex gap-4 text-xs mt-2">
               <pre className="text-blue-500 font-bold leading-tight">
@@ -300,14 +361,32 @@ const Terminal = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (input.trim()) {
+    const cleanInput = input.trim();
+    if (cleanInput) {
       setHistory((prev) =>[...prev, { type: "command", content: input, dir: currentDirStr }]);
+      
+      if (cmdHistory[cmdHistory.length - 1] !== cleanInput) {
+        setCmdHistory(prev =>[...prev, cleanInput]);
+      }
+      
+      setHistoryIndex(-1);
       executeCommand(input);
       setInput("");
     } else {
       setHistory((prev) =>[...prev, { type: "command", content: "", dir: currentDirStr }]);
     }
   };
+
+  const handleInputScroll = (e) => {
+    if (overlayRef.current) {
+      overlayRef.current.style.transform = `translateX(-${e.target.scrollLeft}px)`;
+    }
+  };
+
+  const cmdWord = input.split(" ")[0];
+  const restOfCmd = input.substring(cmdWord.length);
+  const isKnownCommand = validCommands.includes(cmdWord);
+  const cmdColor = cmdWord ? (isKnownCommand ? "text-[#00A154]" : "text-red-500") : "";
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden rounded-xl">
@@ -350,21 +429,36 @@ const Terminal = () => {
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="flex gap-2 mt-2">
+        <form onSubmit={handleSubmit} className="flex gap-2 mt-2 items-center">
           <span className="text-blue-400 font-bold whitespace-nowrap">
              yousef 
           </span>
           <span className="text-indigo-400 whitespace-nowrap">{currentDirStr} ➜</span>
-          <input
-            ref={inputRef}
-            type="text"
-            className="flex-1 bg-transparent border-none outline-none text-white caret-pink-500"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            autoFocus
-            spellCheck={false}
-            autoComplete="off"
-          />
+          
+          <div className="relative flex-1 flex items-center h-5 overflow-hidden">
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              <div ref={overlayRef} className="whitespace-pre font-terminal text-sm flex items-center w-max h-full">
+                <span className={`${cmdColor} font-bold`}>{cmdWord}</span>
+                <span className="text-white">{restOfCmd}</span>
+              </div>
+            </div>
+            
+            <input
+              ref={inputRef}
+              type="text"
+              className="w-full h-full bg-transparent border-none outline-none text-transparent caret-pink-500 font-terminal text-sm m-0 p-0"
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                setHistoryIndex(-1);
+              }}
+              onKeyDown={handleKeyDown}
+              onScroll={handleInputScroll}
+              autoFocus
+              spellCheck={false}
+              autoComplete="off"
+            />
+          </div>
         </form>
       </div>
     </div>
