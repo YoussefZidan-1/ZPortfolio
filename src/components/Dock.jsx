@@ -1,62 +1,13 @@
 import { dockApps } from "#constants/index.js";
 import useWindowStore from "#store/window.js";
-import { useGSAP } from "@gsap/react";
-import { gsap } from "gsap";
-import { useRef, memo } from "react";
+import { memo } from "react";
 import { Tooltip } from "react-tooltip";
+import { Proximity } from "../proximity-engine/Proximity.jsx";
 
 const Dock = memo(() => {
   const openWindow = useWindowStore((s) => s.openWindow);
   const closeWindow = useWindowStore((s) => s.closeWindow);
   const windows = useWindowStore((s) => s.windows);
-  
-  const dockRef = useRef(null);
-
-  useGSAP(() => {
-    const dock = dockRef.current;
-    if (!dock) return;
-
-    const icons = dock.querySelectorAll(".dock-icon");
-
-    const animateIcons = (mouseX) => {
-      const { left } = dock.getBoundingClientRect();
-
-      icons.forEach((icon) => {
-        const { left: iconLeft, width } = icon.getBoundingClientRect();
-        const center = iconLeft - left + width / 2;
-        const distance = Math.abs(mouseX - center);
-        const intensity = Math.exp(-(distance ** 2.4) / 20000);
-        gsap.to(icon, {
-          scale: 1 + 0.3 * intensity,
-          y: -20 * intensity,
-          duration: 0.3,
-          ease: "power1.out",
-        });
-      });
-    };
-    const handleMouseMove = (e) => {
-      const { left } = dock.getBoundingClientRect();
-      animateIcons(e.clientX - left);
-    };
-
-    const resetIcons = () =>
-      icons.forEach((icon) =>
-        gsap.to(icon, {
-          scale: 1,
-          y: 0,
-          duration: 0.4,
-          ease: "power1.out",
-        }),
-      );
-
-    dock.addEventListener("mousemove", handleMouseMove, { passive: true });
-    dock.addEventListener("mouseleave", resetIcons);
-
-    return () => {
-      dock.removeEventListener("mousemove", handleMouseMove);
-      dock.removeEventListener("mouseleave", resetIcons);
-    };
-  },[]);
 
   const toggleApp = (app) => {
     if (!app.canOpen) return;
@@ -71,12 +22,26 @@ const Dock = memo(() => {
 
   return (
     <section id="dock">
-      <div ref={dockRef} className="dock-container">
+      <Proximity
+        className="dock-container"
+        selector=".dock-icon"
+        preset="scale-y"
+        reach={1}
+        falloff={2.4}
+        config={{
+          scale:[1, 1.3],
+          y: [0, -20],
+          duration: 0.1,
+          resetDuration: 1,
+          ease: "power1.out",
+          resetEase: "elastic"
+        }}
+      >
         {dockApps.map(({ id, name, icon, canOpen }) => (
           <div key={id ?? name} className="relative flex justify-center">
             <button
               type="button"
-              className="dock-icon flex items-center justify-center"
+              className="dock-icon flex items-center justify-center will-change-transform"
               aria-label={name}
               data-tooltip-id="dock-tooltip"
               data-tooltip-content={name}
@@ -97,7 +62,7 @@ const Dock = memo(() => {
           </div>
         ))}
         <Tooltip id="dock-tooltip" place="top" className="tooltip" />
-      </div>
+      </Proximity>
     </section>
   );
 });

@@ -3,15 +3,61 @@ import { techStack } from "#constants";
 import WindowWrapper from "#hoc/WindowWrapper.jsx";
 import { Check, Terminal as TerminalIcon } from "lucide-react";
 import WindowControls from "#components/WindowControls.jsx";
+import useWindowStore from "#store/window.js"; // Imported to trigger graphical windows!
+
+// 📁 Virtual File System (VFS)
+// Professional Extensibility: Easily add new directories or files here in the future!
+const fileSystem = {
+  "about_me.txt": { type: "file", content: "Hey! I'm Youssef 👋, a Creative developer who enjoys building sleek, interactive websites that actually work well.\nI specialize in JavaScript, React, and GSAP—and I love making things feel smooth, fast, and just a little bit delightful." },
+  "certificates": { 
+    type: "dir", 
+    content: { 
+      "cs50x.md": { type: "file", content: "Harvard CS50x Certificate\nCompleted: June 27, 2025\nLink: https://cs50.harvard.edu/certificates/4e5fe04c-408a-40f9-9da4-126af12a296f" },
+      "responsive_web.md": { type: "file", content: "freeCodeCamp Responsive Web Design\nCompleted: Jan 11, 2026" },
+      "js_algorithms.md": { type: "file", content: "freeCodeCamp JavaScript Algorithms and Data Structures\nCompleted: Feb 19, 2026" }
+    } 
+  },
+  "projects": { 
+    type: "dir", 
+    content: { 
+      "zcinema.txt": { type: "file", content: "ZCinema\nA sleek and modern platform designed for searching films and trending lists.\nBuilt with React.js and Tailwind." },
+      "zproximity.txt": { type: "file", content: "ZProximity Engine\nA modern platform designed to help programmers make high-performance organic animations using GSAP." }
+    } 
+  },
+  "techstack.md": { type: "file", content: "SPECIAL" },
+  "contact.ink": { type: "file", content: "Email: zedstudios.devs@gmail.com\nLinkedIn: https://www.linkedin.com/in/yousef-zedan-6a275a400/\nGithub: https://github.com/YoussefZidan-1/" }
+};
+
+// 🚀 App Executables map
+const SYSTEM_APPS = {
+  "zen-browser": { id: "safari", name: "Zen Browser" },
+  "safari": { id: "safari", name: "Zen Browser" },
+  "projects": { id: "finder", name: "Projects Explorer" },
+  "finder": { id: "finder", name: "Projects Explorer" },
+  "gallery": { id: "photos", name: "Photos Gallery" },
+  "photos": { id: "photos", name: "Photos Gallery" },
+  "contact": { id: "contact", name: "Contact Manager" },
+  "resume": { id: "resume", name: "Resume Viewer" },
+};
 
 const Terminal = () => {
-  const [input, setInput] = useState("");
+  const openWindow = useWindowStore((s) => s.openWindow); // Zustand integration
+  const[input, setInput] = useState("");
+  const [cwd, setCwd] = useState([]); // Array represents path,[] is '~' (root)
   const [history, setHistory] = useState([
-    { type: "system", content: "Welcome to Z-Shell v1.0.4 (stable)" },
+    { type: "system", content: "Welcome to Z-Shell v1.0.5 (stable)" },
     { type: "system", content: "Type 'help' to see available commands." },
   ]);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Set default fixed height on mount so flex-1 scrolls instead of expanding infinitely
+  useEffect(() => {
+    const el = document.getElementById("terminal");
+    if (el && !el.style.height) {
+      el.style.height = "450px"; 
+    }
+  },[]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -23,155 +69,254 @@ const Terminal = () => {
     inputRef.current?.focus();
   };
 
-  const executeCommand = (cmd) => {
-    const cleanCmd = cmd.trim().toLowerCase();
+  // Resolve an absolute or relative path into a VFS Node
+  const resolveNode = (pathArray) => {
+    let node = { type: 'dir', content: fileSystem };
+    for (const p of pathArray) {
+      if (node.type === 'dir' && node.content[p]) {
+        node = node.content[p];
+      } else {
+        return null; // Invalid path
+      }
+    }
+    return node;
+  };
+
+  // Helper to parse target strings (like "..", "projects", etc)
+  const resolvePath = (target) => {
+    if (!target) return { node: resolveNode(cwd), path: cwd };
+    if (target === '~') return { node: resolveNode([]), path:[] };
+    
+    let currentPath = target.startsWith('~') || target.startsWith('/') ? [] :[...cwd];
+    const parts = target.replace(/^~?\/?/, '').split('/').filter(Boolean);
+    
+    for (const p of parts) {
+      if (p === '.') continue;
+      if (p === '..') {
+        currentPath.pop();
+      } else {
+        currentPath.push(p);
+      }
+    }
+    return { node: resolveNode(currentPath), path: currentPath };
+  };
+
+  const executeCommand = (cmdText) => {
+    const args = cmdText.trim().split(/\s+/);
+    const cmd = args[0].toLowerCase();
+    const arg = args[1];
     let response = null;
 
-    switch (cleanCmd) {
-      case "help":
-        response = (
-          <div className="text-gray-400">
-            Available commands: <br />
-            <span className="text-blue-400 font-bold">- help:</span> Show this
-            menu <br />
-            <span className="text-blue-400 font-bold">- ls:</span> List
-            directory contents <br />
-            <span className="text-blue-400 font-bold">
-              - cat techstack.md:
-            </span>{" "}
-            Display skills <br />
-            <span className="text-blue-400 font-bold">- whoami:</span> About the
-            developer <br />
-            <span className="text-blue-400 font-bold">- clear:</span> Clear
-            terminal output <br />
-            <span className="text-blue-400 font-bold">- neofetch:</span> System
-            information
-          </div>
-        );
-        break;
-
-      case "ls":
-        response = (
-          <span className="text-white">
-            about_me.txt certificates/ projects/ techstack.md contact.ink
-          </span>
-        );
-        break;
-
-      case "whoami":
-        response = (
-          <span className="text-white">
-            Yousef Zedan - Creative Developer & GSAP Wizard.
-          </span>
-        );
-        break;
-
-      case "cat techstack.md":
-        response = (
-          <div className="mt-2 border-l-2 border-indigo-500 pl-4 py-2 bg-white/5">
-            <div className="label mb-2 flex opacity-50 text-xs uppercase tracking-widest">
-              <p className="w-32 text-white font-bold">Category</p>
-              <p className="text-white font-bold">Technologies</p>
+    // Direct App Launching!
+    if (SYSTEM_APPS[cmd]) {
+      openWindow(SYSTEM_APPS[cmd].id);
+      response = <span className="text-blue-400">Launching {SYSTEM_APPS[cmd].name}...</span>;
+    } 
+    else {
+      // Standard Commands
+      switch (cmd) {
+        case "help":
+          response = (
+            <div className="text-gray-400">
+              Available commands: <br />
+              <span className="text-blue-400 font-bold">- help:</span> Show this menu <br />
+              <span className="text-blue-400 font-bold">- ls [dir]:</span> List directory contents <br />
+              <span className="text-blue-400 font-bold">- cd [dir]:</span> Change directory <br />
+              <span className="text-blue-400 font-bold">- pwd:</span> Print working directory <br />
+              <span className="text-blue-400 font-bold">- cat[file]:</span> Display file content in terminal <br />
+              <span className="text-blue-400 font-bold">- open [file]:</span> Open file in graphical window <br />
+              <span className="text-blue-400 font-bold">- whoami:</span> About the developer <br />
+              <span className="text-blue-400 font-bold">- neofetch:</span> System information <br />
+              <span className="text-blue-400 font-bold">- clear:</span> Clear terminal output <br /><br />
+              <span className="text-gray-500">Global Executables:</span> <span className="text-white">zen-browser, projects, gallery, contact, resume</span>
             </div>
-            <ul className="space-y-2">
-              {techStack.map(({ category, items }) => (
-                <li key={category} className="flex items-start">
-                  <Check className="text-[#00A154] mr-2 mt-1" size={14} />
-                  <h3 className="w-32 font-bold text-[#00A154] text-xs">
-                    {category}
-                  </h3>
-                  <p className="flex-1 text-white text-xs">
-                    {items.join(", ")}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        );
-        break;
+          );
+          break;
 
-      case "neofetch":
-        response = (
-          <div className="flex gap-4 text-xs mt-2">
-            <pre className="text-blue-500 font-bold leading-tight">
-              {`
-    /zzzzzzzz
-   |_____ zz
+        case "ls": {
+          const { node } = resolvePath(arg || "");
+          if (!node) {
+            response = <span className="text-red-400">ls: no such file or directory: {arg}</span>;
+          } else if (node.type === "file") {
+            response = <span className="text-white">{arg}</span>;
+          } else {
+            const keys = Object.keys(node.content);
+            response = (
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {keys.map(k => (
+                  <span key={k} className={node.content[k].type === "dir" ? "text-blue-400 font-bold" : "text-white"}>
+                    {k}{node.content[k].type === "dir" ? '/' : ''}
+                  </span>
+                ))}
+              </div>
+            );
+          }
+          break;
+        }
+
+        case "cd": {
+          const target = arg || "~";
+          const { node, path } = resolvePath(target);
+          if (!node) {
+            response = <span className="text-red-400">cd: no such file or directory: {arg}</span>;
+          } else if (node.type !== "dir") {
+            response = <span className="text-red-400">cd: not a directory: {arg}</span>;
+          } else {
+            setCwd(path);
+            return; 
+          }
+          break;
+        }
+
+        case "pwd":
+          response = <span className="text-white">~{cwd.length ? '/' + cwd.join('/') : ''}</span>;
+          break;
+
+        case "cat": {
+          if (!arg) {
+            response = <span className="text-red-400">cat: missing file operand</span>;
+            break;
+          }
+          const { node } = resolvePath(arg);
+          if (!node) {
+            response = <span className="text-red-400">cat: {arg}: No such file or directory</span>;
+          } else if (node.type === "dir") {
+            response = <span className="text-red-400">cat: {arg}: Is a directory</span>;
+          } else {
+            if (arg === "techstack.md" || arg.endsWith("/techstack.md")) {
+              response = (
+                <div className="mt-2 border-l-2 border-indigo-500 pl-4 py-2 bg-white/5">
+                  <div className="label mb-2 flex opacity-50 text-xs uppercase tracking-widest">
+                    <p className="w-32 text-white font-bold">Category</p>
+                    <p className="text-white font-bold">Technologies</p>
+                  </div>
+                  <ul className="space-y-2">
+                    {techStack.map(({ category, items }) => (
+                      <li key={category} className="flex items-start">
+                        <Check className="text-[#00A154] mr-2 mt-1" size={14} />
+                        <h3 className="w-32 font-bold text-[#00A154] text-xs">
+                          {category}
+                        </h3>
+                        <p className="flex-1 text-white text-xs">
+                          {items.join(", ")}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            } else {
+              response = <span className="text-white whitespace-pre-wrap leading-relaxed">{node.content}</span>;
+            }
+          }
+          break;
+        }
+
+        // MacOS style "open" command! Opens the actual graphical window!
+        case "open": {
+          if (!arg) {
+            response = <span className="text-red-400">open: missing file operand</span>;
+            break;
+          }
+          if (SYSTEM_APPS[arg]) {
+            openWindow(SYSTEM_APPS[arg].id);
+            response = <span className="text-blue-400">Launching {SYSTEM_APPS[arg].name}...</span>;
+            break;
+          }
+          
+          const { node, path } = resolvePath(arg);
+          if (!node) {
+            response = <span className="text-red-400">open: {arg}: No such file or directory</span>;
+          } else if (node.type === "dir") {
+            response = <span className="text-red-400">open: {arg}: Is a directory</span>;
+          } else {
+            const fileName = path[path.length - 1];
+            if (fileName === "techstack.md") {
+              response = <span className="text-blue-400">techstack.md is a CLI-only module. Use 'cat techstack.md'</span>;
+            } else {
+              openWindow("txtfile", {
+                id: fileName,
+                name: fileName,
+                description: node.content.split('\n')
+              });
+              response = <span className="text-blue-400">Opening {fileName} in Text Editor...</span>;
+            }
+          }
+          break;
+        }
+
+        case "whoami":
+          response = (
+            <span className="text-white">
+              Yousef Zedan - Creative Developer & GSAP Wizard.
+            </span>
+          );
+          break;
+
+        case "neofetch":
+          response = (
+            <div className="flex gap-4 text-xs mt-2">
+              <pre className="text-blue-500 font-bold leading-tight">
+                {`
+      /zzzzzzzz
+     |_____ zz
+          /zz/
+         /zz/
         /zz/
        /zz/
-      /zz/
-     /zz/
-    /zzzzzzzz
-   |________/
-              `}
-            </pre>
-            <div className="space-y-1 text-white">
-              <p>
-                <span className="text-blue-500 font-bold">OS:</span> ZED OS v1.0
-              </p>
-              <p>
-                <span className="text-blue-500 font-bold">Host:</span>{" "}
-                Yousef's-PC
-              </p>
-              <p>
-                <span className="text-blue-500 font-bold">Kernel:</span>{" "}
-                React-19.0.0
-              </p>
-              <p>
-                <span className="text-blue-500 font-bold">Shell:</span> zsh 5.8
-              </p>
-              <p>
-                <span className="text-blue-500 font-bold">WM:</span>{" "}
-                GSAP-Draggable
-              </p>
-              <p>
-                <span className="text-blue-500 font-bold">CPU:</span> Intel Core
-                2 Duo e4600
-              </p>
-              <p>
-                <span className="text-blue-500 font-bold">RAM:</span> 4GB RAM
-                (DDR2)
-              </p>
-              <p>
-                <span className="text-blue-500 font-bold">GPU:</span> AMD R5 240
-                1GB
-              </p>
+      /zzzzzzzz
+     |________/
+                `}
+              </pre>
+              <div className="space-y-1 text-white">
+                <p><span className="text-blue-500 font-bold">OS:</span> ZED OS v1.0</p>
+                <p><span className="text-blue-500 font-bold">Host:</span> Yousef's-PC</p>
+                <p><span className="text-blue-500 font-bold">Kernel:</span> React-19.0.0</p>
+                <p><span className="text-blue-500 font-bold">Shell:</span> zsh 5.8</p>
+                <p><span className="text-blue-500 font-bold">WM:</span> GSAP-Draggable</p>
+                <p><span className="text-blue-500 font-bold">CPU:</span> Intel Core 2 Duo e4600</p>
+                <p><span className="text-blue-500 font-bold">RAM:</span> 4GB RAM (DDR2)</p>
+                <p><span className="text-blue-500 font-bold">GPU:</span> AMD R5 240 1GB</p>
+              </div>
             </div>
-          </div>
-        );
-        break;
+          );
+          break;
 
-      case "clear":
-        setHistory([]);
-        return;
+        case "clear":
+          setHistory([]);
+          return;
 
-      default:
-        response = cleanCmd ? (
-          <span className="text-red-400">
-            zsh: command not found: {cleanCmd}
-          </span>
-        ) : (
-          ""
-        );
+        default:
+          response = cmd ? (
+            <span className="text-red-400">
+              zsh: command not found: {cmd}
+            </span>
+          ) : (
+            ""
+          );
+      }
     }
 
     if (response !== null) {
-      setHistory((prev) => [...prev, { type: "output", content: response }]);
+      setHistory((prev) =>[...prev, { type: "output", content: response }]);
     }
   };
+
+  const currentDirStr = `~${cwd.length ? '/' + cwd.join('/') : ''}`;
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (input.trim()) {
-      setHistory((prev) => [...prev, { type: "command", content: input }]);
+      setHistory((prev) =>[...prev, { type: "command", content: input, dir: currentDirStr }]);
       executeCommand(input);
       setInput("");
+    } else {
+      setHistory((prev) => [...prev, { type: "command", content: "", dir: currentDirStr }]);
     }
   };
 
   return (
-    /* FIXED: Added min-h-[450px] so it has a default size, but h-full keeps it synced with resize */
-    <div className="flex flex-col h-full min-h-[450px] w-full overflow-hidden rounded-xl">
+    <div className="flex flex-col h-full w-full overflow-hidden rounded-xl">
       <div id="window-header" className="!bg-transparent !border-none shrink-0">
         <WindowControls target="terminal" />
         <div className="flex items-center gap-2 text-white/50">
@@ -182,7 +327,6 @@ const Terminal = () => {
       </div>
 
       <div
-        /* FIXED: Removed h-[400px]. flex-1 now fills the entire window background automatically */
         className="flex-1 bg-[#0A0B1A] text-white p-4 font-terminal text-sm overflow-y-auto scrollbar-hide border-t border-white/5"
         onClick={handleTerminalClick}
         ref={scrollRef}
@@ -195,9 +339,9 @@ const Terminal = () => {
             >
               {line.type === "command" ? (
                 <div className="flex gap-2">
-                  <span className="text-blue-400 font-bold"> yousef </span>
-                  <span className="text-indigo-400">➜</span>
-                  <span className="text-white">{line.content}</span>
+                  <span className="text-blue-400 font-bold whitespace-nowrap"> yousef </span>
+                  <span className="text-indigo-400 whitespace-nowrap">{line.dir} ➜</span>
+                  <span className="text-white break-all">{line.content}</span>
                 </div>
               ) : (
                 <div
@@ -216,7 +360,7 @@ const Terminal = () => {
           <span className="text-blue-400 font-bold whitespace-nowrap">
              yousef 
           </span>
-          <span className="text-indigo-400">➜</span>
+          <span className="text-indigo-400 whitespace-nowrap">{currentDirStr} ➜</span>
           <input
             ref={inputRef}
             type="text"
