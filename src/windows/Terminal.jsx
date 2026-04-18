@@ -5,6 +5,7 @@ import { Check, Terminal as TerminalIcon } from "lucide-react";
 import WindowControls from "#components/WindowControls.jsx";
 import useWindowStore from "#store/window.js"; 
 
+// 📁 Virtual File System (VFS)
 const fileSystem = {
   "about_me.txt": { type: "file", content: "Hey! I'm Youssef 👋, a Creative developer who enjoys building sleek, interactive websites that actually work well.\nI specialize in JavaScript, React, and GSAP—and I love making things feel smooth, fast, and just a little bit delightful." },
   "certificates": { 
@@ -26,6 +27,7 @@ const fileSystem = {
   "contact.ink": { type: "file", content: "Email: zedstudios.devs@gmail.com\nLinkedIn: https://www.linkedin.com/in/yousef-zedan-6a275a400/\nGithub: https://github.com/YoussefZidan-1/" }
 };
 
+// 🚀 App Executables map
 const SYSTEM_APPS = {
   "zen-browser": { id: "safari", name: "Zen Browser" },
   "safari": { id: "safari", name: "Zen Browser" },
@@ -37,8 +39,9 @@ const SYSTEM_APPS = {
   "resume": { id: "resume", name: "Resume Viewer" },
 };
 
+// Valid commands for Syntax Highlighting & Auto-complete
 const validCommands =[
-  "help", "ls", "cd", "pwd", "cat", "xdg-open", "whoami", "fastfetch", "clear",
+  "help", "ls", "cd", "pwd", "cat", "xdg-open", "whoami", "neofetch", "clear",
   ...Object.keys(SYSTEM_APPS)
 ];
 
@@ -47,12 +50,13 @@ const Terminal = () => {
   const [input, setInput] = useState("");
   const [cwd, setCwd] = useState([]); 
   
+  // Terminal History states
   const [history, setHistory] = useState([
-    { type: "system", content: "Welcome to Z-Shell v1.0.6 (stable)" },
+    { type: "system", content: "Welcome to Z-Shell v1.0.7 (stable)" },
     { type: "system", content: "Type 'help' to see available commands." },
   ]);
   const [cmdHistory, setCmdHistory] = useState([]);
-  const[historyIndex, setHistoryIndex] = useState(-1);
+  const [historyIndex, setHistoryIndex] = useState(-1);
 
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
@@ -69,7 +73,7 @@ const Terminal = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  },[history]);
+  }, [history]);
 
   const handleTerminalClick = () => {
     inputRef.current?.focus();
@@ -105,36 +109,45 @@ const Terminal = () => {
     return { node: resolveNode(currentPath), path: currentPath };
   };
 
-  const handleTabCompletion = () => {
+  // 📝 Real-time ZSH Auto-Suggestion Engine
+  const getSuggestion = () => {
+    if (!input) return "";
+    
     const parts = input.split(" ");
     
+    // Command Suggestion
     if (parts.length === 1) {
-
       const matches = validCommands.filter(c => c.startsWith(input));
-      if (matches.length === 1) {
-        setInput(matches[0] + " ");
+      if (matches.length > 0) {
+        return matches[0].substring(input.length) + " "; 
       }
-    } else {
-      const target = parts[parts.length - 1];
-      const lastSlashIdx = target.lastIndexOf("/");
-      const dirPart = lastSlashIdx !== -1 ? target.substring(0, lastSlashIdx) : "";
-      const filePart = lastSlashIdx !== -1 ? target.substring(lastSlashIdx + 1) : target;
-      
-      const { node } = resolvePath(dirPart);
-      if (node && node.type === "dir") {
-        const matches = Object.keys(node.content).filter(k => k.startsWith(filePart));
-        if (matches.length === 1) {
-          const match = matches[0];
-          const isDir = node.content[match].type === "dir";
-          const newTarget = (dirPart ? dirPart + "/" : "") + match + (isDir ? "/" : "");
-          const newParts = [...parts];
-          newParts[newParts.length - 1] = newTarget;
-          setInput(newParts.join(" "));
-        }
+      return "";
+    }
+
+    // Path / File Suggestion
+    const target = parts[parts.length - 1];
+    if (!target) return ""; 
+
+    const lastSlashIdx = target.lastIndexOf("/");
+    const dirPart = lastSlashIdx !== -1 ? target.substring(0, lastSlashIdx) : "";
+    const filePart = lastSlashIdx !== -1 ? target.substring(lastSlashIdx + 1) : target;
+    
+    const { node } = resolvePath(dirPart);
+    if (node && node.type === "dir") {
+      const matches = Object.keys(node.content).filter(k => k.startsWith(filePart));
+      if (matches.length > 0) {
+        const match = matches[0]; // Suggest first alphabetical match
+        const isDir = node.content[match].type === "dir";
+        const remainder = match.substring(filePart.length);
+        return remainder + (isDir ? "/" : "");
       }
     }
+    return "";
   };
 
+  const suggestionText = getSuggestion();
+
+  // ⌨️ Keyboard Shortcuts (Arrows & Tab)
   const handleKeyDown = (e) => {
     if (e.key === "ArrowUp") {
       e.preventDefault();
@@ -155,7 +168,13 @@ const Terminal = () => {
       }
     } else if (e.key === "Tab") {
       e.preventDefault();
-      handleTabCompletion();
+      if (suggestionText) setInput(input + suggestionText);
+    } else if (e.key === "ArrowRight") {
+      // Accept suggestion if the user presses right arrow at the end of their input
+      if (inputRef.current?.selectionStart === input.length && suggestionText) {
+        e.preventDefault();
+        setInput(input + suggestionText);
+      }
     }
   };
 
@@ -182,7 +201,7 @@ const Terminal = () => {
               <span className="text-blue-400 font-bold">- cat [file]:</span> Display file content in terminal <br />
               <span className="text-blue-400 font-bold">- xdg-open [file]:</span> Open file in graphical window <br />
               <span className="text-blue-400 font-bold">- whoami:</span> About the developer <br />
-              <span className="text-blue-400 font-bold">- fastfetch:</span> System information <br />
+              <span className="text-blue-400 font-bold">- neofetch:</span> System information <br />
               <span className="text-blue-400 font-bold">- clear:</span> Clear terminal output <br /><br />
               <span className="text-gray-500">Global Executables:</span> <span className="text-white">zen-browser, projects, gallery, contact, resume</span>
             </div>
@@ -308,7 +327,7 @@ const Terminal = () => {
           );
           break;
 
-        case "fastfetch":
+        case "neofetch":
           response = (
             <div className="flex gap-4 text-xs mt-2">
               <pre className="text-blue-500 font-bold leading-tight">
@@ -363,17 +382,17 @@ const Terminal = () => {
     e.preventDefault();
     const cleanInput = input.trim();
     if (cleanInput) {
-      setHistory((prev) =>[...prev, { type: "command", content: input, dir: currentDirStr }]);
+      setHistory((prev) => [...prev, { type: "command", content: input, dir: currentDirStr }]);
       
       if (cmdHistory[cmdHistory.length - 1] !== cleanInput) {
-        setCmdHistory(prev =>[...prev, cleanInput]);
+        setCmdHistory(prev => [...prev, cleanInput]);
       }
       
       setHistoryIndex(-1);
       executeCommand(input);
       setInput("");
     } else {
-      setHistory((prev) =>[...prev, { type: "command", content: "", dir: currentDirStr }]);
+      setHistory((prev) => [...prev, { type: "command", content: "", dir: currentDirStr }]);
     }
   };
 
@@ -383,6 +402,7 @@ const Terminal = () => {
     }
   };
 
+  // 🌈 Syntax Highlighting Logic
   const cmdWord = input.split(" ")[0];
   const restOfCmd = input.substring(cmdWord.length);
   const isKnownCommand = validCommands.includes(cmdWord);
@@ -429,20 +449,23 @@ const Terminal = () => {
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="flex gap-2 mt-2 items-center">
+        <form onSubmit={handleSubmit} className="flex gap-2 mt-2 items-center relative">
           <span className="text-blue-400 font-bold whitespace-nowrap">
              yousef 
           </span>
           <span className="text-indigo-400 whitespace-nowrap">{currentDirStr} ➜</span>
           
-          <div className="relative flex-1 flex items-center h-5 overflow-hidden">
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="relative flex-1 flex items-center h-[20px] overflow-hidden">
+            {/* 🎨 Syntax Highlighting & Suggestion Overlay */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center">
               <div ref={overlayRef} className="whitespace-pre font-terminal text-sm flex items-center w-max h-full">
                 <span className={`${cmdColor} font-bold`}>{cmdWord}</span>
                 <span className="text-white">{restOfCmd}</span>
+                <span className="text-white/30">{suggestionText}</span>
               </div>
             </div>
             
+            {/* ⌨️ Invisible Native Input */}
             <input
               ref={inputRef}
               type="text"
