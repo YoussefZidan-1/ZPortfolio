@@ -11,7 +11,7 @@ const WindowControls = ({ target }) => {
         type="button"
         className="close cursor-pointer" 
         onClick={(e) => {
-            e.stopPropagation(); // Forces mobile browsers to trigger click immediately
+            e.stopPropagation();
             closeWindow(target);
         }}
       >
