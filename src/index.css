@@ -130,7 +130,7 @@
                 }
             }
             .blog {
-                @apply bg-transparent backdrop-blur-xl max-md:h-full max-md:overflow-y-auto max-md:bg-white;
+                @apply max-md:h-full max-md:overflow-y-auto max-md:bg-white;
                 .blog-container {
                     @apply p-10 max-w-3xl mx-auto max-md:p-6 max-md:w-full max-md:max-w-full pb-20;
                 }
@@ -138,7 +138,7 @@
                     @apply text-xl font-bold text-pink-600 mb-10 max-md:text-2xl max-md:text-black max-md:mb-6 text-center max-md:text-center;
                 }
                 .blog-post {
-                    @apply grid grid-cols-12 space-x-5 max-md:flex max-md:flex-col max-md:gap-4 max-md:mb-10 max-md:ml-0 max-md:space-x-0 bg-white/50 max-md:bg-gray-50 max-md:p-3 max-md:rounded-3xl shadow-sm max-md:shadow-none;
+                    @apply grid grid-cols-12 space-x-5 max-md:flex max-md:flex-col max-md:gap-4 max-md:mb-10 max-md:ml-0 max-md:space-x-0 bg-white/50 max-md:bg-gray-50 max-md:p-3 rounded-3xl p-5 max-md:rounded-3xl shadow-sm max-md:shadow-none;
                     img {
                         @apply size-full rounded-md object-cover max-md:w-full max-md:h-auto max-md:object-contain max-md:rounded-2xl max-md:bg-gray-200 shadow-sm;
                     }
