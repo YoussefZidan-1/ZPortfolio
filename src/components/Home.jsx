@@ -69,6 +69,11 @@ const Home = () => {
     return () => window.removeEventListener("resize", initDrag);
   },[]);
 
+  // Intercept the apps array to replace Trash with Resume ONLY on mobile
+  const mobileApps = dockApps.map(app => 
+    app.id === "trash" ? { id: "resume", name: "Resume", icon: "pdf.png", canOpen: true } : app
+  );
+
   return (
     <section id="home" className="absolute inset-0 w-full h-full z-0 overflow-hidden">
       <div className="absolute top-[12vh] left-0 w-full flex flex-col items-center justify-center md:hidden text-white drop-shadow-xl z-20 pointer-events-none select-none">
@@ -101,7 +106,7 @@ const Home = () => {
       </ul>
 
       <ul className="hidden max-md:grid grid-cols-4 gap-x-2 gap-y-6 px-5 relative z-30 w-full box-border mt-[38vh]">
-        {dockApps.map((app) => (
+        {mobileApps.map((app) => (
           <li 
             key={app.id || app.name}
             onClick={(e) => handleOpenApp(e, app)}
@@ -111,7 +116,7 @@ const Home = () => {
               src={`/images/${app.icon}`} 
               alt={app.name} 
               className={clsx(
-                "w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover shadow-sm rounded-[22.5%]",
+                "w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover",
                 !app.canOpen && "opacity-60"
               )}
             />
@@ -129,7 +134,7 @@ const Home = () => {
             <img 
               src="/images/folder.png" 
               alt={project.name} 
-              className="w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover shadow-sm rounded-[22.5%]"
+              className="w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover"
             />
             <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
               {project.name}

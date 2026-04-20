@@ -1,4 +1,4 @@
-import React, { useState, useMemo, memo } from 'react';
+import React, { useState, useMemo, memo, useEffect } from 'react';
 import { pdfjs, Document, Page } from 'react-pdf';
 import { WindowControls } from "#components/index.js";
 import WindowWrapper from "#hoc/WindowWrapper.jsx";
@@ -11,24 +11,46 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 
 const Resume = memo(() => {
   const [numPages, setNumPages] = useState(null);
+  const [pdfWidth, setPdfWidth] = useState(
+    typeof window !== 'undefined' && window.innerWidth < 768 ? window.innerWidth - 32 : null
+  );
+
+  // Automatically adjust the PDF width when resizing the window
+  useEffect(() => {
+    const handleResize = () => {
+      setPdfWidth(window.innerWidth < 768 ? window.innerWidth - 32 : null);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  },[]);
 
   const options = useMemo(() => ({
     cMapUrl: '/cmaps/',
     cMapPacked: true,
     standardFontDataUrl: '/standard_fonts/',
-  }), []);
+  }),[]);
 
   function onDocumentLoadSuccess({ numPages }) {
     setNumPages(numPages);
   }
 
   return (
-    <><div id="window-header"><WindowControls target={"resume"} /><h2>Resume.pdf</h2><a
+    <>
+      <div id="window-header">
+        <WindowControls target={"resume"} />
+        <h2>Resume.pdf</h2>
+        <a
           href="files/resume.pdf"
           download
           className="cursor-pointer"
           title="Download resume"
-        ><Download className="icon"/></a></div><div className="flex justify-center overflow-auto h-[calc(100%-40px)] p-4 bg-gray-100"><Document 
+        >
+          <Download className="icon"/>
+        </a>
+      </div>
+      
+      <div className="flex justify-center overflow-auto h-[calc(100%-40px)] p-4 bg-gray-100">
+        <Document 
           file="files/resume.pdf" 
           onLoadSuccess={onDocumentLoadSuccess}
           options={options}
@@ -41,12 +63,15 @@ const Resume = memo(() => {
               pageNumber={index + 1} 
               renderTextLayer={true}
               renderAnnotationLayer={true}
-              scale={1.2}
-              className="mb-4 shadow-md"
+              scale={pdfWidth ? 1 : 1}
+              width={pdfWidth || undefined}
+              className="mb-4 shadow-md max-md:mb-2"
               loading=""
             />
           ))}
-        </Document></div></>
+        </Document>
+      </div>
+    </>
   );
 });
 

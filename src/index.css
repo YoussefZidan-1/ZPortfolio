@@ -168,15 +168,9 @@
     }
 
     #terminal {
-        @apply w-xl absolute top-32 left-1/12 bg-black/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-[#0A0B1A];
+        @apply w-xl absolute top-32 left-1/12 bg-black/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:!h-full max-md:rounded-none max-md:bg-[#0A0B1A];
         h2 {
             @apply font-bold text-sm text-center w-full max-md:text-white/50;
-        }
-        #window-header {
-            @apply max-md:bg-[#0A0B1A] max-md:border-b max-md:border-white/10;
-        }
-        #window-controls .close svg {
-            @apply max-md:stroke-white;
         }
     }
 
@@ -281,10 +275,10 @@
                     @apply text-gray-700 hover:bg-gray-200;
                 }
                 li {
-                                @apply absolute flex items-center flex-col gap-3 max-md:relative max-md:top-0 max-md:left-0 max-md:flex-row max-md:justify-start max-md:p-3 max-md:gap-4;
-                                &:last-child {
-                                    @apply max-md:border-b-0;
-                                }
+                    @apply flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors;
+                }
+            }
+        }
         .content {
             @apply flex-1 p-8 max-w-2xl relative max-md:block max-md:w-full max-md:p-4 max-md:bg-[#f2f2f7];
             ul {
