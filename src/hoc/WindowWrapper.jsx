@@ -17,7 +17,7 @@ const WindowWrapper = (Component, windowKey) => {
     const ref = useRef(null);
     const dragInstance = useRef(null);
     const resizeInstances = useRef([]);
-    const[isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
+    const [isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
     const preMaxState = useRef(null);
     const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
 
@@ -84,7 +84,7 @@ const WindowWrapper = (Component, windowKey) => {
           });
         }
       }
-    },[isOpen, dataId, isMobile]);
+    }, [isOpen, dataId, isMobile]);
 
     useGSAP(() => {
       if (isMobile) return; 
@@ -117,6 +117,9 @@ const WindowWrapper = (Component, windowKey) => {
         trigger: el.querySelector("#window-header") || el,
         bounds: "main",
       });
+
+      // Clear the instances array to avoid memory leaks if isMobile toggles
+      resizeInstances.current =[];
 
       const minW = 350;
       const minH = 250;
@@ -173,13 +176,13 @@ const WindowWrapper = (Component, windowKey) => {
         dragInstance.current?.kill();
         resizeInstances.current.forEach(i => i.kill());
       };
-    },[isMobile]);
+    }, [isMobile]);
 
     return (
       <section
         id={windowKey}
         ref={ref}
-        className="os-window absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none max-md:!bg-white"
+        className="os-window absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none max-md:bg-white"
         style={{ 
             zIndex, 
             display: isActuallyVisible ? "flex" : "none",
@@ -195,8 +198,18 @@ const WindowWrapper = (Component, windowKey) => {
           </div>
         )}
 
-        {!isMaximized && !isMobile && (
-          <><div className="resizer-n absolute top-0 left-0 w-full h-1.5 cursor-ns-resize z-50" /><div className="resizer-s absolute bottom-0 left-0 w-full h-1.5 cursor-ns-resize z-50" /><div className="resizer-w absolute top-0 left-0 h-full w-1.5 cursor-ew-resize z-50" /><div className="resizer-e absolute top-0 right-0 h-full w-1.5 cursor-ew-resize z-50" /><div className="resizer-nw absolute top-0 left-0 size-4 cursor-nwse-resize z-[60]" /><div className="resizer-ne absolute top-0 right-0 size-4 cursor-nesw-resize z-[60]" /><div className="resizer-sw absolute bottom-0 left-0 size-4 cursor-nesw-resize z-[60]" /><div className="resizer-se absolute bottom-0 right-0 size-4 cursor-nwse-resize z-[60]" /></>
+        {/* Kept mounted to not destroy GSAP hooks, simply hidden via CSS when maximized */}
+        {!isMobile && (
+          <div className={isMaximized ? "hidden pointer-events-none" : ""}>
+            <div className="resizer-n absolute top-0 left-0 w-full h-1.5 cursor-ns-resize z-50" />
+            <div className="resizer-s absolute bottom-0 left-0 w-full h-1.5 cursor-ns-resize z-50" />
+            <div className="resizer-w absolute top-0 left-0 h-full w-1.5 cursor-ew-resize z-50" />
+            <div className="resizer-e absolute top-0 right-0 h-full w-1.5 cursor-ew-resize z-50" />
+            <div className="resizer-nw absolute top-0 left-0 size-4 cursor-nwse-resize z-[60]" />
+            <div className="resizer-ne absolute top-0 right-0 size-4 cursor-nesw-resize z-[60]" />
+            <div className="resizer-sw absolute bottom-0 left-0 size-4 cursor-nesw-resize z-[60]" />
+            <div className="resizer-se absolute bottom-0 right-0 size-4 cursor-nwse-resize z-[60]" />
+          </div>
         )}
       </section>
     );

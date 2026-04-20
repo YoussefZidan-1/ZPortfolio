@@ -75,6 +75,7 @@ public/images/trash-1.png
 public/images/trash-2.png
 public/images/trash.png
 public/images/txt.png
+public/images/wallpaper-2.webp
 public/images/wallpaper.webp
 public/images/yousef-2.webp
 public/images/yousef-3.webp
@@ -1395,215 +1396,6 @@ const ResumeWindow = WindowWrapper(Resume, "resume");
 export default ResumeWindow;
 </file>
 
-<file path="src/hoc/WindowWrapper.jsx">
-import useWindowStore from "#store/window.js";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
-import { Draggable } from "gsap/Draggable";
-import { useRef, useState, useEffect, memo } from "react";
-
-const WindowWrapper = (Component, windowKey) => {
-  const Wrapped = memo((props) => {
-    const isOpen = useWindowStore((s) => s.windows[windowKey].isOpen);
-    const zIndex = useWindowStore((s) => s.windows[windowKey].zIndex);
-    const isMaximized = useWindowStore((s) => s.windows[windowKey].isMaximized);
-    const dataId = useWindowStore((s) => s.windows[windowKey].data?.id);
-    const launchPos = useWindowStore((s) => s.windows[windowKey].launchPos);
-    const focusWindow = useWindowStore((s) => s.focusWindow);
-    const closeWindow = useWindowStore((s) => s.closeWindow);
-
-    const ref = useRef(null);
-    const dragInstance = useRef(null);
-    const resizeInstances = useRef([]);
-    const[isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
-    const preMaxState = useRef(null);
-    const [isMobile, setIsMobile] = useState(false);
-
-    useEffect(() => {
-      const checkMobile = () => setIsMobile(window.innerWidth < 768);
-      checkMobile();
-      window.addEventListener("resize", checkMobile, { passive: true });
-      return () => window.removeEventListener("resize", checkMobile);
-    },[]);
-
-    useGSAP(() => {
-      const el = ref.current;
-      if (!el) return;
-      if (isOpen) {
-        setIsActuallyVisible(true);
-        if (isMobile) {
-          if (launchPos) {
-            gsap.fromTo(el, 
-              { 
-                opacity: 0,
-                scale: 0.8,
-                transformOrigin: `${launchPos.x}px ${launchPos.y}px`,
-                borderRadius: "32px",
-              },
-              { 
-                opacity: 1, 
-                scale: 1,
-                borderRadius: "0px",
-                duration: 0.35, 
-                ease: "power3.out", 
-                overwrite: "auto" 
-              }
-            );
-          } else {
-            gsap.fromTo(el, 
-              { yPercent: 100, opacity: 1 },
-              { yPercent: 0, duration: 0.35, ease: "power3.out", overwrite: "auto" }
-            );
-          }
-        } else {
-          gsap.fromTo(el, 
-            { scale: 0.9, opacity: 0, y: 20, yPercent: 0 },
-            { scale: 1, opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.5)", overwrite: "auto" }
-          );
-        }
-      } else {
-        if (isMobile) {
-          gsap.to(el, {
-            opacity: 0,
-            scale: 0.9,
-            duration: 0.25, 
-            ease: "power3.in", 
-            overwrite: "auto",
-            onComplete: () => setIsActuallyVisible(false),
-          });
-        } else {
-          gsap.to(el, {
-            scale: 0.8, opacity: 0, y: 50, duration: 0.25, ease: "power2.in", overwrite: "auto",
-            onComplete: () => setIsActuallyVisible(false),
-          });
-        }
-      }
-    },[isOpen, dataId, isMobile]);
-
-    useGSAP(() => {
-      if (isMobile) return; 
-      const el = ref.current;
-      if (!el || !isOpen) return;
-
-      if (isMaximized) {
-        const currentX = gsap.getProperty(el, "x");
-        const currentY = gsap.getProperty(el, "y");
-        const rect = el.getBoundingClientRect();
-        preMaxState.current = { width: el.offsetWidth, height: el.offsetHeight, x: currentX, y: currentY };
-        if (dragInstance.current) dragInstance.current.disable();
-        resizeInstances.current.forEach(i => i.disable());
-        gsap.to(el, { x: currentX - rect.left, y: currentY - rect.top, width: "100vw", height: "100vh", borderRadius: "0px", duration: 0.5, ease: "expo.inOut" });
-      } else if (preMaxState.current) {
-        if (dragInstance.current) dragInstance.current.enable();
-        resizeInstances.current.forEach(i => i.enable());
-        gsap.to(el, { x: preMaxState.current.x, y: preMaxState.current.y, width: preMaxState.current.width, height: preMaxState.current.height, borderRadius: "12px", duration: 0.5, ease: "expo.inOut", onComplete: () => dragInstance.current.update() });
-      }
-    }, [isMaximized, isMobile]);
-
-    useGSAP(() => {
-      const el = ref.current;
-      if (!el) return;
-
-      if (isMobile) return; // Disabled mobile dragging to fix native scrolling!
-
-      [dragInstance.current] = Draggable.create(el, {
-        onPress: () => focusWindow(windowKey),
-        trigger: el.querySelector("#window-header") || el,
-        bounds: "main",
-      });
-
-      const minW = 350;
-      const minH = 250;
-      const handleConfigs =[
-        { cls: ".resizer-n", type: "n" }, { cls: ".resizer-s", type: "s" },
-        { cls: ".resizer-e", type: "e" }, { cls: ".resizer-w", type: "w" },
-        { cls: ".resizer-nw", type: "nw" }, { cls: ".resizer-ne", type: "ne" },
-        { cls: ".resizer-sw", type: "sw" }, { cls: ".resizer-se", type: "se" },
-      ];
-
-      handleConfigs.forEach(({ cls, type }) => {
-        const hEl = el.querySelector(cls);
-        if (!hEl) return;
-        const [instance] = Draggable.create(hEl, {
-          type: "x,y",
-          onPress: function(e) {
-            e.stopPropagation();
-            focusWindow(windowKey);
-            this.startW = el.offsetWidth;
-            this.startH = el.offsetHeight;
-            this.startX = gsap.getProperty(el, "x");
-            this.startY = gsap.getProperty(el, "y");
-            this.startPointerX = this.pointerX;
-            this.startPointerY = this.pointerY;
-          },
-          onDrag: function() {
-            gsap.set(this.target, { x: 0, y: 0 });
-            const deltaX = this.pointerX - this.startPointerX;
-            const deltaY = this.pointerY - this.startPointerY;
-            let w = this.startW, h = this.startH, x = this.startX, y = this.startY;
-            if (type.includes("e")) w = this.startW + deltaX;
-            if (type.includes("w")) {
-              const constrainedDelta = Math.min(deltaX, this.startW - minW);
-              w = this.startW - constrainedDelta;
-              x = this.startX + constrainedDelta;
-            }
-            if (type.includes("s")) h = this.startH + deltaY;
-            if (type.includes("n")) {
-              const constrainedDelta = Math.min(deltaY, this.startH - minH);
-              h = this.startH - constrainedDelta;
-              y = this.startY + constrainedDelta;
-            }
-            gsap.set(el, { width: Math.max(w, minW), height: Math.max(h, minH), x, y });
-          },
-          onDragEnd: function() {
-            gsap.set(this.target, { x: 0, y: 0 });
-            dragInstance.current.update();
-          }
-        });
-        resizeInstances.current.push(instance);
-      });
-
-      return () => {
-        dragInstance.current?.kill();
-        resizeInstances.current.forEach(i => i.kill());
-      };
-    },[isMobile]);
-
-    return (
-      <section
-        id={windowKey}
-        ref={ref}
-        className="os-window absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none max-md:!bg-white"
-        style={{ 
-            zIndex, 
-            display: isActuallyVisible ? "flex" : "none",
-            willChange: "transform, width, height, opacity",
-            transform: "translate3d(0,0,0)",
-        }}
-      >
-        <Component {...props} />
-        
-        {/* iOS Home Indicator (Visual only, no swipe/click interception to prevent clashes) */}
-        {isMobile && (
-          <div className="absolute bottom-0 left-0 w-full h-8 z-[2000] flex justify-center items-end pb-2 pointer-events-none">
-            <div className="w-[130px] h-1.5 bg-black/40 rounded-full" />
-          </div>
-        )}
-
-        {!isMaximized && !isMobile && (
-          <><div className="resizer-n absolute top-0 left-0 w-full h-1.5 cursor-ns-resize z-50" /><div className="resizer-s absolute bottom-0 left-0 w-full h-1.5 cursor-ns-resize z-50" /><div className="resizer-w absolute top-0 left-0 h-full w-1.5 cursor-ew-resize z-50" /><div className="resizer-e absolute top-0 right-0 h-full w-1.5 cursor-ew-resize z-50" /><div className="resizer-nw absolute top-0 left-0 size-4 cursor-nwse-resize z-[60]" /><div className="resizer-ne absolute top-0 right-0 size-4 cursor-nesw-resize z-[60]" /><div className="resizer-sw absolute bottom-0 left-0 size-4 cursor-nesw-resize z-[60]" /><div className="resizer-se absolute bottom-0 right-0 size-4 cursor-nwse-resize z-[60]" /></>
-        )}
-      </section>
-    );
-  });
-
-  Wrapped.displayName = `WindowWrapper(${Component.displayName || Component.name || "Component"})`;
-  return Wrapped;
-};
-
-export default WindowWrapper;
-</file>
-
 <file path="README.md">
 # 💻 ZPortfolio — MacOS Inspired Creative Portfolio
 
@@ -1720,6 +1512,218 @@ src/
 Distributed under the **MIT License**. See `LICENSE` for more information.
 </file>
 
+<file path="src/hoc/WindowWrapper.jsx">
+import useWindowStore from "#store/window.js";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+import { Draggable } from "gsap/Draggable";
+import { useRef, useState, useEffect, memo } from "react";
+
+const WindowWrapper = (Component, windowKey) => {
+  const Wrapped = memo((props) => {
+    const isOpen = useWindowStore((s) => s.windows[windowKey].isOpen);
+    const zIndex = useWindowStore((s) => s.windows[windowKey].zIndex);
+    const isMaximized = useWindowStore((s) => s.windows[windowKey].isMaximized);
+    const dataId = useWindowStore((s) => s.windows[windowKey].data?.id);
+    const launchPos = useWindowStore((s) => s.windows[windowKey].launchPos);
+    const focusWindow = useWindowStore((s) => s.focusWindow);
+    const closeWindow = useWindowStore((s) => s.closeWindow);
+
+    const ref = useRef(null);
+    const dragInstance = useRef(null);
+    const resizeInstances = useRef([]);
+    const[isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
+    const preMaxState = useRef(null);
+    const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
+
+    useEffect(() => {
+      const checkMobile = () => setIsMobile(window.innerWidth < 768);
+      checkMobile();
+      window.addEventListener("resize", checkMobile, { passive: true });
+      return () => window.removeEventListener("resize", checkMobile);
+    },[]);
+
+    useGSAP(() => {
+      const el = ref.current;
+      if (!el) return;
+      if (isOpen) {
+        setIsActuallyVisible(true);
+        if (isMobile) {
+          if (launchPos) {
+            gsap.fromTo(el, 
+              { 
+                opacity: 0,
+                scale: 0.8,
+                transformOrigin: `${launchPos.x}px ${launchPos.y}px`,
+                borderRadius: "32px",
+                x: 0,
+                y: 0
+              },
+              { 
+                opacity: 1, 
+                scale: 1,
+                borderRadius: "0px",
+                duration: 0.35, 
+                ease: "power3.out", 
+                overwrite: "auto",
+                x: 0,
+                y: 0
+              }
+            );
+          } else {
+            gsap.fromTo(el, 
+              { yPercent: 100, opacity: 1, x: 0, y: 0 },
+              { yPercent: 0, duration: 0.35, ease: "power3.out", overwrite: "auto", x: 0, y: 0 }
+            );
+          }
+        } else {
+          gsap.fromTo(el, 
+            { scale: 0.9, opacity: 0, y: 20, yPercent: 0 },
+            { scale: 1, opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.5)", overwrite: "auto" }
+          );
+        }
+      } else {
+        if (isMobile) {
+          gsap.to(el, {
+            opacity: 0,
+            scale: 0.9,
+            duration: 0.25, 
+            ease: "power3.in", 
+            overwrite: "auto",
+            onComplete: () => setIsActuallyVisible(false),
+          });
+        } else {
+          gsap.to(el, {
+            scale: 0.8, opacity: 0, y: 50, duration: 0.25, ease: "power2.in", overwrite: "auto",
+            onComplete: () => setIsActuallyVisible(false),
+          });
+        }
+      }
+    },[isOpen, dataId, isMobile]);
+
+    useGSAP(() => {
+      if (isMobile) return; 
+      const el = ref.current;
+      if (!el || !isOpen) return;
+
+      if (isMaximized) {
+        const currentX = gsap.getProperty(el, "x");
+        const currentY = gsap.getProperty(el, "y");
+        const rect = el.getBoundingClientRect();
+        preMaxState.current = { width: el.offsetWidth, height: el.offsetHeight, x: currentX, y: currentY };
+        if (dragInstance.current) dragInstance.current.disable();
+        resizeInstances.current.forEach(i => i.disable());
+        gsap.to(el, { x: currentX - rect.left, y: currentY - rect.top, width: "100vw", height: "100vh", borderRadius: "0px", duration: 0.5, ease: "expo.inOut" });
+      } else if (preMaxState.current) {
+        if (dragInstance.current) dragInstance.current.enable();
+        resizeInstances.current.forEach(i => i.enable());
+        gsap.to(el, { x: preMaxState.current.x, y: preMaxState.current.y, width: preMaxState.current.width, height: preMaxState.current.height, borderRadius: "12px", duration: 0.5, ease: "expo.inOut", onComplete: () => dragInstance.current.update() });
+      }
+    }, [isMaximized, isMobile]);
+
+    useGSAP(() => {
+      const el = ref.current;
+      if (!el) return;
+
+      if (isMobile) return;
+
+      [dragInstance.current] = Draggable.create(el, {
+        onPress: () => focusWindow(windowKey),
+        trigger: el.querySelector("#window-header") || el,
+        bounds: "main",
+      });
+
+      const minW = 350;
+      const minH = 250;
+      const handleConfigs =[
+        { cls: ".resizer-n", type: "n" }, { cls: ".resizer-s", type: "s" },
+        { cls: ".resizer-e", type: "e" }, { cls: ".resizer-w", type: "w" },
+        { cls: ".resizer-nw", type: "nw" }, { cls: ".resizer-ne", type: "ne" },
+        { cls: ".resizer-sw", type: "sw" }, { cls: ".resizer-se", type: "se" },
+      ];
+
+      handleConfigs.forEach(({ cls, type }) => {
+        const hEl = el.querySelector(cls);
+        if (!hEl) return;
+        const [instance] = Draggable.create(hEl, {
+          type: "x,y",
+          onPress: function(e) {
+            e.stopPropagation();
+            focusWindow(windowKey);
+            this.startW = el.offsetWidth;
+            this.startH = el.offsetHeight;
+            this.startX = gsap.getProperty(el, "x");
+            this.startY = gsap.getProperty(el, "y");
+            this.startPointerX = this.pointerX;
+            this.startPointerY = this.pointerY;
+          },
+          onDrag: function() {
+            gsap.set(this.target, { x: 0, y: 0 });
+            const deltaX = this.pointerX - this.startPointerX;
+            const deltaY = this.pointerY - this.startPointerY;
+            let w = this.startW, h = this.startH, x = this.startX, y = this.startY;
+            if (type.includes("e")) w = this.startW + deltaX;
+            if (type.includes("w")) {
+              const constrainedDelta = Math.min(deltaX, this.startW - minW);
+              w = this.startW - constrainedDelta;
+              x = this.startX + constrainedDelta;
+            }
+            if (type.includes("s")) h = this.startH + deltaY;
+            if (type.includes("n")) {
+              const constrainedDelta = Math.min(deltaY, this.startH - minH);
+              h = this.startH - constrainedDelta;
+              y = this.startY + constrainedDelta;
+            }
+            gsap.set(el, { width: Math.max(w, minW), height: Math.max(h, minH), x, y });
+          },
+          onDragEnd: function() {
+            gsap.set(this.target, { x: 0, y: 0 });
+            dragInstance.current.update();
+          }
+        });
+        resizeInstances.current.push(instance);
+      });
+
+      return () => {
+        dragInstance.current?.kill();
+        resizeInstances.current.forEach(i => i.kill());
+      };
+    },[isMobile]);
+
+    return (
+      <section
+        id={windowKey}
+        ref={ref}
+        className="os-window absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none max-md:!bg-white"
+        style={{ 
+            zIndex, 
+            display: isActuallyVisible ? "flex" : "none",
+            willChange: "transform, width, height, opacity",
+            transform: "translate3d(0,0,0)",
+        }}
+      >
+        <Component {...props} />
+        
+        {isMobile && (
+          <div className="absolute bottom-0 left-0 w-full h-8 z-[2000] flex justify-center items-end pb-2 pointer-events-none">
+            <div className="w-[130px] h-1.5 bg-black/40 rounded-full" />
+          </div>
+        )}
+
+        {!isMaximized && !isMobile && (
+          <><div className="resizer-n absolute top-0 left-0 w-full h-1.5 cursor-ns-resize z-50" /><div className="resizer-s absolute bottom-0 left-0 w-full h-1.5 cursor-ns-resize z-50" /><div className="resizer-w absolute top-0 left-0 h-full w-1.5 cursor-ew-resize z-50" /><div className="resizer-e absolute top-0 right-0 h-full w-1.5 cursor-ew-resize z-50" /><div className="resizer-nw absolute top-0 left-0 size-4 cursor-nwse-resize z-[60]" /><div className="resizer-ne absolute top-0 right-0 size-4 cursor-nesw-resize z-[60]" /><div className="resizer-sw absolute bottom-0 left-0 size-4 cursor-nesw-resize z-[60]" /><div className="resizer-se absolute bottom-0 right-0 size-4 cursor-nwse-resize z-[60]" /></>
+        )}
+      </section>
+    );
+  });
+
+  Wrapped.displayName = `WindowWrapper(${Component.displayName || Component.name || "Component"})`;
+  return Wrapped;
+};
+
+export default WindowWrapper;
+</file>
+
 <file path="src/windows/index.js">
 import Terminal from "#windows/Terminal.jsx";
 import ZenBrowser from "#windows/ZenBrowser.jsx";
@@ -1730,6 +1734,124 @@ import Image from "#windows/Image.jsx";
 import Contact from "#windows/Contact.jsx";
 import Photos from "#windows/Photos.jsx"
 export { Terminal, ZenBrowser, Resume, Finder, Text, Image, Contact, Photos };
+</file>
+
+<file path="package.json">
+{
+  "name": "zportfolio",
+  "private": false, 
+  "version": "1.0.0",
+  "author": "Yousef Zedan (ZED Studios) <zedstudios.devs@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.2.8",
+    "@gsap/react": "^2.1.2",
+    "@tailwindcss/vite": "^4.2.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "dayjs": "^1.11.20",
+    "gsap": "^3.14.2",
+    "immer": "^11.1.4",
+    "lucide-react": "^1.7.0",
+    "radix-ui": "^1.4.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-pdf": "^10.4.1",
+    "react-tooltip": "^5.30.0",
+    "shadcn": "^4.2.0",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.2",
+    "tw-animate-css": "^1.4.0",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.4.0",
+    "vite": "^8.0.1",
+    "vite-plugin-static-copy": "^4.0.0"
+  }
+}
+</file>
+
+<file path="src/components/Navbar.jsx">
+import React, { memo, useState, useEffect } from "react";
+import { navIcons, navLinks } from "#constants";
+import useWindowStore from "#store/window.js";
+import dayjs from "dayjs";
+import { Battery, Signal, Wifi } from "lucide-react";
+
+const Navbar = memo(() => {
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const[time, setTime] = useState(dayjs().format("ddd MMM D   h:mm A"));
+  const[timeStr, setTimeStr] = useState(dayjs().format("h:mm"));
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(dayjs().format("ddd MMM D   h:mm A"));
+      setTimeStr(dayjs().format("h:mm"));
+    }, 10000);
+    return () => clearInterval(timer);
+  },[]);
+
+  return (
+    <nav className="relative z-50 max-md:z-[1500] max-md:fixed max-md:top-0 max-md:w-full max-md:bg-transparent max-md:border-none max-md:pt-2 max-md:px-6 max-md:pointer-events-none">
+    
+      {/* PC Navbar */}
+      <div className="flex items-center gap-4 max-md:hidden">
+        <img src="/images/logo.svg" alt="logo" width={20} height={20} className="w-5 h-5" />
+        <p className="font-bold whitespace-nowrap">Yousef's Portfolio</p>
+        <ul className="flex items-center gap-3">
+          {navLinks.map(({ id, name, type }) => (
+            <li key={id} className="relative cursor-pointer" onClick={() => openWindow(type)}>
+              <p className="z-10">{name}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+      
+      {/* iOS Mobile Status Bar */}
+      <div className="hidden max-md:flex w-full items-center justify-between text-white drop-shadow-md pointer-events-auto">
+        <time className="text-[15px] font-bold mt-1 ml-1 tracking-wide">{timeStr}</time>
+        
+        {/* Dynamic Island */}
+        <div className="absolute left-1/2 -translate-x-1/2 -top-1 w-[120px] h-[32px] bg-black rounded-full z-50 shadow-sm" />
+        
+        <div className="flex items-center gap-1.5 mt-1 mr-1">
+          <Signal size={16} className="fill-white" strokeWidth={2.5} />
+          <Wifi size={16} strokeWidth={2.5} />
+          <Battery size={20} strokeWidth={2} className="fill-white" />
+        </div>
+      </div>
+
+      {/* PC Right Side */}
+      <div className="max-md:hidden">
+        <ul>
+          {navIcons.map(({ id, img }) => (
+            <li key={id}>
+              <img src={img} alt={`icon-${id}`} width={18} height={18} className="icon-hover w-[18px] h-[18px] cursor-pointer" loading="lazy" />
+            </li>
+          ))}
+        </ul>
+        <time>{time}</time>
+      </div>
+    </nav>
+  );
+});
+
+export default Navbar;
 </file>
 
 <file path="src/windows/Terminal.jsx">
@@ -2224,124 +2346,6 @@ const Terminal = () => {
 
 const TerminalWindow = WindowWrapper(Terminal, "terminal");
 export default TerminalWindow;
-</file>
-
-<file path="package.json">
-{
-  "name": "zportfolio",
-  "private": false, 
-  "version": "1.0.0",
-  "author": "Yousef Zedan (ZED Studios) <zedstudios.devs@gmail.com>",
-  "license": "MIT",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@fontsource-variable/geist": "^5.2.8",
-    "@gsap/react": "^2.1.2",
-    "@tailwindcss/vite": "^4.2.2",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "dayjs": "^1.11.20",
-    "gsap": "^3.14.2",
-    "immer": "^11.1.4",
-    "lucide-react": "^1.7.0",
-    "radix-ui": "^1.4.3",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-pdf": "^10.4.1",
-    "react-tooltip": "^5.30.0",
-    "shadcn": "^4.2.0",
-    "tailwind-merge": "^3.5.0",
-    "tailwindcss": "^4.2.2",
-    "tw-animate-css": "^1.4.0",
-    "zustand": "^5.0.12"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.4",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
-    "eslint": "^9.39.4",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
-    "globals": "^17.4.0",
-    "vite": "^8.0.1",
-    "vite-plugin-static-copy": "^4.0.0"
-  }
-}
-</file>
-
-<file path="src/components/Navbar.jsx">
-import React, { memo, useState, useEffect } from "react";
-import { navIcons, navLinks } from "#constants";
-import useWindowStore from "#store/window.js";
-import dayjs from "dayjs";
-import { Battery, Signal, Wifi } from "lucide-react";
-
-const Navbar = memo(() => {
-  const openWindow = useWindowStore((s) => s.openWindow);
-  const[time, setTime] = useState(dayjs().format("ddd MMM D   h:mm A"));
-  const[timeStr, setTimeStr] = useState(dayjs().format("h:mm"));
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTime(dayjs().format("ddd MMM D   h:mm A"));
-      setTimeStr(dayjs().format("h:mm"));
-    }, 10000);
-    return () => clearInterval(timer);
-  },[]);
-
-  return (
-    <nav className="relative z-50 max-md:z-[1500] max-md:fixed max-md:top-0 max-md:w-full max-md:bg-transparent max-md:border-none max-md:pt-2 max-md:px-6 max-md:pointer-events-none">
-    
-      {/* PC Navbar */}
-      <div className="flex items-center gap-4 max-md:hidden">
-        <img src="/images/logo.svg" alt="logo" width={20} height={20} className="w-5 h-5" />
-        <p className="font-bold whitespace-nowrap">Yousef's Portfolio</p>
-        <ul className="flex items-center gap-3">
-          {navLinks.map(({ id, name, type }) => (
-            <li key={id} className="relative cursor-pointer" onClick={() => openWindow(type)}>
-              <p className="z-10">{name}</p>
-            </li>
-          ))}
-        </ul>
-      </div>
-      
-      {/* iOS Mobile Status Bar */}
-      <div className="hidden max-md:flex w-full items-center justify-between text-white drop-shadow-md pointer-events-auto">
-        <time className="text-[15px] font-bold mt-1 ml-1 tracking-wide">{timeStr}</time>
-        
-        {/* Dynamic Island */}
-        <div className="absolute left-1/2 -translate-x-1/2 -top-1 w-[120px] h-[32px] bg-black rounded-full z-50 shadow-sm" />
-        
-        <div className="flex items-center gap-1.5 mt-1 mr-1">
-          <Signal size={16} className="fill-white" strokeWidth={2.5} />
-          <Wifi size={16} strokeWidth={2.5} />
-          <Battery size={20} strokeWidth={2} className="fill-white" />
-        </div>
-      </div>
-
-      {/* PC Right Side */}
-      <div className="max-md:hidden">
-        <ul>
-          {navIcons.map(({ id, img }) => (
-            <li key={id}>
-              <img src={img} alt={`icon-${id}`} width={18} height={18} className="icon-hover w-[18px] h-[18px] cursor-pointer" loading="lazy" />
-            </li>
-          ))}
-        </ul>
-        <time>{time}</time>
-      </div>
-    </nav>
-  );
-});
-
-export default Navbar;
 </file>
 
 <file path="src/components/Dock.jsx">
@@ -3250,9 +3254,11 @@ input::selection {
     }
 }
 
-/* --- iOS Mobile Overrides --- */
 @media (max-width: 768px) {
-    /* Hide Welcome & Dock on Mobile */
+    html, body {
+        background-image: url("/images/wallpaper-2.webp");
+    }
+
     #welcome, #dock {
         display: none !important;
     }
@@ -3266,7 +3272,6 @@ input::selection {
         z-index: 100;
     }
 
-    /* iOS Native Window Header */
     #window-header {
         @apply pt-[56px] pb-3 bg-white/95 backdrop-blur-3xl border-b border-gray-200/80 items-center justify-center relative;
         border-radius: 0 !important;
@@ -3277,7 +3282,6 @@ input::selection {
         @apply text-center font-semibold text-[17px] text-black w-full mx-auto truncate px-10;
     }
 
-    /* Anchored to the bottom so it never goes behind the Dynamic Island */
     #window-controls {
         @apply absolute left-4 bottom-2.5 flex gap-0;
     }
@@ -3288,7 +3292,7 @@ input::selection {
 
     #window-controls .close svg {
         @apply stroke-blue-600 w-6 h-6;
-        transform: rotate(90deg); /* Mimics the iOS "< Back" button */
+        transform: rotate(90deg);
     }
 
     #window-controls .minimize, #window-controls .maximize {
@@ -3302,7 +3306,6 @@ input::selection {
         padding-bottom: 48px !important;
     }
 
-    /* iOS Native Finder (Files App) */
     #finder .sidebar {
         display: none !important;
     }
@@ -3316,10 +3319,7 @@ input::selection {
     #finder .content ul {
         display: flex !important;
         flex-direction: column !important;
-        background: white !important;
-        border-radius: 12px !important;
         overflow: hidden !important;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
     }
     #finder .content li {
         position: relative !important;
@@ -3330,7 +3330,6 @@ input::selection {
         justify-content: flex-start !important;
         align-items: center !important;
         padding: 12px !important;
-        border-bottom: 1px solid #f3f4f6 !important;
         gap: 16px !important;
     }
     #finder .content li:last-child {

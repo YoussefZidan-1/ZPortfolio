@@ -48,7 +48,7 @@ const validCommands =[
 const Terminal = () => {
   const openWindow = useWindowStore((s) => s.openWindow);
   const [input, setInput] = useState("");
-  const [cwd, setCwd] = useState([]); 
+  const[cwd, setCwd] = useState([]); 
   
   // Terminal History states
   const [history, setHistory] = useState([
@@ -56,7 +56,7 @@ const Terminal = () => {
     { type: "system", content: "Type 'help' to see available commands." },
   ]);
   const [cmdHistory, setCmdHistory] = useState([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
+  const[historyIndex, setHistoryIndex] = useState(-1);
 
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
@@ -199,7 +199,7 @@ const Terminal = () => {
               <span className="text-blue-400 font-bold">- cd [dir]:</span> Change directory <br />
               <span className="text-blue-400 font-bold">- pwd:</span> Print working directory <br />
               <span className="text-blue-400 font-bold">- cat [file]:</span> Display file content in terminal <br />
-              <span className="text-blue-400 font-bold">- xdg-open [file]:</span> Open file in graphical window <br />
+              <span className="text-blue-400 font-bold">- xdg-open[file]:</span> Open file in graphical window <br />
               <span className="text-blue-400 font-bold">- whoami:</span> About the developer <br />
               <span className="text-blue-400 font-bold">- fastfetch:</span> System information <br />
               <span className="text-blue-400 font-bold">- clear:</span> Clear terminal output <br /><br />
@@ -382,7 +382,7 @@ const Terminal = () => {
     e.preventDefault();
     const cleanInput = input.trim();
     if (cleanInput) {
-      setHistory((prev) => [...prev, { type: "command", content: input, dir: currentDirStr }]);
+      setHistory((prev) =>[...prev, { type: "command", content: input, dir: currentDirStr }]);
       
       if (cmdHistory[cmdHistory.length - 1] !== cleanInput) {
         setCmdHistory(prev => [...prev, cleanInput]);
@@ -410,7 +410,7 @@ const Terminal = () => {
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden rounded-xl">
-      <div id="window-header" className="!bg-transparent !border-none shrink-0">
+      <div id="window-header" className="shrink-0">
         <WindowControls target="terminal" />
         <div className="flex items-center gap-2 text-white/50">
           <TerminalIcon size={14} />
