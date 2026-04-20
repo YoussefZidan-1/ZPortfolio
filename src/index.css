@@ -128,44 +128,47 @@
     }
 
     #safari {
-        @apply w-4xl absolute top-40 left-2/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white;
-        .search {
-            @apply flex items-center gap-3 w-2/3 bg-white/30 backdrop-blur-xl border border-gray-300 rounded-lg px-3 py-2 max-md:flex-1 max-md:ml-10 max-md:h-10 max-md:bg-[#f2f2f7] max-md:rounded-[10px] max-md:px-3 max-md:justify-center max-md:border-none;
-            input {
-                @apply placeholder:text-indigo-400 max-md:text-center max-md:text-[17px] max-md:w-full max-md:bg-transparent;
-            }
-        }
-        .blog {
-            @apply bg-transparent backdrop-blur-xl p-10 max-w-3xl mx-auto max-md:p-6 max-md:w-full max-md:max-w-full;
-            h2 {
-                @apply text-xl font-bold text-pink-600 mb-10 max-md:text-2xl max-md:text-black max-md:mb-6;
-            }
-            .blog-post {
-                @apply grid grid-cols-12 space-x-5 max-md:flex max-md:flex-col max-md:gap-3 max-md:mb-8 max-md:ml-0 max-md:space-x-0;
-                img {
-                    @apply size-full rounded-md object-cover max-md:aspect-video max-md:rounded-xl max-md:w-full;
-                }
-                .content {
-                    @apply col-span-10 space-y-3;
-                    p {
-                        @apply text-xs text-gray-600;
-                    }
-                    h3 {
-                        @apply font-semibold text-base text-gray-800;
-                    }
-                    a {
-                        @apply text-blue-600 text-xs hover:underline flex items-center gap-3;
-                    }
+            @apply w-4xl absolute top-40 left-2/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white;
+            .search {
+                @apply flex items-center gap-3 w-2/3 bg-white/30 backdrop-blur-xl border border-gray-300 rounded-lg px-3 py-2 max-md:flex-1 max-md:ml-0 max-md:h-10 max-md:bg-[#E3E3E6] max-md:rounded-xl max-md:px-3 max-md:justify-center max-md:border-none max-md:shadow-sm;
+                input {
+                    @apply placeholder:text-gray-500 max-md:text-center max-md:text-[15px] max-md:w-full max-md:bg-transparent outline-none;
                 }
             }
-        }
-        #window-header {
-            @apply max-md:pt-[56px] max-md:px-4 max-md:pb-3;
-            > svg, > div:not(.search):not(#window-controls) {
-                @apply max-md:hidden;
+            .blog {
+                @apply bg-transparent backdrop-blur-xl max-md:h-full max-md:overflow-y-auto max-md:bg-white;
+                .blog-container {
+                    @apply p-10 max-w-3xl mx-auto max-md:p-6 max-md:w-full max-md:max-w-full pb-20;
+                }
+                h2 {
+                    @apply text-xl font-bold text-pink-600 mb-10 max-md:text-2xl max-md:text-black max-md:mb-6 text-center max-md:text-center;
+                }
+                .blog-post {
+                    @apply grid grid-cols-12 space-x-5 max-md:flex max-md:flex-col max-md:gap-4 max-md:mb-10 max-md:ml-0 max-md:space-x-0 bg-white/50 max-md:bg-gray-50 max-md:p-3 max-md:rounded-3xl shadow-sm max-md:shadow-none;
+                    img {
+                        @apply size-full rounded-md object-cover max-md:w-full max-md:h-auto max-md:object-contain max-md:rounded-2xl max-md:bg-gray-200 shadow-sm;
+                    }
+                    .content {
+                        @apply col-span-10 space-y-3 max-md:py-2;
+                        p {
+                            @apply text-xs text-gray-600 max-md:text-sm;
+                        }
+                        h3 {
+                            @apply font-semibold text-base text-gray-800 max-md:text-lg max-md:leading-tight;
+                        }
+                        a {
+                            @apply text-blue-600 text-xs hover:underline flex items-center gap-3 max-md:text-sm font-medium;
+                        }
+                    }
+                }
             }
-        }
-    }
+            #window-header {
+                @apply max-md:pt-[52px] max-md:px-4 max-md:pb-3 max-md:bg-white/80 max-md:backdrop-blur-md max-md:border-gray-100;
+                > svg, > div:not(.search):not(#window-controls) {
+                    @apply max-md:hidden;
+                }
+            }
+        }}
 
     #terminal {
         @apply w-xl absolute top-32 left-1/12 bg-black/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:!h-full max-md:rounded-none max-md:bg-[#0A0B1A];

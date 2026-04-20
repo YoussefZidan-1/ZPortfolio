@@ -733,78 +733,6 @@ const ContactWindow = WindowWrapper(Contact, 'contact');
 export default ContactWindow;
 </file>
 
-<file path="src/windows/Finder.jsx">
-import { WindowControls } from "#components";
-import { locations } from "#constants";
-import WindowWrapper from "#hoc/WindowWrapper";
-import useLocationStore from "#store/location";
-import { Search } from "lucide-react";
-import clsx from "clsx";
-import useWindowStore from "#store/window";
-
-const Finder = () => {
-  const { openWindow } = useWindowStore();
-  const { activeLocation, setActiveLocation } = useLocationStore();
-  const openItem = (item) => {
-    if (item.fileType === "pdf") return openWindow("resume");
-    if (item.kind === "folder") return setActiveLocation(item);
-    if (["fig", "url"].includes(item.fileType) && item.href)
-      return window.open(item.href, "_blank");
-    openWindow(`${item.fileType}${item.kind}`, item);
-  };
-  const renderList = (name, items) => (
-    <div>
-      <h3>{name}</h3>
-      <ul>
-        {items.map((item) => (
-          <li
-            key={item.id}
-            onClick={() => setActiveLocation(item)}
-            className={clsx(
-              item.id === activeLocation.id ? "active" : "not-active",
-            )}
-          >
-            <img src={item.icon} className="w-4" alt={item.name} />
-            <p className="text-sm font-medium truncate">{item.name}</p>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-  return (
-    <>
-      <div id="window-header">
-        <WindowControls target="finder" />
-        <Search className="icon" />
-      </div>
-
-      <div className="bg-white flex h-full">
-        <div className="sidebar">
-          <ul>{renderList("Favourites", Object.values(locations))}</ul>
-          <ul>{renderList("Work", locations.work.children)}</ul>
-        </div>
-        <ul className="content">
-          {activeLocation?.children.map((item) => (
-            <li
-              key={item.id}
-              className={item.position}
-              onClick={() => openItem(item)}
-            >
-              <img src={item.icon} alt={item.name} />
-              <p>{item.name}</p>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </>
-  );
-};
-
-const FinderWindow = WindowWrapper(Finder, "finder");
-
-export default FinderWindow;
-</file>
-
 <file path="src/windows/Image.jsx">
 import WindowWrapper from "#hoc/WindowWrapper.jsx";
 import { WindowControls } from "#components";
@@ -1067,6 +995,112 @@ import Home from "#components/Home.jsx";
 export { Navbar, Welcome, Dock, WindowControls, Home };
 </file>
 
+<file path="src/windows/Finder.jsx">
+import { useState } from "react";
+import { WindowControls } from "#components";
+import { locations } from "#constants";
+import WindowWrapper from "#hoc/WindowWrapper";
+import useLocationStore from "#store/location";
+import { Search, PanelLeft } from "lucide-react";
+import clsx from "clsx";
+import useWindowStore from "#store/window";
+
+const Finder = () => {
+  const { openWindow } = useWindowStore();
+  const { activeLocation, setActiveLocation } = useLocationStore();
+  const[showSidebar, setShowSidebar] = useState(false);
+
+  const openItem = (item) => {
+    if (item.fileType === "pdf") return openWindow("resume");
+    if (item.kind === "folder") return setActiveLocation(item);
+    if (["fig", "url"].includes(item.fileType) && item.href)
+      return window.open(item.href, "_blank");
+    openWindow(`${item.fileType}${item.kind}`, item);
+  };
+
+  const renderList = (name, items) => (
+    <div>
+      <h3>{name}</h3>
+      <ul>
+        {items.map((item) => (
+          <li
+            key={item.id}
+            onClick={() => {
+              setActiveLocation(item);
+              setShowSidebar(false); // Auto-closes sidebar when a folder is selected
+            }}
+            className={clsx(
+              item.id === activeLocation.id ? "active" : "not-active",
+            )}
+          >
+            <img src={item.icon} className="w-4" alt={item.name} />
+            <p className="text-sm font-medium truncate">{item.name}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
+  return (
+    <>
+      <div id="window-header">
+        <WindowControls target="finder" />
+        
+        {/* Mobile Sidebar Toggle Icon */}
+        <PanelLeft 
+          className="hidden max-md:block absolute left-15 bottom-3.5 text-blue-600 cursor-pointer z-50 transition-transform active:scale-95" 
+          size={22} 
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowSidebar(!showSidebar);
+          }} 
+        />
+        
+        <Search className="icon" />
+      </div>
+
+      <div className="bg-white flex h-full relative">
+        {/* Mobile Backdrop Overlay (Fades in/out) */}
+        <div 
+          className={clsx(
+            "hidden max-md:block absolute inset-0 bg-black/20 z-45 transition-opacity duration-300 ease-in-out",
+            showSidebar ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          )}
+          onClick={() => setShowSidebar(false)}
+        />
+        
+        {/* Sidebar container (Slides in/out) */}
+        <div className={clsx(
+          "sidebar",
+          "max-md:flex! max-md:absolute max-md:top-0 max-md:left-0 max-md:h-full max-md:z-50 max-md:w-60 max-md:shadow-2xl max-md:transition-transform max-md:duration-300 max-md:ease-in-out",
+          showSidebar ? "max-md:translate-x-0" : "max-md:-translate-x-full"
+        )}>
+          <ul>{renderList("Favourites", Object.values(locations))}</ul>
+          <ul>{renderList("Work", locations.work.children)}</ul>
+        </div>
+        
+        <ul className="content">
+          {activeLocation?.children.map((item) => (
+            <li
+              key={item.id}
+              className={clsx(item.position, "max-md:top-auto! max-md:left-auto!")}
+              onClick={() => openItem(item)}
+            >
+              <img src={item.icon} alt={item.name} />
+              <p>{item.name}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
+  );
+};
+
+const FinderWindow = WindowWrapper(Finder, "finder");
+
+export default FinderWindow;
+</file>
+
 <file path="vite.config.js">
 import { defineConfig, normalizePath } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -1103,153 +1137,6 @@ export default defineConfig({
     },
   },
 })
-</file>
-
-<file path="src/components/Home.jsx">
-import { locations, dockApps } from "#constants";
-import clsx from "clsx";
-import { useGSAP } from "@gsap/react";
-import Draggable from "gsap/Draggable";
-import gsap from "gsap";
-import useWindowStore from "#store/window.js";
-import useLocationStore from "#store/location.js";
-import { useState, useEffect } from "react";
-import dayjs from "dayjs";
-
-const projects = locations.work?.children ??[];
-
-const Home = () => {
-  const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
-  const openWindow = useWindowStore((s) => s.openWindow);
-  const [time, setTime] = useState(dayjs());
-
-  useEffect(() => {
-    const timer = setInterval(() => setTime(dayjs()), 1000);
-    return () => clearInterval(timer);
-  },[]);
-
-  const handleOpenProjectFinder = (e, project) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const launchPos = {
-      x: rect.left + rect.width / 2,
-      y: rect.top + rect.height / 2,
-      width: rect.width,
-      height: rect.height,
-    };
-    setActiveLocation(project);
-    openWindow("finder", null, launchPos);
-  };
-
-  const handleOpenApp = (e, app) => {
-    if (!app.canOpen) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const launchPos = {
-      x: rect.left + rect.width / 2,
-      y: rect.top + rect.height / 2,
-      width: rect.width,
-      height: rect.height,
-    };
-    openWindow(app.id, null, launchPos);
-  };
-
-  useGSAP(() => {
-    let draggables =[];
-    const initDrag = () => {
-      if (window.innerWidth > 768) {
-        if (draggables.length === 0) {
-          draggables = Draggable.create(".folder", {
-            type: "x,y",
-            bounds: "body",
-            dragClickables: true
-          });
-        } else {
-          draggables.forEach(d => d.enable());
-        }
-      } else {
-        if (draggables.length > 0) {
-          draggables.forEach(d => d.disable());
-          gsap.set(".folder", { clearProps: "x,y,transform" });
-        }
-      }
-    };
-    initDrag();
-    window.addEventListener("resize", initDrag);
-    return () => window.removeEventListener("resize", initDrag);
-  },[]);
-
-  return (
-    <section id="home" className="absolute inset-0 w-full h-full z-0 overflow-hidden">
-      <div className="absolute top-[12vh] left-0 w-full flex flex-col items-center justify-center md:hidden text-white drop-shadow-xl z-20 pointer-events-none select-none">
-        <h1 className="text-[5.5rem] font-light tracking-tight leading-none text-center">
-          {time.format("h:mm")}
-        </h1>
-        <p className="text-[1.2rem] font-medium mt-2 tracking-wide text-center">
-          {time.format("dddd, MMMM D")}
-        </p>
-      </div>
-      
-      <ul className="desktop-projects w-full h-full max-md:hidden">
-        {projects.map((project) => (
-          <li
-            key={project.id}
-            className={clsx("group folder", project.windowPosition)}
-            onClick={(e) => handleOpenProjectFinder(e, project)}
-          >
-            <img 
-              src="/images/folder.png" 
-              alt={project.name}
-              width={64}
-              height={64}
-              loading="eager"
-              className="pointer-events-none" 
-            />
-            <p>{project.name}</p>
-          </li>
-        ))}
-      </ul>
-
-      <ul className="hidden max-md:grid grid-cols-4 gap-x-2 gap-y-6 px-5 relative z-30 w-full box-border mt-[38vh]">
-        {dockApps.map((app) => (
-          <li 
-            key={app.id || app.name}
-            onClick={(e) => handleOpenApp(e, app)}
-            className="flex flex-col items-center gap-[6px] cursor-pointer"
-          >
-            <img 
-              src={`/images/${app.icon}`} 
-              alt={app.name} 
-              className={clsx(
-                "w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover shadow-sm rounded-[22.5%]",
-                !app.canOpen && "opacity-60"
-              )}
-            />
-            <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
-              {app.name}
-            </p>
-          </li>
-        ))}
-        {projects.map((project) => (
-          <li 
-            key={project.id}
-            onClick={(e) => handleOpenProjectFinder(e, project)}
-            className="flex flex-col items-center gap-[6px] cursor-pointer"
-          >
-            <img 
-              src="/images/folder.png" 
-              alt={project.name} 
-              className="w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover shadow-sm rounded-[22.5%]"
-            />
-            <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
-              {project.name}
-            </p>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-};
-
-export default Home;
 </file>
 
 <file path="src/components/WindowControls.jsx">
@@ -1339,8 +1226,160 @@ const useWindowStore = create(
 export default useWindowStore;
 </file>
 
+<file path="src/components/Home.jsx">
+import { locations, dockApps } from "#constants";
+import clsx from "clsx";
+import { useGSAP } from "@gsap/react";
+import Draggable from "gsap/Draggable";
+import gsap from "gsap";
+import useWindowStore from "#store/window.js";
+import useLocationStore from "#store/location.js";
+import { useState, useEffect } from "react";
+import dayjs from "dayjs";
+
+const projects = locations.work?.children ??[];
+
+const Home = () => {
+  const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const [time, setTime] = useState(dayjs());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(dayjs()), 1000);
+    return () => clearInterval(timer);
+  },[]);
+
+  const handleOpenProjectFinder = (e, project) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const launchPos = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+      width: rect.width,
+      height: rect.height,
+    };
+    setActiveLocation(project);
+    openWindow("finder", null, launchPos);
+  };
+
+  const handleOpenApp = (e, app) => {
+    if (!app.canOpen) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const launchPos = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+      width: rect.width,
+      height: rect.height,
+    };
+    openWindow(app.id, null, launchPos);
+  };
+
+  useGSAP(() => {
+    let draggables =[];
+    const initDrag = () => {
+      if (window.innerWidth > 768) {
+        if (draggables.length === 0) {
+          draggables = Draggable.create(".folder", {
+            type: "x,y",
+            bounds: "body",
+            dragClickables: true
+          });
+        } else {
+          draggables.forEach(d => d.enable());
+        }
+      } else {
+        if (draggables.length > 0) {
+          draggables.forEach(d => d.disable());
+          gsap.set(".folder", { clearProps: "x,y,transform" });
+        }
+      }
+    };
+    initDrag();
+    window.addEventListener("resize", initDrag);
+    return () => window.removeEventListener("resize", initDrag);
+  },[]);
+
+  // Intercept the apps array to replace Trash with Resume ONLY on mobile
+  const mobileApps = dockApps.map(app => 
+    app.id === "trash" ? { id: "resume", name: "Resume", icon: "pdf.png", canOpen: true } : app
+  );
+
+  return (
+    <section id="home" className="absolute inset-0 w-full h-full z-0 overflow-hidden">
+      <div className="absolute top-[12vh] left-0 w-full flex flex-col items-center justify-center md:hidden text-white drop-shadow-xl z-20 pointer-events-none select-none">
+        <h1 className="text-[5.5rem] font-light tracking-tight leading-none text-center">
+          {time.format("h:mm")}
+        </h1>
+        <p className="text-[1.2rem] font-medium mt-2 tracking-wide text-center">
+          {time.format("dddd, MMMM D")}
+        </p>
+      </div>
+      
+      <ul className="desktop-projects w-full h-full max-md:hidden">
+        {projects.map((project) => (
+          <li
+            key={project.id}
+            className={clsx("group folder", project.windowPosition)}
+            onClick={(e) => handleOpenProjectFinder(e, project)}
+          >
+            <img 
+              src="/images/folder.png" 
+              alt={project.name}
+              width={64}
+              height={64}
+              loading="eager"
+              className="pointer-events-none" 
+            />
+            <p>{project.name}</p>
+          </li>
+        ))}
+      </ul>
+
+      <ul className="hidden max-md:grid grid-cols-4 gap-x-2 gap-y-6 px-5 relative z-30 w-full box-border mt-[38vh]">
+        {mobileApps.map((app) => (
+          <li 
+            key={app.id || app.name}
+            onClick={(e) => handleOpenApp(e, app)}
+            className="flex flex-col items-center gap-[6px] cursor-pointer"
+          >
+            <img 
+              src={`/images/${app.icon}`} 
+              alt={app.name} 
+              className={clsx(
+                "w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover",
+                !app.canOpen && "opacity-60"
+              )}
+            />
+            <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
+              {app.name}
+            </p>
+          </li>
+        ))}
+        {projects.map((project) => (
+          <li 
+            key={project.id}
+            onClick={(e) => handleOpenProjectFinder(e, project)}
+            className="flex flex-col items-center gap-[6px] cursor-pointer"
+          >
+            <img 
+              src="/images/folder.png" 
+              alt={project.name} 
+              className="w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover"
+            />
+            <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
+              {project.name}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+};
+
+export default Home;
+</file>
+
 <file path="src/windows/Resume.jsx">
-import React, { useState, useMemo, memo } from 'react';
+import React, { useState, useMemo, memo, useEffect } from 'react';
 import { pdfjs, Document, Page } from 'react-pdf';
 import { WindowControls } from "#components/index.js";
 import WindowWrapper from "#hoc/WindowWrapper.jsx";
@@ -1353,24 +1392,46 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 
 const Resume = memo(() => {
   const [numPages, setNumPages] = useState(null);
+  const [pdfWidth, setPdfWidth] = useState(
+    typeof window !== 'undefined' && window.innerWidth < 768 ? window.innerWidth - 32 : null
+  );
+
+  // Automatically adjust the PDF width when resizing the window
+  useEffect(() => {
+    const handleResize = () => {
+      setPdfWidth(window.innerWidth < 768 ? window.innerWidth - 32 : null);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  },[]);
 
   const options = useMemo(() => ({
     cMapUrl: '/cmaps/',
     cMapPacked: true,
     standardFontDataUrl: '/standard_fonts/',
-  }), []);
+  }),[]);
 
   function onDocumentLoadSuccess({ numPages }) {
     setNumPages(numPages);
   }
 
   return (
-    <><div id="window-header"><WindowControls target={"resume"} /><h2>Resume.pdf</h2><a
+    <>
+      <div id="window-header">
+        <WindowControls target={"resume"} />
+        <h2>Resume.pdf</h2>
+        <a
           href="files/resume.pdf"
           download
           className="cursor-pointer"
           title="Download resume"
-        ><Download className="icon"/></a></div><div className="flex justify-center overflow-auto h-[calc(100%-40px)] p-4 bg-gray-100"><Document 
+        >
+          <Download className="icon"/>
+        </a>
+      </div>
+      
+      <div className="flex justify-center overflow-auto h-[calc(100%-40px)] p-4 bg-gray-100">
+        <Document 
           file="files/resume.pdf" 
           onLoadSuccess={onDocumentLoadSuccess}
           options={options}
@@ -1383,12 +1444,15 @@ const Resume = memo(() => {
               pageNumber={index + 1} 
               renderTextLayer={true}
               renderAnnotationLayer={true}
-              scale={1.2}
-              className="mb-4 shadow-md"
+              scale={pdfWidth ? 1 : 1}
+              width={pdfWidth || undefined}
+              className="mb-4 shadow-md max-md:mb-2"
               loading=""
             />
           ))}
-        </Document></div></>
+        </Document>
+      </div>
+    </>
   );
 });
 
@@ -3126,15 +3190,9 @@ export {
     }
 
     #terminal {
-        @apply w-xl absolute top-32 left-1/12 bg-black/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-[#0A0B1A];
+        @apply w-xl absolute top-32 left-1/12 bg-black/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:!h-full max-md:rounded-none max-md:bg-[#0A0B1A];
         h2 {
             @apply font-bold text-sm text-center w-full max-md:text-white/50;
-        }
-        #window-header {
-            @apply max-md:bg-[#0A0B1A] max-md:border-b max-md:border-white/10;
-        }
-        #window-controls .close svg {
-            @apply max-md:stroke-white;
         }
     }
 
