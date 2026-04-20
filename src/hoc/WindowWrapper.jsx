@@ -17,7 +17,7 @@ const WindowWrapper = (Component, windowKey) => {
     const ref = useRef(null);
     const dragInstance = useRef(null);
     const resizeInstances = useRef([]);
-    const [isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
+    const[isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
     const preMaxState = useRef(null);
     const [isMobile, setIsMobile] = useState(false);
 
@@ -37,18 +37,17 @@ const WindowWrapper = (Component, windowKey) => {
           if (launchPos) {
             gsap.fromTo(el, 
               { 
-                clipPath: `circle(0% at ${launchPos.x}px ${launchPos.y}px)`,
                 opacity: 0,
                 scale: 0.8,
-                borderRadius: "50px"
+                transformOrigin: `${launchPos.x}px ${launchPos.y}px`,
+                borderRadius: "32px",
               },
               { 
-                clipPath: `circle(150% at ${launchPos.x}px ${launchPos.y}px)`,
                 opacity: 1, 
                 scale: 1,
                 borderRadius: "0px",
-                duration: 0.4, 
-                ease: "elastic.out(1, 0.8)", 
+                duration: 0.35, 
+                ease: "power3.out", 
                 overwrite: "auto" 
               }
             );
@@ -67,10 +66,9 @@ const WindowWrapper = (Component, windowKey) => {
       } else {
         if (isMobile) {
           gsap.to(el, {
-            yPercent: 100, 
             opacity: 0,
             scale: 0.9,
-            duration: 0.3, 
+            duration: 0.25, 
             ease: "power3.in", 
             overwrite: "auto",
             onComplete: () => setIsActuallyVisible(false),
@@ -108,24 +106,7 @@ const WindowWrapper = (Component, windowKey) => {
       const el = ref.current;
       if (!el) return;
 
-      if (isMobile) {
-        Draggable.create(el, {
-          type: "y",
-          edgeResistance: 0.65,
-          onDrag: function() {
-            if (this.y > 150) {
-              gsap.to(this.target, { yPercent: 100, opacity: 0, duration: 0.3 });
-              closeWindow(windowKey);
-            }
-          },
-          onDragEnd: function() {
-            if (this.y <= 150) {
-              gsap.to(this.target, { y: 0, duration: 0.3, ease: "elastic.out(1, 0.8)" });
-            }
-          }
-        });
-        return;
-      }
+      if (isMobile) return; // Disabled mobile dragging to fix native scrolling!
 
       [dragInstance.current] = Draggable.create(el, {
         onPress: () => focusWindow(windowKey),
@@ -194,15 +175,23 @@ const WindowWrapper = (Component, windowKey) => {
       <section
         id={windowKey}
         ref={ref}
-        className="os-window absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none"
+        className="os-window absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none max-md:!bg-white"
         style={{ 
             zIndex, 
             display: isActuallyVisible ? "flex" : "none",
-            willChange: "transform, width, height, clip-path",
+            willChange: "transform, width, height, opacity",
             transform: "translate3d(0,0,0)",
         }}
       >
         <Component {...props} />
+        
+        {/* iOS Home Indicator (Visual only, no swipe/click interception to prevent clashes) */}
+        {isMobile && (
+          <div className="absolute bottom-0 left-0 w-full h-8 z-[2000] flex justify-center items-end pb-2 pointer-events-none">
+            <div className="w-[130px] h-1.5 bg-black/40 rounded-full" />
+          </div>
+        )}
+
         {!isMaximized && !isMobile && (
           <><div className="resizer-n absolute top-0 left-0 w-full h-1.5 cursor-ns-resize z-50" /><div className="resizer-s absolute bottom-0 left-0 w-full h-1.5 cursor-ns-resize z-50" /><div className="resizer-w absolute top-0 left-0 h-full w-1.5 cursor-ew-resize z-50" /><div className="resizer-e absolute top-0 right-0 h-full w-1.5 cursor-ew-resize z-50" /><div className="resizer-nw absolute top-0 left-0 size-4 cursor-nwse-resize z-[60]" /><div className="resizer-ne absolute top-0 right-0 size-4 cursor-nesw-resize z-[60]" /><div className="resizer-sw absolute bottom-0 left-0 size-4 cursor-nesw-resize z-[60]" /><div className="resizer-se absolute bottom-0 right-0 size-4 cursor-nwse-resize z-[60]" /></>
         )}

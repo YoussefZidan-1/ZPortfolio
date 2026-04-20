@@ -295,7 +295,7 @@ input::selection {
 
     #home {
         @apply relative z-0 w-full h-full;
-        ul {
+        .desktop-projects {
             li {
                 @apply absolute z-0 select-none flex items-center flex-col cursor-pointer;
                 img {
@@ -309,59 +309,45 @@ input::selection {
     }
 }
 
+/* --- iOS Mobile Overrides --- */
 @media (max-width: 768px) {
+    /* Hide Welcome & Dock on Mobile */
+    #welcome, #dock {
+        display: none !important;
+    }
+
     .os-window {
-        top: 0 ;
-        left: 0 ;
-        width: 100dvw ;
-        height: 100dvh;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100dvw !important;
+        height: 100dvh !important;
         border-radius: 0;
         z-index: 100;
     }
 
+    /* iOS Native Window Header */
     #window-header {
-        @apply pt-14 pb-3 bg-white/95 backdrop-blur-3xl rounded-none border-b border-gray-200/50;
+        @apply pt-[56px] pb-3 bg-white/95 backdrop-blur-3xl border-b border-gray-200/80 items-center justify-center relative;
+        border-radius: 0 !important;
+        display: flex !important;
     }
 
-    #home ul {
-        @apply grid grid-cols-4 gap-2 sm:gap-4 px-4 relative z-30 w-full max-w-full box-border;
-        margin-top: 38vh;
+    #window-header h2 {
+        @apply text-center font-semibold text-[17px] text-black w-full mx-auto truncate px-10;
     }
 
-    #home ul li {
-        @apply relative top-auto left-auto transform-none flex items-center flex-col gap-1;
-    }
-
-    #home ul li img {
-        @apply w-[14vw] max-w-[60px] h-[14vw] max-h-[60px] p-0 rounded-[20%] shadow-sm bg-transparent group-hover:bg-transparent;
-    }
-
-    #home ul li p {
-        @apply text-[11px] font-medium mt-1 bg-transparent group-hover:bg-transparent drop-shadow-md text-center leading-tight;
-    }
-
-    #dock {
-        @apply w-[92%] bottom-6 z-40;
-    }
-
-    #dock .dock-container {
-        @apply rounded-[32px] px-4 py-3 gap-3 w-full shadow-2xl;
-    }
-
-    #dock .dock-icon {
-        @apply size-12 flex-1 flex justify-center;
-    }
-
-    #dock .dock-icon img {
-        @apply rounded-[14px];
-    }
-
-    #dock .tooltip {
-        display: none;
+    /* Anchored to the bottom so it never goes behind the Dynamic Island */
+    #window-controls {
+        @apply absolute left-4 bottom-2.5 flex gap-0;
     }
 
     #window-controls .close {
-        @apply w-8 h-8 bg-gray-200/80 flex items-center justify-center rounded-full;
+        @apply w-auto h-auto bg-transparent flex items-center justify-center rounded-none text-blue-600 font-medium p-2 -ml-2;
+    }
+
+    #window-controls .close svg {
+        @apply stroke-blue-600 w-6 h-6;
+        transform: rotate(90deg); /* Mimics the iOS "< Back" button */
     }
 
     #window-controls .minimize, #window-controls .maximize {
@@ -369,48 +355,195 @@ input::selection {
     }
 
     .os-window > div:last-child {
-        @apply h-full overflow-y-auto overflow-x-hidden;
+        height: 100% !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        padding-bottom: 48px !important;
     }
 
+    /* iOS Native Finder (Files App) */
     #finder .sidebar {
-        @apply hidden;
+        display: none !important;
     }
 
     #finder .content {
-        @apply block w-full p-6 overflow-y-auto relative;
-        ul {
-            @apply grid grid-cols-3 gap-6 relative;
-        }
-        li {
-            @apply relative top-auto left-auto flex flex-col items-center justify-center w-full;
-        }
+        display: block !important;
+        width: 100% !important;
+        padding: 16px !important;
+        background: #f2f2f7 !important;
+    }
+    #finder .content ul {
+        display: flex !important;
+        flex-direction: column !important;
+        background: white !important;
+        border-radius: 12px !important;
+        overflow: hidden !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+    }
+    #finder .content li {
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: flex-start !important;
+        align-items: center !important;
+        padding: 12px !important;
+        border-bottom: 1px solid #f3f4f6 !important;
+        gap: 16px !important;
+    }
+    #finder .content li:last-child {
+        border-bottom: none !important;
+    }
+    #finder .content li img {
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: 8px !important;
+    }
+    #finder .content li p {
+        text-align: left !important;
+        width: 100% !important;
+        font-size: 17px !important;
+        color: black !important;
+        font-weight: 400 !important;
+    }
+    #finder h3 {
+        display: none !important;
     }
 
+    /* iOS Native Photos Grid */
     #photos .sidebar {
-        @apply hidden;
+        display: none !important;
     }
 
     #photos .gallery {
-        @apply w-full overflow-y-auto;
-        ul {
-            @apply grid grid-cols-2 gap-3 relative;
-        }
-        li {
-            @apply relative top-auto left-auto col-span-1 row-span-1;
-            img {
-                @apply aspect-square w-full;
-            }
-        }
+        width: 100% !important;
+        overflow-y: auto !important;
+        background: white !important;
+        padding: 2px !important;
+    }
+    #photos .gallery ul {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 2px !important;
+        position: relative !important;
+    }
+    #photos .gallery li {
+        position: relative !important;
+        grid-column: auto !important;
+        grid-row: auto !important;
+    }
+    #photos .gallery li img {
+        aspect-ratio: 1 / 1 !important;
+        width: 100% !important;
+        height: 100% !important;
+        border-radius: 0 !important;
+        object-fit: cover !important;
     }
 
+    /* iOS Safari Layout */
+    #safari #window-header {
+        padding: 56px 16px 12px 16px !important;
+    }
+    #safari #window-header > svg, 
+    #safari #window-header > div:not(.search):not(#window-controls) {
+        display: none !important;
+    }
+    #safari #window-header .search {
+        flex: 1 !important;
+        margin-left: 40px !important;
+        height: 40px !important;
+        background: #f2f2f7 !important;
+        border-radius: 10px !important;
+        padding: 0 12px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border: none !important;
+    }
+    #safari #window-header .search input {
+        text-align: center !important;
+        font-size: 17px !important;
+        width: 100% !important;
+        background: transparent !important;
+    }
+    #safari .blog {
+        padding: 24px 16px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    #safari .blog h2 {
+        font-size: 24px !important;
+        color: black !important;
+        font-weight: 700 !important;
+        margin-bottom: 24px !important;
+    }
+    #safari .blog .blog-post {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+        margin-bottom: 32px !important;
+        margin-left: 0 !important;
+    }
+    #safari .blog .blog-post > div {
+        width: 100% !important;
+    }
+    #safari .blog .blog-post img {
+        aspect-ratio: 16/9 !important;
+        object-fit: cover !important;
+        border-radius: 12px !important;
+        width: 100% !important;
+    }
+
+    /* iOS Native Contact Manager */
+    #contact {
+        background: #f2f2f7 !important;
+    }
+    #contact .p-5 {
+        padding: 20px 24px !important;
+        background: white !important;
+        margin: 16px !important;
+        border-radius: 16px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    }
+    #contact h3 {
+        color: black !important;
+    }
+    #contact p {
+        color: #4b5563 !important;
+    }
     #contact ul {
-        @apply flex-col items-start px-4;
-        li {
-            @apply w-full mb-3;
-        }
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        padding: 0 !important;
+        margin-top: 24px !important;
+    }
+    #contact ul li {
+        width: 100% !important;
+        margin-bottom: 12px !important;
+        border-radius: 12px !important;
+        transform: none !important;
+    }
+    #contact ul li:hover {
+        transform: none !important;
+        scale: 1 !important;
     }
 
+    /* Terminal iOS Color Tweaks */
+    #terminal #window-header {
+        background: #0A0B1A !important;
+        border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+    }
+    #terminal #window-header h2 {
+        color: rgba(255,255,255,0.5) !important;
+    }
+    #terminal #window-controls .close svg {
+        stroke: white !important;
+    }
+    
+    /* Wallpaper screen home indicator */
     .ios-home-indicator {
-        @apply fixed bottom-2 left-1/2 -translate-x-1/2 w-32 h-1.5 bg-white/40 rounded-full z-[1000] pointer-events-none;
+        @apply fixed bottom-2 left-1/2 -translate-x-1/2 w-[130px] h-1.5 bg-white/60 rounded-full z-[100] pointer-events-none;
     }
 }

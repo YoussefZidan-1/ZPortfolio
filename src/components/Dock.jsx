@@ -21,7 +21,7 @@ const Dock = memo(() => {
   };
 
   return (
-    <section id="dock">
+    <section id="dock" className="max-md:hidden">
       <Proximity
         className="dock-container"
         selector=".dock-icon"
@@ -33,7 +33,7 @@ const Dock = memo(() => {
           y: [0, -20],
           duration: 0.1,
           resetDuration: 1,
-          ease: "power3.out",
+          ease: "power1.out",
           resetEase: "elastic"
         }}
       >

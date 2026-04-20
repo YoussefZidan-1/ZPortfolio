@@ -2,7 +2,7 @@ import { ProximityText } from "../proximity-engine/ProximityText.jsx";
 
 const Welcome = () => {
   return (
-    <section id="welcome" className="pointer-events-none w-full">
+    <section id="welcome" className="max-md:hidden pointer-events-none w-full">
       <ProximityText
         text="Hey, I'm Yousef Zedan! Welcome to my"
         preset="opacity-y"

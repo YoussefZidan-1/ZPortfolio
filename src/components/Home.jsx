@@ -1,4 +1,4 @@
-import { locations } from "#constants";
+import { locations, dockApps } from "#constants";
 import clsx from "clsx";
 import { useGSAP } from "@gsap/react";
 import Draggable from "gsap/Draggable";
@@ -30,6 +30,18 @@ const Home = () => {
     };
     setActiveLocation(project);
     openWindow("finder", null, launchPos);
+  };
+
+  const handleOpenApp = (e, app) => {
+    if (!app.canOpen) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const launchPos = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+      width: rect.width,
+      height: rect.height,
+    };
+    openWindow(app.id, null, launchPos);
   };
 
   useGSAP(() => {
@@ -67,7 +79,8 @@ const Home = () => {
           {time.format("dddd, MMMM D")}
         </p>
       </div>
-      <ul className="w-full h-full">
+      
+      <ul className="desktop-projects w-full h-full max-md:hidden">
         {projects.map((project) => (
           <li
             key={project.id}
@@ -83,6 +96,44 @@ const Home = () => {
               className="pointer-events-none" 
             />
             <p>{project.name}</p>
+          </li>
+        ))}
+      </ul>
+
+      <ul className="hidden max-md:grid grid-cols-4 gap-x-2 gap-y-6 px-5 relative z-30 w-full box-border mt-[38vh]">
+        {dockApps.map((app) => (
+          <li 
+            key={app.id || app.name}
+            onClick={(e) => handleOpenApp(e, app)}
+            className="flex flex-col items-center gap-[6px] cursor-pointer"
+          >
+            <img 
+              src={`/images/${app.icon}`} 
+              alt={app.name} 
+              className={clsx(
+                "w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover shadow-sm rounded-[22.5%]",
+                !app.canOpen && "opacity-60"
+              )}
+            />
+            <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
+              {app.name}
+            </p>
+          </li>
+        ))}
+        {projects.map((project) => (
+          <li 
+            key={project.id}
+            onClick={(e) => handleOpenProjectFinder(e, project)}
+            className="flex flex-col items-center gap-[6px] cursor-pointer"
+          >
+            <img 
+              src="/images/folder.png" 
+              alt={project.name} 
+              className="w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover shadow-sm rounded-[22.5%]"
+            />
+            <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
+              {project.name}
+            </p>
           </li>
         ))}
       </ul>
