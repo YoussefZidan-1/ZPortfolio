@@ -19,7 +19,7 @@ const WindowWrapper = (Component, windowKey) => {
     const resizeInstances = useRef([]);
     const[isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
     const preMaxState = useRef(null);
-    const [isMobile, setIsMobile] = useState(false);
+    const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
 
     useEffect(() => {
       const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -41,6 +41,8 @@ const WindowWrapper = (Component, windowKey) => {
                 scale: 0.8,
                 transformOrigin: `${launchPos.x}px ${launchPos.y}px`,
                 borderRadius: "32px",
+                x: 0,
+                y: 0
               },
               { 
                 opacity: 1, 
@@ -48,13 +50,15 @@ const WindowWrapper = (Component, windowKey) => {
                 borderRadius: "0px",
                 duration: 0.35, 
                 ease: "power3.out", 
-                overwrite: "auto" 
+                overwrite: "auto",
+                x: 0,
+                y: 0
               }
             );
           } else {
             gsap.fromTo(el, 
-              { yPercent: 100, opacity: 1 },
-              { yPercent: 0, duration: 0.35, ease: "power3.out", overwrite: "auto" }
+              { yPercent: 100, opacity: 1, x: 0, y: 0 },
+              { yPercent: 0, duration: 0.35, ease: "power3.out", overwrite: "auto", x: 0, y: 0 }
             );
           }
         } else {
@@ -106,7 +110,7 @@ const WindowWrapper = (Component, windowKey) => {
       const el = ref.current;
       if (!el) return;
 
-      if (isMobile) return; // Disabled mobile dragging to fix native scrolling!
+      if (isMobile) return;
 
       [dragInstance.current] = Draggable.create(el, {
         onPress: () => focusWindow(windowKey),
@@ -185,7 +189,6 @@ const WindowWrapper = (Component, windowKey) => {
       >
         <Component {...props} />
         
-        {/* iOS Home Indicator (Visual only, no swipe/click interception to prevent clashes) */}
         {isMobile && (
           <div className="absolute bottom-0 left-0 w-full h-8 z-[2000] flex justify-center items-end pb-2 pointer-events-none">
             <div className="w-[130px] h-1.5 bg-black/40 rounded-full" />

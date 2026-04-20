@@ -41,7 +41,7 @@ const SYSTEM_APPS = {
 
 // Valid commands for Syntax Highlighting & Auto-complete
 const validCommands =[
-  "help", "ls", "cd", "pwd", "cat", "xdg-open", "whoami", "neofetch", "clear",
+  "help", "ls", "cd", "pwd", "cat", "xdg-open", "whoami", "fastfetch", "clear",
   ...Object.keys(SYSTEM_APPS)
 ];
 
@@ -201,7 +201,7 @@ const Terminal = () => {
               <span className="text-blue-400 font-bold">- cat [file]:</span> Display file content in terminal <br />
               <span className="text-blue-400 font-bold">- xdg-open [file]:</span> Open file in graphical window <br />
               <span className="text-blue-400 font-bold">- whoami:</span> About the developer <br />
-              <span className="text-blue-400 font-bold">- neofetch:</span> System information <br />
+              <span className="text-blue-400 font-bold">- fastfetch:</span> System information <br />
               <span className="text-blue-400 font-bold">- clear:</span> Clear terminal output <br /><br />
               <span className="text-gray-500">Global Executables:</span> <span className="text-white">zen-browser, projects, gallery, contact, resume</span>
             </div>
@@ -327,7 +327,7 @@ const Terminal = () => {
           );
           break;
 
-        case "neofetch":
+        case "fastfetch":
           response = (
             <div className="flex gap-4 text-xs mt-2">
               <pre className="text-blue-500 font-bold leading-tight">
