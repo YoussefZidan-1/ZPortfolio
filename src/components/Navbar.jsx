@@ -18,7 +18,7 @@ const Navbar = memo(() => {
   },[]);
 
   return (
-    <nav className="relative z-50 max-md:z-[1500] max-md:fixed max-md:top-0 max-md:w-full max-md:bg-transparent max-md:border-none max-md:pt-2 max-md:px-6 max-md:pointer-events-none">
+    <nav className="relative z-50 max-md:z-1500 max-md:fixed max-md:top-0 max-md:left-0 max-md:right-0 max-md:h-12 max-md:bg-transparent max-md:border-none max-md:pointer-events-none max-md:p-0 max-md:px-0 box-border">
     
       {/* PC Navbar */}
       <div className="flex items-center gap-4 max-md:hidden">
@@ -34,13 +34,13 @@ const Navbar = memo(() => {
       </div>
       
       {/* iOS Mobile Status Bar */}
-      <div className="hidden max-md:flex w-full items-center justify-between text-white drop-shadow-md pointer-events-auto">
-        <time className="text-[15px] font-bold mt-1 ml-1 tracking-wide">{timeStr}</time>
+      <div className="hidden max-md:flex w-full h-full items-center justify-between text-white drop-shadow-md pointer-events-auto px-6 box-border">
+        <time className="text-[15px] font-bold tracking-wide">{timeStr}</time>
         
-        {/* Dynamic Island */}
-        <div className="absolute left-1/2 -translate-x-1/2 -top-1 w-[120px] h-[32px] bg-black rounded-full z-50 shadow-sm" />
+        {/* Dynamic Island - Now perfectly centered vertically in the h-12 nav */}
+        <div className="absolute left-1/2 -translate-x-1/2 top-1 w-[120px] h-[32px] bg-black rounded-full z-50 shadow-sm" />
         
-        <div className="flex items-center gap-1.5 mt-1 mr-1">
+        <div className="flex items-center gap-1.5">
           <Signal size={16} className="fill-white" strokeWidth={2.5} />
           <Wifi size={16} strokeWidth={2.5} />
           <Battery size={20} strokeWidth={2} className="fill-white" />
@@ -48,7 +48,7 @@ const Navbar = memo(() => {
       </div>
 
       {/* PC Right Side */}
-      <div className="max-md:hidden">
+      <div className="flex items-center gap-5 max-md:hidden">
         <ul>
           {navIcons.map(({ id, img }) => (
             <li key={id}>

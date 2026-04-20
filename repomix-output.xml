@@ -117,6 +117,30 @@ vite.config.js
 <files>
 This section contains the contents of the repository's files.
 
+<file path="LICENSE">
+MIT License
+
+Copyright (c) 2026 Youssef Zidan
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
 <file path=".gitignore">
 # Logs
 logs
@@ -187,30 +211,6 @@ export default defineConfig([
     },
     "include": ["src"]
 }
-</file>
-
-<file path="LICENSE">
-MIT License
-
-Copyright (c) 2026 Youssef Zidan
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
 </file>
 
 <file path="public/fonts/JetBrainsMono/OFL.txt">
@@ -930,62 +930,6 @@ const useLocationStore = create(
 export default useLocationStore;
 </file>
 
-<file path="src/windows/ZenBrowser.jsx">
-import { WindowControls }  from "#components";
-import { blogPosts } from "#constants/index.js";
-import WindowWrapper from "#hoc/WindowWrapper";
-import { ChevronLeft, PanelLeft, ChevronRight, ShieldHalf, Search, Share, Plus, Copy, MoveRight } from "lucide-react";
-
-const ZenBrowser = () => {
-  return (
-    <>
-      <div id="window-header">
-        <WindowControls target={'safari'} />
-        <PanelLeft className="ml-10 icon" />
-        <div className="flex items-center gap-1 ml-5">
-          <ChevronLeft className="icon" />
-          <ChevronRight className="icon"/>
-        </div>
-        <div className="flex-1 flex-center gap-3">
-          <ShieldHalf className="icon" />
-          <div className="search">
-            <Search className="icon" />
-            <input type="text" placeholder="Search or enter website name" className="flex-1"/>
-          </div>
-        </div>
-        <div className="flex items-center gap-5">
-          <Share className="icon" />
-          <Plus className="icon" />
-          <Copy className="icon"/>
-        </div>
-      </div>
-      <div className="blog">
-        <h2>My Developer Certificates</h2>
-        <div className="space-y-8">
-          {blogPosts.map(({ id, image, title, date, link }) => (
-            <div key={id} className="blog-post">
-              <div className="col-span-2">
-                <img src={image} alt={title} />
-              </div>
-              <div className="content">
-                <p>{date}</p>
-                <h3>{title}</h3>
-                <a href={link} target="_blank" rel="noopener noreferrer">
-                  Check out the full certificate <MoveRight className="icon-hover"/>
-                </a>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </>
-  );
-};
-
-const ZenWindow = WindowWrapper(ZenBrowser, 'safari')
-export default ZenWindow;
-</file>
-
 <file path="src/components/index.js">
 import Navbar from "#components/Navbar.jsx";
 import Welcome from "#components/Welcome.jsx";
@@ -1099,6 +1043,64 @@ const Finder = () => {
 const FinderWindow = WindowWrapper(Finder, "finder");
 
 export default FinderWindow;
+</file>
+
+<file path="src/windows/ZenBrowser.jsx">
+import { WindowControls }  from "#components";
+import { blogPosts } from "#constants/index.js";
+import WindowWrapper from "#hoc/WindowWrapper";
+import { ChevronLeft, PanelLeft, ChevronRight, ShieldHalf, Search, Share, Plus, Copy, MoveRight } from "lucide-react";
+
+const ZenBrowser = () => {
+  return (
+    <>
+      <div id="window-header">
+        <WindowControls target={'safari'} />
+        <PanelLeft className="ml-10 icon" />
+        <div className="flex items-center gap-1 ml-5">
+          <ChevronLeft className="icon" />
+          <ChevronRight className="icon"/>
+        </div>
+        <div className="flex-1 flex-center gap-3">
+          <ShieldHalf className="icon" />
+          <div className="search">
+            <Search className="icon" />
+            <input type="text" placeholder="Search or enter website name" className="flex-1"/>
+          </div>
+        </div>
+        <div className="flex items-center gap-5">
+          <Share className="icon" />
+          <Plus className="icon" />
+          <Copy className="icon"/>
+        </div>
+      </div>
+      <div className="blog">
+        <div className="blog-container">
+          <h2>My Developer Certificates</h2>
+          <div className="space-y-8">
+            {blogPosts.map(({ id, image, title, date, link }) => (
+              <div key={id} className="blog-post">
+                <div className="col-span-2">
+                  <img src={image} alt={title} />
+                </div>
+                <div className="content">
+                  <p>{date}</p>
+                  <h3>{title}</h3>
+                  <a href={link} target="_blank" rel="noopener noreferrer">
+                    Check out the full certificate <MoveRight className="icon-hover"/>
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+const ZenWindow = WindowWrapper(ZenBrowser, 'safari')
+export default ZenWindow;
 </file>
 
 <file path="vite.config.js">
@@ -1884,7 +1886,7 @@ const Navbar = memo(() => {
   },[]);
 
   return (
-    <nav className="relative z-50 max-md:z-[1500] max-md:fixed max-md:top-0 max-md:w-full max-md:bg-transparent max-md:border-none max-md:pt-2 max-md:px-6 max-md:pointer-events-none">
+    <nav className="relative z-50 max-md:z-1500 max-md:fixed max-md:top-0 max-md:left-0 max-md:right-0 max-md:h-12 max-md:bg-transparent max-md:border-none max-md:pointer-events-none max-md:p-0 max-md:px-0 box-border">
     
       {/* PC Navbar */}
       <div className="flex items-center gap-4 max-md:hidden">
@@ -1900,13 +1902,13 @@ const Navbar = memo(() => {
       </div>
       
       {/* iOS Mobile Status Bar */}
-      <div className="hidden max-md:flex w-full items-center justify-between text-white drop-shadow-md pointer-events-auto">
-        <time className="text-[15px] font-bold mt-1 ml-1 tracking-wide">{timeStr}</time>
+      <div className="hidden max-md:flex w-full h-full items-center justify-between text-white drop-shadow-md pointer-events-auto px-6 box-border">
+        <time className="text-[15px] font-bold tracking-wide">{timeStr}</time>
         
-        {/* Dynamic Island */}
-        <div className="absolute left-1/2 -translate-x-1/2 -top-1 w-[120px] h-[32px] bg-black rounded-full z-50 shadow-sm" />
+        {/* Dynamic Island - Now perfectly centered vertically in the h-12 nav */}
+        <div className="absolute left-1/2 -translate-x-1/2 top-1 w-[120px] h-[32px] bg-black rounded-full z-50 shadow-sm" />
         
-        <div className="flex items-center gap-1.5 mt-1 mr-1">
+        <div className="flex items-center gap-1.5">
           <Signal size={16} className="fill-white" strokeWidth={2.5} />
           <Wifi size={16} strokeWidth={2.5} />
           <Battery size={20} strokeWidth={2} className="fill-white" />
@@ -3062,7 +3064,7 @@ export {
     }
 
     nav {
-        @apply flex justify-between items-center bg-white/30 backdrop-blur-xl p-2 px-5 select-none;
+        @apply flex justify-between items-center bg-white/30 backdrop-blur-xl p-2 px-5 select-none max-md:p-0 max-md:px-0;
         div {
             @apply flex items-center max-sm:w-full max-sm:justify-center gap-5;
             &:last-child {
@@ -3150,44 +3152,47 @@ export {
     }
 
     #safari {
-        @apply w-4xl absolute top-40 left-2/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white;
-        .search {
-            @apply flex items-center gap-3 w-2/3 bg-white/30 backdrop-blur-xl border border-gray-300 rounded-lg px-3 py-2 max-md:flex-1 max-md:ml-10 max-md:h-10 max-md:bg-[#f2f2f7] max-md:rounded-[10px] max-md:px-3 max-md:justify-center max-md:border-none;
-            input {
-                @apply placeholder:text-indigo-400 max-md:text-center max-md:text-[17px] max-md:w-full max-md:bg-transparent;
-            }
-        }
-        .blog {
-            @apply bg-transparent backdrop-blur-xl p-10 max-w-3xl mx-auto max-md:p-6 max-md:w-full max-md:max-w-full;
-            h2 {
-                @apply text-xl font-bold text-pink-600 mb-10 max-md:text-2xl max-md:text-black max-md:mb-6;
-            }
-            .blog-post {
-                @apply grid grid-cols-12 space-x-5 max-md:flex max-md:flex-col max-md:gap-3 max-md:mb-8 max-md:ml-0 max-md:space-x-0;
-                img {
-                    @apply size-full rounded-md object-cover max-md:aspect-video max-md:rounded-xl max-md:w-full;
-                }
-                .content {
-                    @apply col-span-10 space-y-3;
-                    p {
-                        @apply text-xs text-gray-600;
-                    }
-                    h3 {
-                        @apply font-semibold text-base text-gray-800;
-                    }
-                    a {
-                        @apply text-blue-600 text-xs hover:underline flex items-center gap-3;
-                    }
+            @apply w-4xl absolute top-40 left-2/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white;
+            .search {
+                @apply flex items-center gap-3 w-2/3 bg-white/30 backdrop-blur-xl border border-gray-300 rounded-lg px-3 py-2 max-md:flex-1 max-md:ml-0 max-md:h-10 max-md:bg-[#E3E3E6] max-md:rounded-xl max-md:px-3 max-md:justify-center max-md:border-none max-md:shadow-sm;
+                input {
+                    @apply placeholder:text-gray-500 max-md:text-center max-md:text-[15px] max-md:w-full max-md:bg-transparent outline-none;
                 }
             }
-        }
-        #window-header {
-            @apply max-md:pt-[56px] max-md:px-4 max-md:pb-3;
-            > svg, > div:not(.search):not(#window-controls) {
-                @apply max-md:hidden;
+            .blog {
+                @apply bg-transparent backdrop-blur-xl max-md:h-full max-md:overflow-y-auto max-md:bg-white;
+                .blog-container {
+                    @apply p-10 max-w-3xl mx-auto max-md:p-6 max-md:w-full max-md:max-w-full pb-20;
+                }
+                h2 {
+                    @apply text-xl font-bold text-pink-600 mb-10 max-md:text-2xl max-md:text-black max-md:mb-6 text-center max-md:text-center;
+                }
+                .blog-post {
+                    @apply grid grid-cols-12 space-x-5 max-md:flex max-md:flex-col max-md:gap-4 max-md:mb-10 max-md:ml-0 max-md:space-x-0 bg-white/50 max-md:bg-gray-50 max-md:p-3 max-md:rounded-3xl shadow-sm max-md:shadow-none;
+                    img {
+                        @apply size-full rounded-md object-cover max-md:w-full max-md:h-auto max-md:object-contain max-md:rounded-2xl max-md:bg-gray-200 shadow-sm;
+                    }
+                    .content {
+                        @apply col-span-10 space-y-3 max-md:py-2;
+                        p {
+                            @apply text-xs text-gray-600 max-md:text-sm;
+                        }
+                        h3 {
+                            @apply font-semibold text-base text-gray-800 max-md:text-lg max-md:leading-tight;
+                        }
+                        a {
+                            @apply text-blue-600 text-xs hover:underline flex items-center gap-3 max-md:text-sm font-medium;
+                        }
+                    }
+                }
+            }
+            #window-header {
+                @apply max-md:pt-[52px] max-md:px-4 max-md:pb-3 max-md:bg-white/80 max-md:backdrop-blur-md max-md:border-gray-100;
+                > svg, > div:not(.search):not(#window-controls) {
+                    @apply max-md:hidden;
+                }
             }
         }
-    }
 
     #terminal {
         @apply w-xl absolute top-32 left-1/12 bg-black/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:!h-full max-md:rounded-none max-md:bg-[#0A0B1A];
