@@ -1512,6 +1512,18 @@ src/
 Distributed under the **MIT License**. See `LICENSE` for more information.
 </file>
 
+<file path="src/windows/index.js">
+import Terminal from "#windows/Terminal.jsx";
+import ZenBrowser from "#windows/ZenBrowser.jsx";
+import Resume from "#windows/Resume.jsx";
+import Finder from "#windows/Finder.jsx";
+import Text from "#windows/Text.jsx";
+import Image from "#windows/Image.jsx";
+import Contact from "#windows/Contact.jsx";
+import Photos from "#windows/Photos.jsx"
+export { Terminal, ZenBrowser, Resume, Finder, Text, Image, Contact, Photos };
+</file>
+
 <file path="src/hoc/WindowWrapper.jsx">
 import useWindowStore from "#store/window.js";
 import gsap from "gsap";
@@ -1532,7 +1544,7 @@ const WindowWrapper = (Component, windowKey) => {
     const ref = useRef(null);
     const dragInstance = useRef(null);
     const resizeInstances = useRef([]);
-    const[isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
+    const [isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
     const preMaxState = useRef(null);
     const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
 
@@ -1599,7 +1611,7 @@ const WindowWrapper = (Component, windowKey) => {
           });
         }
       }
-    },[isOpen, dataId, isMobile]);
+    }, [isOpen, dataId, isMobile]);
 
     useGSAP(() => {
       if (isMobile) return; 
@@ -1632,6 +1644,9 @@ const WindowWrapper = (Component, windowKey) => {
         trigger: el.querySelector("#window-header") || el,
         bounds: "main",
       });
+
+      // Clear the instances array to avoid memory leaks if isMobile toggles
+      resizeInstances.current =[];
 
       const minW = 350;
       const minH = 250;
@@ -1688,13 +1703,13 @@ const WindowWrapper = (Component, windowKey) => {
         dragInstance.current?.kill();
         resizeInstances.current.forEach(i => i.kill());
       };
-    },[isMobile]);
+    }, [isMobile]);
 
     return (
       <section
         id={windowKey}
         ref={ref}
-        className="os-window absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none max-md:!bg-white"
+        className="os-window absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none max-md:bg-white"
         style={{ 
             zIndex, 
             display: isActuallyVisible ? "flex" : "none",
@@ -1710,8 +1725,18 @@ const WindowWrapper = (Component, windowKey) => {
           </div>
         )}
 
-        {!isMaximized && !isMobile && (
-          <><div className="resizer-n absolute top-0 left-0 w-full h-1.5 cursor-ns-resize z-50" /><div className="resizer-s absolute bottom-0 left-0 w-full h-1.5 cursor-ns-resize z-50" /><div className="resizer-w absolute top-0 left-0 h-full w-1.5 cursor-ew-resize z-50" /><div className="resizer-e absolute top-0 right-0 h-full w-1.5 cursor-ew-resize z-50" /><div className="resizer-nw absolute top-0 left-0 size-4 cursor-nwse-resize z-[60]" /><div className="resizer-ne absolute top-0 right-0 size-4 cursor-nesw-resize z-[60]" /><div className="resizer-sw absolute bottom-0 left-0 size-4 cursor-nesw-resize z-[60]" /><div className="resizer-se absolute bottom-0 right-0 size-4 cursor-nwse-resize z-[60]" /></>
+        {/* Kept mounted to not destroy GSAP hooks, simply hidden via CSS when maximized */}
+        {!isMobile && (
+          <div className={isMaximized ? "hidden pointer-events-none" : ""}>
+            <div className="resizer-n absolute top-0 left-0 w-full h-1.5 cursor-ns-resize z-50" />
+            <div className="resizer-s absolute bottom-0 left-0 w-full h-1.5 cursor-ns-resize z-50" />
+            <div className="resizer-w absolute top-0 left-0 h-full w-1.5 cursor-ew-resize z-50" />
+            <div className="resizer-e absolute top-0 right-0 h-full w-1.5 cursor-ew-resize z-50" />
+            <div className="resizer-nw absolute top-0 left-0 size-4 cursor-nwse-resize z-[60]" />
+            <div className="resizer-ne absolute top-0 right-0 size-4 cursor-nesw-resize z-[60]" />
+            <div className="resizer-sw absolute bottom-0 left-0 size-4 cursor-nesw-resize z-[60]" />
+            <div className="resizer-se absolute bottom-0 right-0 size-4 cursor-nwse-resize z-[60]" />
+          </div>
         )}
       </section>
     );
@@ -1722,18 +1747,6 @@ const WindowWrapper = (Component, windowKey) => {
 };
 
 export default WindowWrapper;
-</file>
-
-<file path="src/windows/index.js">
-import Terminal from "#windows/Terminal.jsx";
-import ZenBrowser from "#windows/ZenBrowser.jsx";
-import Resume from "#windows/Resume.jsx";
-import Finder from "#windows/Finder.jsx";
-import Text from "#windows/Text.jsx";
-import Image from "#windows/Image.jsx";
-import Contact from "#windows/Contact.jsx";
-import Photos from "#windows/Photos.jsx"
-export { Terminal, ZenBrowser, Resume, Finder, Text, Image, Contact, Photos };
 </file>
 
 <file path="package.json">
@@ -1854,6 +1867,79 @@ const Navbar = memo(() => {
 export default Navbar;
 </file>
 
+<file path="src/components/Dock.jsx">
+import { dockApps } from "#constants/index.js";
+import useWindowStore from "#store/window.js";
+import { memo } from "react";
+import { Tooltip } from "react-tooltip";
+import { Proximity } from "../proximity-engine/Proximity.jsx";
+
+const Dock = memo(() => {
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const closeWindow = useWindowStore((s) => s.closeWindow);
+  const windows = useWindowStore((s) => s.windows);
+
+  const toggleApp = (app) => {
+    if (!app.canOpen) return;
+
+    const windowState = windows[app.id];
+    if (windowState?.isOpen) {
+      closeWindow(app.id);
+    } else {
+      openWindow(app.id);
+    }
+  };
+
+  return (
+    <section id="dock" className="max-md:hidden">
+      <Proximity
+        className="dock-container"
+        selector=".dock-icon"
+        preset="scale-y"
+        reach={1}
+        falloff={2.4}
+        config={{
+          scale:[1, 1.3],
+          y: [0, -20],
+          duration: 0.1,
+          resetDuration: 1,
+          ease: "power1.out",
+          resetEase: "elastic"
+        }}
+      >
+        {dockApps.map(({ id, name, icon, canOpen }) => (
+          <div key={id ?? name} className="relative flex justify-center">
+            <button
+              type="button"
+              className="dock-icon flex items-center justify-center will-change-transform"
+              aria-label={name}
+              data-tooltip-id="dock-tooltip"
+              data-tooltip-content={name}
+              data-tooltip-delay-show={150}
+              disabled={!canOpen}
+              onClick={() => toggleApp({ id, canOpen })}
+            >
+              <img
+                src={`/images/${icon}`}
+                alt={name}
+                width={56}
+                height={56}
+                loading="lazy"
+                decoding="async"
+                className={canOpen ? "" : "opacity-60"}
+              />
+            </button>
+          </div>
+        ))}
+        <Tooltip id="dock-tooltip" place="top" className="tooltip" />
+      </Proximity>
+    </section>
+  );
+});
+
+export default Dock;
+</file>
+
 <file path="src/windows/Terminal.jsx">
 import React, { useState, useRef, useEffect } from "react";
 import { techStack } from "#constants";
@@ -1905,7 +1991,7 @@ const validCommands =[
 const Terminal = () => {
   const openWindow = useWindowStore((s) => s.openWindow);
   const [input, setInput] = useState("");
-  const [cwd, setCwd] = useState([]); 
+  const[cwd, setCwd] = useState([]); 
   
   // Terminal History states
   const [history, setHistory] = useState([
@@ -1913,7 +1999,7 @@ const Terminal = () => {
     { type: "system", content: "Type 'help' to see available commands." },
   ]);
   const [cmdHistory, setCmdHistory] = useState([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
+  const[historyIndex, setHistoryIndex] = useState(-1);
 
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
@@ -2056,7 +2142,7 @@ const Terminal = () => {
               <span className="text-blue-400 font-bold">- cd [dir]:</span> Change directory <br />
               <span className="text-blue-400 font-bold">- pwd:</span> Print working directory <br />
               <span className="text-blue-400 font-bold">- cat [file]:</span> Display file content in terminal <br />
-              <span className="text-blue-400 font-bold">- xdg-open [file]:</span> Open file in graphical window <br />
+              <span className="text-blue-400 font-bold">- xdg-open[file]:</span> Open file in graphical window <br />
               <span className="text-blue-400 font-bold">- whoami:</span> About the developer <br />
               <span className="text-blue-400 font-bold">- fastfetch:</span> System information <br />
               <span className="text-blue-400 font-bold">- clear:</span> Clear terminal output <br /><br />
@@ -2239,7 +2325,7 @@ const Terminal = () => {
     e.preventDefault();
     const cleanInput = input.trim();
     if (cleanInput) {
-      setHistory((prev) => [...prev, { type: "command", content: input, dir: currentDirStr }]);
+      setHistory((prev) =>[...prev, { type: "command", content: input, dir: currentDirStr }]);
       
       if (cmdHistory[cmdHistory.length - 1] !== cleanInput) {
         setCmdHistory(prev => [...prev, cleanInput]);
@@ -2267,7 +2353,7 @@ const Terminal = () => {
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden rounded-xl">
-      <div id="window-header" className="!bg-transparent !border-none shrink-0">
+      <div id="window-header" className="shrink-0">
         <WindowControls target="terminal" />
         <div className="flex items-center gap-2 text-white/50">
           <TerminalIcon size={14} />
@@ -2346,79 +2432,6 @@ const Terminal = () => {
 
 const TerminalWindow = WindowWrapper(Terminal, "terminal");
 export default TerminalWindow;
-</file>
-
-<file path="src/components/Dock.jsx">
-import { dockApps } from "#constants/index.js";
-import useWindowStore from "#store/window.js";
-import { memo } from "react";
-import { Tooltip } from "react-tooltip";
-import { Proximity } from "../proximity-engine/Proximity.jsx";
-
-const Dock = memo(() => {
-  const openWindow = useWindowStore((s) => s.openWindow);
-  const closeWindow = useWindowStore((s) => s.closeWindow);
-  const windows = useWindowStore((s) => s.windows);
-
-  const toggleApp = (app) => {
-    if (!app.canOpen) return;
-
-    const windowState = windows[app.id];
-    if (windowState?.isOpen) {
-      closeWindow(app.id);
-    } else {
-      openWindow(app.id);
-    }
-  };
-
-  return (
-    <section id="dock" className="max-md:hidden">
-      <Proximity
-        className="dock-container"
-        selector=".dock-icon"
-        preset="scale-y"
-        reach={1}
-        falloff={2.4}
-        config={{
-          scale:[1, 1.3],
-          y: [0, -20],
-          duration: 0.1,
-          resetDuration: 1,
-          ease: "power1.out",
-          resetEase: "elastic"
-        }}
-      >
-        {dockApps.map(({ id, name, icon, canOpen }) => (
-          <div key={id ?? name} className="relative flex justify-center">
-            <button
-              type="button"
-              className="dock-icon flex items-center justify-center will-change-transform"
-              aria-label={name}
-              data-tooltip-id="dock-tooltip"
-              data-tooltip-content={name}
-              data-tooltip-delay-show={150}
-              disabled={!canOpen}
-              onClick={() => toggleApp({ id, canOpen })}
-            >
-              <img
-                src={`/images/${icon}`}
-                alt={name}
-                width={56}
-                height={56}
-                loading="lazy"
-                decoding="async"
-                className={canOpen ? "" : "opacity-60"}
-              />
-            </button>
-          </div>
-        ))}
-        <Tooltip id="dock-tooltip" place="top" className="tooltip" />
-      </Proximity>
-    </section>
-  );
-});
-
-export default Dock;
 </file>
 
 <file path="src/components/Welcome.jsx">
@@ -2953,19 +2966,6 @@ export {
 }
 
 @import "tailwindcss";
-html, body {
-    width: 100%;
-    max-width: 100vw;
-    height: 100dvh;
-    overflow: hidden;
-    position: fixed;
-    top: 0;
-    left: 0;
-    background-image: url("/images/wallpaper.webp");
-    background-size: cover;
-    background-repeat: no-repeat;
-    background-position: center;
-}
 
 @theme {
     --font-georama: "Georama", sans-serif;
@@ -2974,18 +2974,6 @@ html, body {
     --terminal-foreground: #cbd5e1;
     --terminal-accent: #00a154;
     --breakpoint-3xl: 1920px;
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-    display: none;
-}
-.scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
-input::selection {
-    background: rgba(236, 72, 153, 0.3);
 }
 
 @utility flex-center {
@@ -3001,6 +2989,10 @@ input::selection {
 }
 
 @layer base {
+    html, body {
+        @apply w-full max-w-[100vw] h-[100dvh] overflow-hidden fixed top-0 left-0 bg-[url('/images/wallpaper.webp')] bg-cover bg-no-repeat bg-center max-md:bg-[url('/images/wallpaper-2.webp')];
+    }
+
     main {
         @apply fixed inset-0 w-full h-full overflow-hidden w-dvw h-dvh;
     }
@@ -3026,16 +3018,28 @@ input::selection {
 }
 
 @layer components {
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    input::selection {
+        background: rgba(236, 72, 153, 0.3);
+    }
+
     .icon {
         @apply p-1 hover:bg-gray-200 rounded hover:cursor-default;
     }
 
     #welcome {
-            @apply text-gray-200 flex flex-col justify-center items-center absolute top-[60vh] md:top-1/2 left-1/2 -translate-x-1/2 md:-translate-y-1/2 select-none w-full px-5;
-        }
+        @apply text-gray-200 flex flex-col justify-center items-center absolute top-[60vh] md:top-1/2 left-1/2 -translate-x-1/2 md:-translate-y-1/2 select-none w-full px-5 max-md:hidden;
+    }
 
     #dock {
-        @apply absolute bottom-5 left-1/2 -translate-x-1/2 z-50 select-none;
+        @apply absolute bottom-5 left-1/2 -translate-x-1/2 z-50 select-none max-md:hidden;
         .dock-container {
             @apply bg-white/20 backdrop-blur-2xl border border-white/20 justify-between rounded-3xl p-2.5 flex items-end gap-2;
         }
@@ -3051,39 +3055,53 @@ input::selection {
     }
 
     #window-controls {
-        @apply flex gap-2;
+        @apply flex gap-2 max-md:absolute max-md:left-4 max-md:bottom-2.5 max-md:gap-0;
         .close {
-            @apply size-3.5 rounded-full bg-[#ff6157] cursor-pointer;
+            @apply size-3.5 rounded-full bg-[#ff6157] cursor-pointer max-md:w-auto max-md:h-auto max-md:bg-transparent max-md:flex max-md:items-center max-md:justify-center max-md:rounded-none max-md:text-blue-600 max-md:font-medium max-md:p-2 max-md:-ml-2;
+            svg {
+                @apply max-md:stroke-blue-600 max-md:w-6 max-md:h-6 max-md:rotate-90;
+            }
         }
         .minimize {
-            @apply size-3.5 rounded-full bg-[#ffc030];
+            @apply size-3.5 rounded-full bg-[#ffc030] max-md:hidden;
         }
         .maximize {
-            @apply size-3.5 rounded-full bg-[#2acb42];
+            @apply size-3.5 rounded-full bg-[#2acb42] max-md:hidden;
         }
     }
 
     #window-header {
-        @apply flex items-center justify-between px-4 py-3 rounded-t-lg bg-white/10 border-b border-white/20 select-none text-sm text-indigo-500;
+        @apply flex items-center justify-between px-4 py-3 rounded-t-lg bg-white/10 border-b border-white/20 select-none text-sm text-indigo-500 max-md:pt-[56px] max-md:pb-3 max-md:bg-white/95 max-md:backdrop-blur-3xl max-md:border-gray-200/80 max-md:items-center max-md:justify-center max-md:relative max-md:rounded-none;
+        h2 {
+            @apply max-md:text-center max-md:font-semibold max-md:text-[17px] max-md:text-black max-md:w-full max-md:mx-auto max-md:truncate max-md:px-10;
+        }
+    }
+
+    /* Window General Mobile Reset */
+    .os-window {
+        @apply max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:z-[100];
+        > div:last-child {
+            @apply max-md:h-full max-md:overflow-y-auto max-md:overflow-x-hidden max-md:pb-12;
+        }
     }
 
     #safari {
-        @apply w-4xl absolute top-40 left-2/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
+        @apply w-4xl absolute top-40 left-2/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white;
         .search {
-            @apply flex items-center gap-3 w-2/3 bg-white/30 backdrop-blur-xl border border-gray-300 rounded-lg px-3 py-2;
+            @apply flex items-center gap-3 w-2/3 bg-white/30 backdrop-blur-xl border border-gray-300 rounded-lg px-3 py-2 max-md:flex-1 max-md:ml-10 max-md:h-10 max-md:bg-[#f2f2f7] max-md:rounded-[10px] max-md:px-3 max-md:justify-center max-md:border-none;
             input {
-                @apply placeholder:text-indigo-400;
+                @apply placeholder:text-indigo-400 max-md:text-center max-md:text-[17px] max-md:w-full max-md:bg-transparent;
             }
         }
         .blog {
-            @apply bg-transparent backdrop-blur-xl p-10 max-w-3xl mx-auto;
+            @apply bg-transparent backdrop-blur-xl p-10 max-w-3xl mx-auto max-md:p-6 max-md:w-full max-md:max-w-full;
             h2 {
-                @apply text-xl font-bold text-pink-600 mb-10;
+                @apply text-xl font-bold text-pink-600 mb-10 max-md:text-2xl max-md:text-black max-md:mb-6;
             }
             .blog-post {
-                @apply grid grid-cols-12 space-x-5;
+                @apply grid grid-cols-12 space-x-5 max-md:flex max-md:flex-col max-md:gap-3 max-md:mb-8 max-md:ml-0 max-md:space-x-0;
                 img {
-                    @apply size-full rounded-md object-cover;
+                    @apply size-full rounded-md object-cover max-md:aspect-video max-md:rounded-xl max-md:w-full;
                 }
                 .content {
                     @apply col-span-10 space-y-3;
@@ -3099,27 +3117,45 @@ input::selection {
                 }
             }
         }
+        #window-header {
+            @apply max-md:pt-[56px] max-md:px-4 max-md:pb-3;
+            > svg, > div:not(.search):not(#window-controls) {
+                @apply max-md:hidden;
+            }
+        }
     }
 
     #terminal {
-        @apply w-xl absolute top-32 left-1/12 bg-black/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
+        @apply w-xl absolute top-32 left-1/12 bg-black/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-[#0A0B1A];
         h2 {
-            @apply font-bold text-sm text-center w-full;
+            @apply font-bold text-sm text-center w-full max-md:text-white/50;
+        }
+        #window-header {
+            @apply max-md:bg-[#0A0B1A] max-md:border-b max-md:border-white/10;
+        }
+        #window-controls .close svg {
+            @apply max-md:stroke-white;
         }
     }
 
     #contact {
-        @apply max-w-2xl absolute top-60 left-5/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
+        @apply max-w-2xl absolute top-60 left-5/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-[#f2f2f7];
         h2 {
             @apply font-bold text-sm text-center w-full;
         }
         h3 {
-            @apply text-xl font-semibold;
+            @apply text-xl font-semibold max-md:text-black;
+        }
+        .p-5 {
+            @apply max-md:py-5 max-md:px-6 max-md:bg-white max-md:m-4 max-md:rounded-2xl max-md:shadow-[0_1px_3px_rgba(0,0,0,0.05)];
+        }
+        p {
+            @apply max-md:text-gray-600;
         }
         ul {
-            @apply flex items-center gap-3;
+            @apply flex items-center gap-3 max-md:flex-col max-md:items-center max-md:p-0 max-md:mt-6;
             li {
-                @apply rounded-lg p-3 w-60 hover:-translate-y-0.5 hover:scale-105 origin-center transition-all duration-300;
+                @apply rounded-lg p-3 w-60 hover:-translate-y-0.5 hover:scale-105 origin-center transition-all duration-300 max-md:w-full max-md:mb-3 max-md:rounded-xl max-md:transform-none max-md:hover:scale-100;
                 a {
                     @apply space-y-5;
                 }
@@ -3131,9 +3167,9 @@ input::selection {
     }
 
     #photos {
-        @apply max-w-3xl absolute top-96 left-1/2 -translate-y-1/2 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
+        @apply max-w-3xl absolute top-96 left-1/2 -translate-y-1/2 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white;
         .sidebar {
-            @apply w-3/12 flex-none bg-black/10 border-r border-black/10 flex flex-col p-5;
+            @apply w-3/12 flex-none bg-black/10 border-r border-black/10 flex flex-col p-5 max-md:hidden;
             h2 {
                 @apply text-xs font-medium text-black mb-1;
             }
@@ -3153,24 +3189,25 @@ input::selection {
             }
         }
         .gallery {
-            @apply p-5;
+            @apply p-5 max-md:w-full max-md:overflow-y-auto max-md:bg-white max-md:p-[2px];
             ul {
-                @apply grid grid-cols-5 grid-rows-5 gap-2.5;
+                @apply grid grid-cols-5 grid-rows-5 gap-2.5 max-md:grid-cols-3 max-md:gap-[2px] max-md:relative;
                 li {
+                    @apply max-md:relative max-md:col-auto max-md:row-auto;
                     img {
-                        @apply size-full object-cover rounded-lg;
+                        @apply size-full object-cover rounded-lg max-md:aspect-square max-md:w-full max-md:h-full max-md:rounded-none;
                     }
                     &:first-child {
-                        @apply row-start-1 row-span-3 col-start-1 col-span-3;
+                        @apply row-start-1 row-span-3 col-start-1 col-span-3 max-md:row-auto max-md:col-auto;
                     }
                     &:nth-child(2) {
-                        @apply row-start-1 row-span-3 col-start-4 col-span-2;
+                        @apply row-start-1 row-span-3 col-start-4 col-span-2 max-md:row-auto max-md:col-auto;
                     }
                     &:nth-child(3) {
-                        @apply row-start-4 row-span-2 col-start-3 col-span-3;
+                        @apply row-start-4 row-span-2 col-start-3 col-span-3 max-md:row-auto max-md:col-auto;
                     }
                     &:last-child {
-                        @apply row-start-4 row-span-2 col-start-1 col-span-2;
+                        @apply row-start-4 row-span-2 col-start-1 col-span-2 max-md:row-auto max-md:col-auto;
                     }
                 }
             }
@@ -3178,7 +3215,7 @@ input::selection {
     }
 
     #resume {
-        @apply w-fit h-fit absolute top-16 left-7/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
+        @apply w-fit h-fit absolute top-16 left-7/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white;
         #window-header {
             h2 {
                 @apply font-bold text-sm text-center flex-1;
@@ -3187,9 +3224,9 @@ input::selection {
     }
 
     #finder {
-        @apply backdrop-blur-xl absolute w-3xl left-40 top-20 shadow-2xl drop-shadow-2xl overflow-hidden rounded-xl;
+        @apply backdrop-blur-xl absolute w-3xl left-40 top-20 shadow-2xl drop-shadow-2xl overflow-hidden rounded-xl max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white;
         .sidebar {
-            @apply w-48 bg-gray-50 border-r border-gray-200 flex flex-col p-5 space-y-3;
+            @apply w-48 bg-gray-50 border-r border-gray-200 flex flex-col p-5 space-y-3 max-md:hidden;
             h3 {
                 @apply text-xs font-medium text-gray-400 mb-1;
             }
@@ -3207,35 +3244,34 @@ input::selection {
             }
         }
         .content {
-            @apply flex-1 p-8 max-w-2xl relative;
+            @apply flex-1 p-8 max-w-2xl relative max-md:block max-md:w-full max-md:p-4 max-md:bg-[#f2f2f7];
+            ul {
+                @apply max-md:flex max-md:flex-col max-md:overflow-hidden;
+            }
             li {
-                @apply absolute flex items-center flex-col gap-3;
+                @apply absolute flex items-center flex-col gap-3 max-md:relative max-md:top-0 max-md:left-0 max-md:flex-row max-md:justify-start max-md:p-3 max-md:gap-4;
+                &:last-child {
+                    @apply max-md:border-b-0;
+                }
                 img {
-                    @apply object-contain object-center size-16 relative group-hover:scale-105;
+                    @apply object-contain object-center size-16 relative group-hover:scale-105 max-md:w-10 max-md:h-10 max-md:rounded-lg;
                 }
                 p {
-                    @apply text-sm text-center font-medium w-40;
+                    @apply text-sm text-center font-medium w-40 max-md:text-left max-md:w-full max-md:text-[17px] max-md:text-black max-md:font-normal;
                 }
+            }
+            h3 {
+                @apply max-md:hidden;
             }
         }
     }
 
     #txtfile {
-        @apply absolute bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
-        top: 15%;
-        left: 60%;
-        width: 500px;
-        height: 600px;
-        transition: none;
+        @apply absolute bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden top-[15%] left-[60%] w-[500px] h-[600px] transition-none max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white;
     }
 
     #imgfile {
-        @apply absolute bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden;
-        top: 20%;
-        left: 20%;
-        width: 650px;
-        height: 500px;
-        transition: none;
+        @apply absolute bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden top-[20%] left-[20%] w-[650px] h-[500px] transition-none max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white;
     }
 
     #home {
@@ -3252,239 +3288,9 @@ input::selection {
             }
         }
     }
-}
 
-@media (max-width: 768px) {
-    html, body {
-        background-image: url("/images/wallpaper-2.webp");
-    }
-
-    #welcome, #dock {
-        display: none !important;
-    }
-
-    .os-window {
-        top: 0 !important;
-        left: 0 !important;
-        width: 100dvw !important;
-        height: 100dvh !important;
-        border-radius: 0;
-        z-index: 100;
-    }
-
-    #window-header {
-        @apply pt-[56px] pb-3 bg-white/95 backdrop-blur-3xl border-b border-gray-200/80 items-center justify-center relative;
-        border-radius: 0 !important;
-        display: flex !important;
-    }
-
-    #window-header h2 {
-        @apply text-center font-semibold text-[17px] text-black w-full mx-auto truncate px-10;
-    }
-
-    #window-controls {
-        @apply absolute left-4 bottom-2.5 flex gap-0;
-    }
-
-    #window-controls .close {
-        @apply w-auto h-auto bg-transparent flex items-center justify-center rounded-none text-blue-600 font-medium p-2 -ml-2;
-    }
-
-    #window-controls .close svg {
-        @apply stroke-blue-600 w-6 h-6;
-        transform: rotate(90deg);
-    }
-
-    #window-controls .minimize, #window-controls .maximize {
-        @apply hidden;
-    }
-
-    .os-window > div:last-child {
-        height: 100% !important;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-        padding-bottom: 48px !important;
-    }
-
-    #finder .sidebar {
-        display: none !important;
-    }
-
-    #finder .content {
-        display: block !important;
-        width: 100% !important;
-        padding: 16px !important;
-        background: #f2f2f7 !important;
-    }
-    #finder .content ul {
-        display: flex !important;
-        flex-direction: column !important;
-        overflow: hidden !important;
-    }
-    #finder .content li {
-        position: relative !important;
-        top: auto !important;
-        left: auto !important;
-        display: flex !important;
-        flex-direction: row !important;
-        justify-content: flex-start !important;
-        align-items: center !important;
-        padding: 12px !important;
-        gap: 16px !important;
-    }
-    #finder .content li:last-child {
-        border-bottom: none !important;
-    }
-    #finder .content li img {
-        width: 40px !important;
-        height: 40px !important;
-        border-radius: 8px !important;
-    }
-    #finder .content li p {
-        text-align: left !important;
-        width: 100% !important;
-        font-size: 17px !important;
-        color: black !important;
-        font-weight: 400 !important;
-    }
-    #finder h3 {
-        display: none !important;
-    }
-
-    /* iOS Native Photos Grid */
-    #photos .sidebar {
-        display: none !important;
-    }
-
-    #photos .gallery {
-        width: 100% !important;
-        overflow-y: auto !important;
-        background: white !important;
-        padding: 2px !important;
-    }
-    #photos .gallery ul {
-        display: grid !important;
-        grid-template-columns: repeat(3, 1fr) !important;
-        gap: 2px !important;
-        position: relative !important;
-    }
-    #photos .gallery li {
-        position: relative !important;
-        grid-column: auto !important;
-        grid-row: auto !important;
-    }
-    #photos .gallery li img {
-        aspect-ratio: 1 / 1 !important;
-        width: 100% !important;
-        height: 100% !important;
-        border-radius: 0 !important;
-        object-fit: cover !important;
-    }
-
-    /* iOS Safari Layout */
-    #safari #window-header {
-        padding: 56px 16px 12px 16px !important;
-    }
-    #safari #window-header > svg, 
-    #safari #window-header > div:not(.search):not(#window-controls) {
-        display: none !important;
-    }
-    #safari #window-header .search {
-        flex: 1 !important;
-        margin-left: 40px !important;
-        height: 40px !important;
-        background: #f2f2f7 !important;
-        border-radius: 10px !important;
-        padding: 0 12px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        border: none !important;
-    }
-    #safari #window-header .search input {
-        text-align: center !important;
-        font-size: 17px !important;
-        width: 100% !important;
-        background: transparent !important;
-    }
-    #safari .blog {
-        padding: 24px 16px !important;
-        width: 100% !important;
-        max-width: 100% !important;
-    }
-    #safari .blog h2 {
-        font-size: 24px !important;
-        color: black !important;
-        font-weight: 700 !important;
-        margin-bottom: 24px !important;
-    }
-    #safari .blog .blog-post {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 12px !important;
-        margin-bottom: 32px !important;
-        margin-left: 0 !important;
-    }
-    #safari .blog .blog-post > div {
-        width: 100% !important;
-    }
-    #safari .blog .blog-post img {
-        aspect-ratio: 16/9 !important;
-        object-fit: cover !important;
-        border-radius: 12px !important;
-        width: 100% !important;
-    }
-
-    /* iOS Native Contact Manager */
-    #contact {
-        background: #f2f2f7 !important;
-    }
-    #contact .p-5 {
-        padding: 20px 24px !important;
-        background: white !important;
-        margin: 16px !important;
-        border-radius: 16px !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
-    }
-    #contact h3 {
-        color: black !important;
-    }
-    #contact p {
-        color: #4b5563 !important;
-    }
-    #contact ul {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        padding: 0 !important;
-        margin-top: 24px !important;
-    }
-    #contact ul li {
-        width: 100% !important;
-        margin-bottom: 12px !important;
-        border-radius: 12px !important;
-        transform: none !important;
-    }
-    #contact ul li:hover {
-        transform: none !important;
-        scale: 1 !important;
-    }
-
-    /* Terminal iOS Color Tweaks */
-    #terminal #window-header {
-        background: #0A0B1A !important;
-        border-bottom: 1px solid rgba(255,255,255,0.1) !important;
-    }
-    #terminal #window-header h2 {
-        color: rgba(255,255,255,0.5) !important;
-    }
-    #terminal #window-controls .close svg {
-        stroke: white !important;
-    }
-    
-    /* Wallpaper screen home indicator */
     .ios-home-indicator {
-        @apply fixed bottom-2 left-1/2 -translate-x-1/2 w-[130px] h-1.5 bg-white/60 rounded-full z-[100] pointer-events-none;
+        @apply fixed bottom-2 left-1/2 -translate-x-1/2 w-[130px] h-1.5 bg-white/60 rounded-full z-[100] pointer-events-none max-md:block hidden;
     }
 }
 </file>

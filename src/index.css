@@ -281,10 +281,10 @@
                     @apply text-gray-700 hover:bg-gray-200;
                 }
                 li {
-                    @apply flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors;
-                }
-            }
-        }
+                                @apply absolute flex items-center flex-col gap-3 max-md:relative max-md:top-0 max-md:left-0 max-md:flex-row max-md:justify-start max-md:p-3 max-md:gap-4;
+                                &:last-child {
+                                    @apply max-md:border-b-0;
+                                }
         .content {
             @apply flex-1 p-8 max-w-2xl relative max-md:block max-md:w-full max-md:p-4 max-md:bg-[#f2f2f7];
             ul {

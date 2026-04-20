@@ -1,14 +1,17 @@
+import { useState } from "react";
 import { WindowControls } from "#components";
 import { locations } from "#constants";
 import WindowWrapper from "#hoc/WindowWrapper";
 import useLocationStore from "#store/location";
-import { Search } from "lucide-react";
+import { Search, PanelLeft } from "lucide-react";
 import clsx from "clsx";
 import useWindowStore from "#store/window";
 
 const Finder = () => {
   const { openWindow } = useWindowStore();
   const { activeLocation, setActiveLocation } = useLocationStore();
+  const[showSidebar, setShowSidebar] = useState(false);
+
   const openItem = (item) => {
     if (item.fileType === "pdf") return openWindow("resume");
     if (item.kind === "folder") return setActiveLocation(item);
@@ -16,6 +19,7 @@ const Finder = () => {
       return window.open(item.href, "_blank");
     openWindow(`${item.fileType}${item.kind}`, item);
   };
+
   const renderList = (name, items) => (
     <div>
       <h3>{name}</h3>
@@ -23,7 +27,10 @@ const Finder = () => {
         {items.map((item) => (
           <li
             key={item.id}
-            onClick={() => setActiveLocation(item)}
+            onClick={() => {
+              setActiveLocation(item);
+              setShowSidebar(false); // Auto-closes sidebar when a folder is selected
+            }}
             className={clsx(
               item.id === activeLocation.id ? "active" : "not-active",
             )}
@@ -35,23 +42,48 @@ const Finder = () => {
       </ul>
     </div>
   );
+
   return (
     <>
       <div id="window-header">
         <WindowControls target="finder" />
+        
+        {/* Mobile Sidebar Toggle Icon */}
+        <PanelLeft 
+          className="hidden max-md:block absolute left-12 bottom-2.5 text-blue-600 cursor-pointer z-50" 
+          size={22} 
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowSidebar(!showSidebar);
+          }} 
+        />
+        
         <Search className="icon" />
       </div>
 
-      <div className="bg-white flex h-full">
-        <div className="sidebar">
+      <div className="bg-white flex h-full relative">
+        {/* Mobile Backdrop Overlay */}
+        {showSidebar && (
+          <div 
+            className="hidden max-md:block absolute inset-0 bg-black/20 z-45"
+            onClick={() => setShowSidebar(false)}
+          />
+        )}
+        
+        {/* Sidebar container with conditional mobile rendering */}
+        <div className={clsx(
+          "sidebar",
+          showSidebar && "max-md:flex! max-md:absolute max-md:top-0 max-md:left-0 max-md:h-full max-md:z-50 max-md:w-60 max-md:shadow-2xl"
+        )}>
           <ul>{renderList("Favourites", Object.values(locations))}</ul>
           <ul>{renderList("Work", locations.work.children)}</ul>
         </div>
+        
         <ul className="content">
           {activeLocation?.children.map((item) => (
             <li
               key={item.id}
-              className={item.position}
+              className={clsx(item.position, "max-md:top-auto! max-md:left-auto!")}
               onClick={() => openItem(item)}
             >
               <img src={item.icon} alt={item.name} />
