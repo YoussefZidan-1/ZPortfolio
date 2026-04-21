@@ -29,6 +29,7 @@ const Dock = memo(() => {
         preset="scale-y"
         reach={1}
         falloff={2.4}
+        ignoreSelectors={[".os-window"]}
         config={{
           scale:[1, 1.3],
           y: [0, -20],

@@ -8,6 +8,7 @@ const Welcome = () => {
         preset="opacity-y"
         splitBy="letter"
         global={true}
+        ignoreSelectors={[".os-window"]}
         config={{
           duration: 1.5,
           resetDuration: 1.5,
@@ -23,6 +24,7 @@ const Welcome = () => {
         text="ZPortfolio"
         preset="weight"
         global={true}
+        ignoreSelectors={[".os-window"]}
         config={{
           duration: 1,
           resetDuration: 1,
