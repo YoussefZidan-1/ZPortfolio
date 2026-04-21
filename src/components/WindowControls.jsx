@@ -10,7 +10,7 @@ const WindowControls = ({ target }) => {
       <button 
         type="button"
         className="close cursor-pointer" 
-        onClick={(e) => { 
+        onPointerDown={(e) => { 
             e.stopPropagation();
             closeWindow(target);
             trigger("nudge");
@@ -22,7 +22,7 @@ const WindowControls = ({ target }) => {
       <button 
         type="button" 
         className="minimize cursor-pointer" 
-        onClick={(e) => {
+        onPointerDown={(e) => {
             e.stopPropagation();
             closeWindow(target);
             trigger("nudge");
@@ -32,7 +32,7 @@ const WindowControls = ({ target }) => {
       <button 
         type="button" 
         className="maximize cursor-pointer" 
-        onClick={(e) => {
+        onPointerDown={(e) => {
             e.stopPropagation();
             toggleMaximize(target);
             trigger("success");
