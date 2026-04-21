@@ -341,18 +341,19 @@ const Terminal = () => {
             <div className="flex gap-4 text-xs mt-2">
               <pre className="text-blue-500 font-bold leading-tight">
                 {`
-      /zzzzzzzz
-     |_____ zz
-          /zz/
-         /zz/
-        /zz/
-       /zz/
-      /zzzzzzzz
+      /ZZZZZZZZ
+     |_____ ZZ
+          /ZZ/
+         /ZZ/
+        /ZZ/
+       /ZZ/
+      /ZZZZZZZZ
      |________/
                 `}
               </pre>
               <div className="space-y-1 text-white">
                 <p><span className="text-blue-500 font-bold">OS:</span> ZED OS v1.0</p>
+                <p><span className="text-blue-500 font-bold">Distro:</span> CachyOS (Based on Arch BTW)</p>
                 <p><span className="text-blue-500 font-bold">Host:</span> Yousef's-PC</p>
                 <p><span className="text-blue-500 font-bold">Kernel:</span> React-19.0.0</p>
                 <p><span className="text-blue-500 font-bold">Shell:</span> zsh 5.8</p>
