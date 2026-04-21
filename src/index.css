@@ -172,7 +172,7 @@
     }
 
     #contact {
-        @apply max-w-2xl absolute top-60 left-5/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-[#f2f2f7];
+        @apply w-[650px] absolute top-60 left-5/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-[#f2f2f7];
         h2 {
             @apply font-bold text-sm text-center w-full;
         }
@@ -186,9 +186,9 @@
             @apply max-md:text-gray-600;
         }
         ul {
-            @apply flex items-center gap-3 max-md:flex-col max-md:items-center max-md:p-0 max-md:mt-6;
+            @apply flex flex-wrap items-center gap-3 max-md:flex-col max-md:items-center max-md:p-0 max-md:mt-6;
             li {
-                @apply rounded-lg p-3 w-60 hover:-translate-y-0.5 hover:scale-105 origin-center transition-all duration-300 max-md:w-full max-md:mb-3 max-md:rounded-xl max-md:transform-none max-md:hover:scale-100;
+                @apply flex-1 rounded-lg p-3 min-w-[100px] max-w-[400px] hover:-translate-y-0.5 hover:scale-105 origin-center transition-all duration-300 max-md:w-full max-md:mb-3 max-md:rounded-xl max-md:transform-none max-md:hover:scale-100;
                 a {
                     @apply space-y-5;
                 }
@@ -200,7 +200,7 @@
     }
 
     #photos {
-        @apply max-w-3xl absolute top-96 left-1/2 -translate-y-1/2 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white;
+        @apply w-125 top-[20%] left-[20%] absolute bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white;
         .sidebar {
             @apply w-3/12 flex-none bg-black/10 border-r border-black/10 flex flex-col p-5 max-md:hidden;
             h2 {

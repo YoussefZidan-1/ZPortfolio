@@ -35,8 +35,8 @@ const WindowWrapper = (Component, windowKey) => {
         setIsActuallyVisible(true);
         if (isMobile) {
           if (launchPos) {
-            gsap.fromTo(el, 
-              { 
+            gsap.fromTo(el,
+              {
                 opacity: 0,
                 scale: 0.8,
                 transformOrigin: `${launchPos.x}px ${launchPos.y}px`,
@@ -44,25 +44,25 @@ const WindowWrapper = (Component, windowKey) => {
                 x: 0,
                 y: 0
               },
-              { 
-                opacity: 1, 
+              {
+                opacity: 1,
                 scale: 1,
                 borderRadius: "0px",
-                duration: 0.35, 
-                ease: "power3.out", 
+                duration: 0.35,
+                ease: "power3.out",
                 overwrite: "auto",
                 x: 0,
                 y: 0
               }
             );
           } else {
-            gsap.fromTo(el, 
+            gsap.fromTo(el,
               { yPercent: 100, opacity: 1, x: 0, y: 0 },
               { yPercent: 0, duration: 0.35, ease: "power3.out", overwrite: "auto", x: 0, y: 0 }
             );
           }
         } else {
-          gsap.fromTo(el, 
+          gsap.fromTo(el,
             { scale: 0.9, opacity: 0, y: 20, yPercent: 0 },
             { scale: 1, opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.5)", overwrite: "auto" }
           );
@@ -72,8 +72,8 @@ const WindowWrapper = (Component, windowKey) => {
           gsap.to(el, {
             opacity: 0,
             scale: 0.9,
-            duration: 0.25, 
-            ease: "power3.in", 
+            duration: 0.25,
+            ease: "power3.in",
             overwrite: "auto",
             onComplete: () => setIsActuallyVisible(false),
           });
@@ -87,7 +87,7 @@ const WindowWrapper = (Component, windowKey) => {
     }, [isOpen, dataId, isMobile]);
 
     useGSAP(() => {
-      if (isMobile) return; 
+      if (isMobile) return;
       const el = ref.current;
       if (!el || !isOpen) return;
 
@@ -98,7 +98,7 @@ const WindowWrapper = (Component, windowKey) => {
         preMaxState.current = { width: el.offsetWidth, height: el.offsetHeight, x: currentX, y: currentY };
         if (dragInstance.current) dragInstance.current.disable();
         resizeInstances.current.forEach(i => i.disable());
-        gsap.to(el, { x: currentX - rect.left, y: currentY - rect.top, width: "100vw", height: "100vh", borderRadius: "0px", duration: 0.5, ease: "expo.inOut" });
+        gsap.to(el, { x: currentX - rect.left, y: currentY - rect.top, width: "100vw", height: "100vh", maxWidth: "none", maxHeight: "none",  borderRadius: "0px", duration: 0.5, ease: "expo.inOut" });
       } else if (preMaxState.current) {
         if (dragInstance.current) dragInstance.current.enable();
         resizeInstances.current.forEach(i => i.enable());
@@ -183,15 +183,15 @@ const WindowWrapper = (Component, windowKey) => {
         id={windowKey}
         ref={ref}
         className="os-window absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none max-md:bg-white"
-        style={{ 
-            zIndex, 
+        style={{
+            zIndex,
             display: isActuallyVisible ? "flex" : "none",
             willChange: "transform, width, height, opacity",
             transform: "translate3d(0,0,0)",
         }}
       >
         <Component {...props} />
-        
+
         {isMobile && (
           <div className="absolute bottom-0 left-0 w-full h-8 z-[2000] flex justify-center items-end pb-2 pointer-events-none">
             <div className="w-[130px] h-1.5 bg-black/40 rounded-full" />
