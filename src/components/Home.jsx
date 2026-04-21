@@ -103,7 +103,7 @@ const Home = () => {
               src="/images/folder.png" 
               alt={project.name}
               width={64}
-              height={64}
+              height={60}
               loading="eager"
               className="pointer-events-none" 
             />
