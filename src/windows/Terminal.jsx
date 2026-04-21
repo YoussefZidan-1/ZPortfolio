@@ -42,13 +42,14 @@ const SYSTEM_APPS = {
 
 // Valid commands for Syntax Highlighting & Auto-complete
 const validCommands =[
-  "help", "ls", "cd", "pwd", "cat", "xdg-open", "whoami", "fastfetch", "clear",
+  "help", "ls", "cd", "pwd", "cat", "xdg-open", "whoami", "fastfetch", "neofetch", "clear", "kill", "sudo",
   ...Object.keys(SYSTEM_APPS)
 ];
 
 const Terminal = () => {
   const { trigger } = useWebHaptics();
   const openWindow = useWindowStore((s) => s.openWindow);
+  const closeWindow = useWindowStore((s) => s.closeWindow);
   const [input, setInput] = useState("");
   const[cwd, setCwd] = useState([]); 
   
@@ -116,20 +117,31 @@ const Terminal = () => {
     if (!input) return "";
     
     const parts = input.split(" ");
+    const cmd = parts[0].toLowerCase();
+    const lastPart = parts[parts.length - 1];
     
     // Command Suggestion
     if (parts.length === 1) {
-      const matches = validCommands.filter(c => c.startsWith(input));
-      if (matches.length > 0) {
-        return matches[0].substring(input.length) + " "; 
-      }
-      return "";
-    }
+          const matches = validCommands.filter(c => c.startsWith(input));
+          if (matches.length > 0) {
+            return matches[0].substring(input.length) + " "; 
+          }
+          return "";
+        }
+    if (cmd === "kill") {
+          const appKeys = Object.keys(SYSTEM_APPS);
+          const matches = appKeys.filter(app => app.startsWith(lastPart));
+          if (matches.length > 0) {
+            return matches[0].substring(lastPart.length);
+          }
+          return "";
+        }
 
     // Path / File Suggestion
     const target = parts[parts.length - 1];
     if (!target) return ""; 
 
+    if (!lastPart && input.endsWith(" ")) return "";
     const lastSlashIdx = target.lastIndexOf("/");
     const dirPart = lastSlashIdx !== -1 ? target.substring(0, lastSlashIdx) : "";
     const filePart = lastSlashIdx !== -1 ? target.substring(lastSlashIdx + 1) : target;
@@ -208,6 +220,7 @@ const Terminal = () => {
               <span className="text-blue-400 font-bold">- cd [dir]:</span> Change directory <br />
               <span className="text-blue-400 font-bold">- pwd:</span> Print working directory <br />
               <span className="text-blue-400 font-bold">- cat [file]:</span> Display file content in terminal <br />
+              <span className="text-blue-400 font-bold">- kill [app]:</span> Kill app <br />
               <span className="text-blue-400 font-bold">- xdg-open[file]:</span> Open file in graphical window <br />
               <span className="text-blue-400 font-bold">- whoami:</span> About the developer <br />
               <span className="text-blue-400 font-bold">- fastfetch:</span> System information <br />
@@ -327,6 +340,23 @@ const Terminal = () => {
           }
           break;
         }
+          
+        case "kill": {
+                  if (!arg) {
+                    response = <span className="text-red-400">kill: missing operand</span>;
+                    break;
+                  }
+                  
+                  const targetApp = arg.toLowerCase();
+                  
+                  if (SYSTEM_APPS[targetApp]) {
+                    closeWindow(SYSTEM_APPS[targetApp].id);
+                    response = <span className="text-blue-400">Killing {SYSTEM_APPS[targetApp].name}...</span>;
+                  } else {
+                    response = <span className="text-red-400">kill: {arg}: process not found</span>;
+                  }
+                  break;
+                }
 
         case "whoami":
           response = (
@@ -352,19 +382,47 @@ const Terminal = () => {
                 `}
               </pre>
               <div className="space-y-1 text-white">
-                <p><span className="text-blue-500 font-bold">OS:</span> ZED OS v1.0</p>
+                <p><span className="text-blue-500 font-bold">OS:</span> ZED OS v6.7</p>
                 <p><span className="text-blue-500 font-bold">Distro:</span> CachyOS (Based on Arch BTW)</p>
                 <p><span className="text-blue-500 font-bold">Host:</span> Yousef's-PC</p>
-                <p><span className="text-blue-500 font-bold">Kernel:</span> React-19.0.0</p>
+                <p><span className="text-blue-500 font-bold">Kernel:</span> React-19</p>
                 <p><span className="text-blue-500 font-bold">Shell:</span> zsh 5.8</p>
                 <p><span className="text-blue-500 font-bold">WM:</span> GSAP-Draggable</p>
-                <p><span className="text-blue-500 font-bold">CPU:</span> Intel Core 2 Duo e4600</p>
+                <p><span className="text-blue-500 font-bold">CPU:</span> Intel Core 2 Duo e4600 @ 2.40 GHz</p>
                 <p><span className="text-blue-500 font-bold">RAM:</span> 4GB RAM (DDR2)</p>
-                <p><span className="text-blue-500 font-bold">GPU:</span> AMD R5 240 1GB</p>
+                <p><span className="text-blue-500 font-bold">GPU:</span> AMD R5 240 1GB VRAM</p>
               </div>
             </div>
           );
           break;
+        
+          case "neofetch":
+            response = (
+              <div className="flex flex-col">
+                <span className="text-[#fb7185]">zsh: command not found: neofetch</span>
+                <span className="text-gray-500 italic mt-1">
+                  "You are so old... use <span className="text-white">fastfetch</span>, stupid! 🙄"
+                </span>
+              </div>
+            );
+          break;
+          case "sudo": {
+            response = (
+              <div className="flex flex-col space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-white">[sudo] password for yousef:</span>
+                  <span className="text-[#fb7185]/90 animate-pulse"></span>
+                </div>
+                <div className="text-red-400 mt-1 font-bold">
+                  Exaaaacttlllyyyy! You don't know it because I AM the super user here. 😎👑
+                </div>
+                <span className="text-gray-500 text-xs italic">
+                  (Trying to bypass ZED OS security? Cute 󰄛 .)
+                </span>
+              </div>
+            );
+            break;
+          }
 
         case "clear":
           setHistory([]);
@@ -416,7 +474,7 @@ const Terminal = () => {
   const cmdWord = input.split(" ")[0];
   const restOfCmd = input.substring(cmdWord.length);
   const isKnownCommand = validCommands.includes(cmdWord);
-  const cmdColor = cmdWord ? (isKnownCommand ? "text-[#00A154]" : "text-red-500") : "";
+  const cmdColor = cmdWord ? (isKnownCommand ? "text-[#10b981]" : "text-[#fb7185]") : "";
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden rounded-xl">
