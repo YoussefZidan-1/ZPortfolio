@@ -406,6 +406,7 @@ const Terminal = () => {
               </div>
             );
           break;
+        
           case "sudo": {
             response = (
               <div className="flex flex-col space-y-1">
