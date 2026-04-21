@@ -1,6 +1,5 @@
 import { dockApps } from "#constants/index.js";
 import useWindowStore from "#store/window.js";
-import { triggerHaptic } from "../utils/haptics";
 import { memo } from "react";
 import { Tooltip } from "react-tooltip";
 import { Proximity } from "../proximity-engine/Proximity.jsx";
@@ -12,10 +11,8 @@ const Dock = memo(() => {
 
   const toggleApp = (app) => {
     if (!app.canOpen) {
-      triggerHaptic("error");
       return;
     };
-    triggerHaptic("light");
     const windowState = windows[app.id];
     if (windowState?.isOpen) {
       closeWindow(app.id);

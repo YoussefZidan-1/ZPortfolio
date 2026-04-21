@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useWebHaptics } from "web-haptics/react";
 import { techStack } from "#constants";
 import WindowWrapper from "#hoc/WindowWrapper.jsx";
 import { Check, Terminal as TerminalIcon } from "lucide-react";
@@ -46,6 +47,7 @@ const validCommands =[
 ];
 
 const Terminal = () => {
+  const { trigger } = useWebHaptics();
   const openWindow = useWindowStore((s) => s.openWindow);
   const [input, setInput] = useState("");
   const[cwd, setCwd] = useState([]); 
@@ -181,6 +183,13 @@ const Terminal = () => {
   const executeCommand = (cmdText) => {
     const args = cmdText.trim().split(/\s+/);
     const cmd = args[0].toLowerCase();
+    
+    if (validCommands.includes(cmd) || SYSTEM_APPS[cmd]) {
+          trigger(20);
+        } else {
+          trigger("error");
+        }
+    
     const arg = args[1];
     let response = null;
 

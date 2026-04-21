@@ -1,9 +1,9 @@
 import { locations, dockApps } from "#constants";
-import { triggerHaptic } from "../utils/haptics";
 import clsx from "clsx";
 import { useGSAP } from "@gsap/react";
 import Draggable from "gsap/Draggable";
 import gsap from "gsap";
+import { useWebHaptics } from "web-haptics/react";
 import useWindowStore from "#store/window.js";
 import useLocationStore from "#store/location.js";
 import { useState, useEffect } from "react";
@@ -12,6 +12,7 @@ import dayjs from "dayjs";
 const projects = locations.work?.children ??[];
 
 const Home = () => {
+  const { trigger } = useWebHaptics();
   const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
   const openWindow = useWindowStore((s) => s.openWindow);
   const [time, setTime] = useState(dayjs());
@@ -22,7 +23,7 @@ const Home = () => {
   },[]);
 
   const handleOpenProjectFinder = (e, project) => {
-    triggerHaptic("light");
+    trigger("nudge");
     const rect = e.currentTarget.getBoundingClientRect();
     const launchPos = {
       x: rect.left + rect.width / 2,
@@ -36,10 +37,10 @@ const Home = () => {
 
   const handleOpenApp = (e, app) => {
     if (!app.canOpen) { 
-      triggerHaptic("error");
+      trigger("error");
       return;
     }
-    triggerHaptic("light");
+    trigger("nudge", { intensity: 0.8 }); 
     const rect = e.currentTarget.getBoundingClientRect();
     const launchPos = {
       x: rect.left + rect.width / 2,
