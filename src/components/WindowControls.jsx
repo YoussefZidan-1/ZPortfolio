@@ -1,6 +1,6 @@
 import useWindowStore from "#store/window.js";
 import { ChevronDown } from "lucide-react";
-
+import { triggerHaptic } from "../utils/haptics";
 const WindowControls = ({ target }) => {
   const closeWindow = useWindowStore((s) => s.closeWindow);
   const toggleMaximize = useWindowStore((s) => s.toggleMaximize);
@@ -11,6 +11,7 @@ const WindowControls = ({ target }) => {
         type="button"
         className="close cursor-pointer" 
         onClick={(e) => {
+            triggerHaptic("medium"); 
             e.stopPropagation();
             closeWindow(target);
         }}
@@ -32,6 +33,7 @@ const WindowControls = ({ target }) => {
         className="maximize cursor-pointer" 
         onClick={(e) => {
             e.stopPropagation();
+            triggerHaptic("light");
             toggleMaximize(target);
         }} 
       />

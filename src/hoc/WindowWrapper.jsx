@@ -3,7 +3,6 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Draggable } from "gsap/Draggable";
 import { useRef, useState, useEffect, memo } from "react";
-
 const WindowWrapper = (Component, windowKey) => {
   const Wrapped = memo((props) => {
     const isOpen = useWindowStore((s) => s.windows[windowKey].isOpen);

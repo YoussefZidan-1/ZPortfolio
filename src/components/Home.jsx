@@ -1,4 +1,5 @@
 import { locations, dockApps } from "#constants";
+import { triggerHaptic } from "../utils/haptics";
 import clsx from "clsx";
 import { useGSAP } from "@gsap/react";
 import Draggable from "gsap/Draggable";
@@ -21,6 +22,7 @@ const Home = () => {
   },[]);
 
   const handleOpenProjectFinder = (e, project) => {
+    triggerHaptic("light");
     const rect = e.currentTarget.getBoundingClientRect();
     const launchPos = {
       x: rect.left + rect.width / 2,
@@ -33,7 +35,11 @@ const Home = () => {
   };
 
   const handleOpenApp = (e, app) => {
-    if (!app.canOpen) return;
+    if (!app.canOpen) { 
+      triggerHaptic("error");
+      return;
+    }
+    triggerHaptic("light");
     const rect = e.currentTarget.getBoundingClientRect();
     const launchPos = {
       x: rect.left + rect.width / 2,
