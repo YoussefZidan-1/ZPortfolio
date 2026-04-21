@@ -3,6 +3,7 @@ import clsx from "clsx";
 import { useGSAP } from "@gsap/react";
 import Draggable from "gsap/Draggable";
 import gsap from "gsap";
+import SpotifyWidget from "./SpotifyWidget.jsx";
 import { useWebHaptics } from "web-haptics/react";
 import useWindowStore from "#store/window.js";
 import useLocationStore from "#store/location.js";
@@ -83,6 +84,7 @@ const Home = () => {
 
   return (
     <section id="home" className="absolute inset-0 w-full h-full z-0 overflow-hidden">
+      <SpotifyWidget /> 
       <div className="absolute top-[12vh] left-0 w-full flex flex-col items-center justify-center md:hidden text-white drop-shadow-xl z-20 pointer-events-none select-none">
         <h1 className="text-[5.5rem] font-light tracking-tight leading-none text-center">
           {time.format("h:mm")}
