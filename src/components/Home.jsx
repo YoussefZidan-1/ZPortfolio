@@ -97,7 +97,7 @@ const Home = () => {
           <li
             key={project.id}
             className={clsx("group folder", project.windowPosition)}
-            onClick={(e) => handleOpenProjectFinder(e, project)}
+            onPointerDown={(e) => handleOpenProjectFinder(e, project)}
           >
             <img 
               src="/images/folder.png" 
@@ -116,7 +116,7 @@ const Home = () => {
         {mobileApps.map((app) => (
           <li 
             key={app.id || app.name}
-            onClick={(e) => handleOpenApp(e, app)}
+            onPointerDown={(e) => handleOpenApp(e, app)}
             className="flex flex-col items-center gap-[6px] cursor-pointer"
           >
             <img 
@@ -135,7 +135,7 @@ const Home = () => {
         {projects.map((project) => (
           <li 
             key={project.id}
-            onClick={(e) => handleOpenProjectFinder(e, project)}
+            onPointerDown={(e) => handleOpenProjectFinder(e, project)}
             className="flex flex-col items-center gap-[6px] cursor-pointer"
           >
             <img 
