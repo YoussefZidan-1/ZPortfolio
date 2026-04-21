@@ -185,7 +185,7 @@ const Terminal = () => {
     const cmd = args[0].toLowerCase();
     
     if (validCommands.includes(cmd) || SYSTEM_APPS[cmd]) {
-          trigger(20);
+          trigger("nudge");
         } else {
           trigger("error");
         }
