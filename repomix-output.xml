@@ -117,30 +117,6 @@ vite.config.js
 <files>
 This section contains the contents of the repository's files.
 
-<file path="LICENSE">
-MIT License
-
-Copyright (c) 2026 Youssef Zidan
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-</file>
-
 <file path=".gitignore">
 # Logs
 logs
@@ -211,6 +187,30 @@ export default defineConfig([
     },
     "include": ["src"]
 }
+</file>
+
+<file path="LICENSE">
+MIT License
+
+Copyright (c) 2026 Youssef Zidan
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 </file>
 
 <file path="public/fonts/JetBrainsMono/OFL.txt">
@@ -320,6 +320,40 @@ createRoot(document.getElementById('root')).render(
     <App />
   </StrictMode>,
 )
+</file>
+
+<file path="index.html">
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./macbook.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <title>ZPortfolio | Yousef Zedan</title>
+    <meta name="author" content="Yousef Zedan (ZED Studios)">
+    <meta name="description" content="A highly interactive, MacOS-inspired personal portfolio designed by Yousef Zedan.">
+    <meta name="designer" content="Yousef Zedan">
+    <meta name="copyright" content="ZED Studios 2026">
+    
+    <meta property="og:title" content="ZPortfolio — MacOS Experience">
+    <meta property="og:description" content="Check out my interactive MacOS-style portfolio built with React and GSAP.">
+    <meta property="og:image" content="./macbook.png">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+</file>
+
+<file path="src/components/index.js">
+import Navbar from "#components/Navbar.jsx";
+import Welcome from "#components/Welcome.jsx";
+import Dock from "#components/Dock.jsx"
+import WindowControls from "#components/WindowControls.jsx";
+import Home from "#components/Home.jsx";
+export { Navbar, Welcome, Dock, WindowControls, Home };
 </file>
 
 <file path="src/proximity-engine/ProximityContext.jsx">
@@ -694,45 +728,6 @@ export const Proximity = ({
 };
 </file>
 
-<file path="src/windows/Contact.jsx">
-import { WindowControls } from "#components";
-import { socials } from "#constants";
-import WindowWrapper from "#hoc/WindowWrapper"
-
-const Contact = () => {
-  return (
-    <>
-      <div id="window-header">
-        <WindowControls target="contact"/>
-        <h2>Contact Me!</h2>
-      </div>
-      <div className="p-5 space-y-5">
-        <img src="/images/yousef-5.webp" alt="Yousef" className="w-20 rounded-full" />
-        <h3>Let's Connect</h3>
-        <p>Got an idea? A bug to squash? Or just wanna talk tech? I'm in.</p>
-        <p><a href="mailto:zedstudios.devs@gmail.com" target="_blank" className="text-indigo-600 hover:text-indigo-700 hover:font-bold transition-all duration-300 ease-in-out">
-          zedstudios.devs@gmail.com
-        </a></p>
-        <ul>
-          {socials.map(({ id, bg, link, icon, text }) => (
-            <li key={id} style={{ backgroundColor: bg}}>
-              <a href={link} target="_blank" rel="noopener noreferrer" title={text}>
-                <img src={icon} alt={text} className="size-5" />
-                <p>{text}</p>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </>
-  )
-}
-
-const ContactWindow = WindowWrapper(Contact, 'contact');
-
-export default ContactWindow;
-</file>
-
 <file path="src/windows/Image.jsx">
 import WindowWrapper from "#hoc/WindowWrapper.jsx";
 import { WindowControls } from "#components";
@@ -769,69 +764,6 @@ const Image = memo(() => {
 
 const ImageWindow = WindowWrapper(Image, "imgfile");
 export default ImageWindow;
-</file>
-
-<file path="src/windows/Photos.jsx">
-import { Mail, Search } from "lucide-react"
-import WindowWrapper from "#hoc/WindowWrapper"
-import WindowControls from "#components/WindowControls"
-import { gallery, photosLinks } from "#constants/index.js"
-import useWindowStore from "#store/window"
-
-const Photos = () => {
-  const { openWindow } = useWindowStore();
-  return (
-    <>
-      <div id="window-header">
-        <WindowControls target="photos" />
-        <div className="w-full flex justify-end items-center gap-3 text-gray-500">
-          <Mail className="icon" />
-          <Search className="icon"/>
-        </div>
-      </div>
-      
-      <div className="flex w-full">
-        <div className="sidebar">
-          <h2>Photos</h2>
-          <ul>
-            {photosLinks.map(({ id, icon, title }) => (
-              <li key={id}>
-                <img src={icon} alt={title} />
-                <p>{title}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="gallery">
-          <ul>
-            {gallery.map(({ id, img }) => (
-              <li
-                key={id}
-                onClick={() => 
-                  openWindow("imgfile", {
-                    id,
-                    name: "Gallery image",
-                    icon: "/images/image.png",
-                    kind: "file",
-                    fileType: "img",
-                    imageUrl: img,
-                  })
-                }
-              >
-                <img src={img} alt={`Gallery Image ${id}`}/>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </>
-  )
-}
-
-const PhotosWindow = WindowWrapper(Photos, "photos");
-PhotosWindow.displayName = "Photos";
-
-export default PhotosWindow;
 </file>
 
 <file path="src/windows/Text.jsx">
@@ -879,31 +811,6 @@ const TextWindow = WindowWrapper(Text, "txtfile");
 export default TextWindow;
 </file>
 
-<file path="index.html">
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="./macbook.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
-    <title>ZPortfolio | Yousef Zedan</title>
-    <meta name="author" content="Yousef Zedan (ZED Studios)">
-    <meta name="description" content="A highly interactive, MacOS-inspired personal portfolio designed by Yousef Zedan.">
-    <meta name="designer" content="Yousef Zedan">
-    <meta name="copyright" content="ZED Studios 2026">
-    
-    <meta property="og:title" content="ZPortfolio — MacOS Experience">
-    <meta property="og:description" content="Check out my interactive MacOS-style portfolio built with React and GSAP.">
-    <meta property="og:image" content="./macbook.png">
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>
-</file>
-
 <file path="src/store/location.js">
 import { locations } from "#constants";
 import { create } from "zustand";
@@ -930,13 +837,186 @@ const useLocationStore = create(
 export default useLocationStore;
 </file>
 
-<file path="src/components/index.js">
-import Navbar from "#components/Navbar.jsx";
-import Welcome from "#components/Welcome.jsx";
-import Dock from "#components/Dock.jsx"
-import WindowControls from "#components/WindowControls.jsx";
-import Home from "#components/Home.jsx";
-export { Navbar, Welcome, Dock, WindowControls, Home };
+<file path="src/store/window.js">
+import { INITIAL_Z_INDEX, WINDOW_CONFIG } from "#constants";
+import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
+
+const useWindowStore = create(
+  immer((set) => ({
+    windows: WINDOW_CONFIG,
+    nextZIndex: INITIAL_Z_INDEX + 1,
+    openWindow: (windowKey, data = null, launchPos = null) =>
+      set((state) => {
+        const win = state.windows[windowKey];
+        if (!win) return;
+        win.isOpen = true;
+        win.zIndex = state.nextZIndex;
+        win.data = data ?? win.data;
+        win.launchPos = launchPos;
+        state.nextZIndex++;
+      }),
+    closeWindow: (windowKey) => set((state) => {
+      const win = state.windows[windowKey];
+      if (!win) return;
+      win.isOpen = false;
+      win.isMaximized = false;
+      win.zIndex = INITIAL_Z_INDEX;
+      win.data = null;
+      win.launchPos = null;
+    }),
+    toggleMaximize: (windowKey) => set((state) => {
+      const win = state.windows[windowKey];
+      if (win) win.isMaximized = !win.isMaximized;
+    }),
+    focusWindow: (windowKey) => set((state) => {
+      const win = state.windows[windowKey];
+      if (!win) return;
+      win.zIndex = state.nextZIndex++;
+    }),
+  })),
+);
+export default useWindowStore;
+</file>
+
+<file path="src/windows/Contact.jsx">
+import { WindowControls } from "#components";
+import { socials } from "#constants";
+import WindowWrapper from "#hoc/WindowWrapper"
+
+const Contact = () => {
+  return (
+    <>
+      <div id="window-header" className="shrink-0">
+        <WindowControls target="contact"/>
+        <h2>Contact Me!</h2>
+      </div>
+      <div className="p-5 space-y-5 flex-1 overflow-y-auto min-h-0">
+        <img src="/images/yousef-5.webp" alt="Yousef" className="w-20 rounded-full" />
+        <h3>Let's Connect</h3>
+        <p>Got an idea? A bug to squash? Or just wanna talk tech? I'm in.</p>
+        <p><a href="mailto:zedstudios.devs@gmail.com" target="_blank" className="text-indigo-600 hover:text-indigo-700 hover:font-bold transition-all duration-300 ease-in-out">
+          zedstudios.devs@gmail.com
+        </a></p>
+        <ul>
+          {socials.map(({ id, bg, link, icon, text }) => (
+            <li key={id} style={{ backgroundColor: bg}}>
+              <a href={link} target="_blank" rel="noopener noreferrer" title={text}>
+                <img src={icon} alt={text} className="size-5" />
+                <p>{text}</p>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
+  )
+}
+
+const ContactWindow = WindowWrapper(Contact, 'contact');
+
+export default ContactWindow;
+</file>
+
+<file path="src/windows/Photos.jsx">
+import { Mail, Search } from "lucide-react"
+import WindowWrapper from "#hoc/WindowWrapper"
+import WindowControls from "#components/WindowControls"
+import { gallery, photosLinks } from "#constants/index.js"
+import useWindowStore from "#store/window"
+
+const Photos = () => {
+  const { openWindow } = useWindowStore();
+  return (
+    <>
+      <div id="window-header" className="shrink-0">
+        <WindowControls target="photos" />
+        <div className="w-full flex justify-end items-center gap-3 text-indigo-500">
+          <Mail className="icon" />
+          <Search className="icon"/>
+        </div>
+      </div>
+      
+      <div className="flex flex-1 h-full overflow-hidden">
+        <div className="sidebar shrink-0 h-full overflow-y-auto">
+          <h2>Photos</h2>
+          <ul>
+            {photosLinks.map(({ id, icon, title }) => (
+              <li key={id}>
+                <img src={icon} alt={title} />
+                <p>{title}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="gallery flex-1 h-full overflow-y-auto min-h-0 p-5">
+          <ul>
+            {gallery.map(({ id, img }) => (
+              <li
+                key={id}
+                onClick={() => 
+                  openWindow("imgfile", {
+                    id,
+                    name: "Gallery image",
+                    icon: "/images/image.png",
+                    kind: "file",
+                    fileType: "img",
+                    imageUrl: img,
+                  })
+                }
+              >
+                <img src={img} alt={`Gallery Image ${id}`}/>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </>
+  )
+}
+
+const PhotosWindow = WindowWrapper(Photos, "photos");
+PhotosWindow.displayName = "Photos";
+
+export default PhotosWindow;
+</file>
+
+<file path="vite.config.js">
+import { defineConfig, normalizePath } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+import { resolve, dirname, join } from 'path'
+import { fileURLToPath } from 'url'
+import { viteStaticCopy } from 'vite-plugin-static-copy'
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const pdfjsDistPath = dirname(require.resolve('pdfjs-dist/package.json'))
+const cMapsDir = normalizePath(join(pdfjsDistPath, 'cmaps'))
+const standardFontsDir = normalizePath(join(pdfjsDistPath, 'standard_fonts'))
+
+export default defineConfig({
+  plugins: [
+    react(),
+    tailwindcss(),
+    viteStaticCopy({
+      targets: [
+        { src: cMapsDir, dest: '' },
+        { src: standardFontsDir, dest: '' }
+      ],
+    }),
+  ],
+  resolve: {
+    alias: {
+      '#components': resolve(__dirname, 'src/components'),
+      '#constants': resolve(__dirname, 'src/constants'),
+      '#store': resolve(__dirname, 'src/store'),
+      '#hoc': resolve(__dirname, 'src/hoc'),
+      '#windows': resolve(__dirname, 'src/windows'),
+    },
+  },
+})
 </file>
 
 <file path="src/windows/Finder.jsx">
@@ -1103,60 +1183,74 @@ const ZenWindow = WindowWrapper(ZenBrowser, 'safari')
 export default ZenWindow;
 </file>
 
-<file path="vite.config.js">
-import { defineConfig, normalizePath } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import { resolve, dirname, join } from 'path'
-import { fileURLToPath } from 'url'
-import { viteStaticCopy } from 'vite-plugin-static-copy'
-import { createRequire } from 'node:module'
-
-const require = createRequire(import.meta.url)
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const pdfjsDistPath = dirname(require.resolve('pdfjs-dist/package.json'))
-const cMapsDir = normalizePath(join(pdfjsDistPath, 'cmaps'))
-const standardFontsDir = normalizePath(join(pdfjsDistPath, 'standard_fonts'))
-
-export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-    viteStaticCopy({
-      targets: [
-        { src: cMapsDir, dest: '' },
-        { src: standardFontsDir, dest: '' }
-      ],
-    }),
-  ],
-  resolve: {
-    alias: {
-      '#components': resolve(__dirname, 'src/components'),
-      '#constants': resolve(__dirname, 'src/constants'),
-      '#store': resolve(__dirname, 'src/store'),
-      '#hoc': resolve(__dirname, 'src/hoc'),
-      '#windows': resolve(__dirname, 'src/windows'),
-    },
+<file path="package.json">
+{
+  "name": "zportfolio",
+  "private": false,
+  "version": "1.0.0",
+  "author": "Yousef Zedan (ZED Studios) <zedstudios.devs@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
   },
-})
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.2.8",
+    "@gsap/react": "^2.1.2",
+    "@tailwindcss/vite": "^4.2.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "dayjs": "^1.11.20",
+    "gsap": "^3.14.2",
+    "immer": "^11.1.4",
+    "lucide-react": "^1.7.0",
+    "radix-ui": "^1.4.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-pdf": "^10.4.1",
+    "react-tooltip": "^5.30.0",
+    "shadcn": "^4.2.0",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.2",
+    "tw-animate-css": "^1.4.0",
+    "web-haptics": "^0.0.6",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.4.0",
+    "vite": "^8.0.1",
+    "vite-plugin-static-copy": "^4.0.0"
+  }
+}
 </file>
 
 <file path="src/components/WindowControls.jsx">
 import useWindowStore from "#store/window.js";
 import { ChevronDown } from "lucide-react";
-
+import { useWebHaptics } from "web-haptics/react";
 const WindowControls = ({ target }) => {
   const closeWindow = useWindowStore((s) => s.closeWindow);
   const toggleMaximize = useWindowStore((s) => s.toggleMaximize);
-  
+  const { trigger } = useWebHaptics();
   return (
     <div id="window-controls">
       <button 
         type="button"
         className="close cursor-pointer" 
-        onClick={(e) => {
+        onClick={(e) => { 
             e.stopPropagation();
             closeWindow(target);
+            trigger("nudge");
         }}
       >
         <ChevronDown className="hidden max-md:block text-gray-700 stroke-[3px] pointer-events-none" size={18} />
@@ -1168,6 +1262,7 @@ const WindowControls = ({ target }) => {
         onClick={(e) => {
             e.stopPropagation();
             closeWindow(target);
+            trigger("nudge");
         }}
       />
       
@@ -1177,6 +1272,7 @@ const WindowControls = ({ target }) => {
         onClick={(e) => {
             e.stopPropagation();
             toggleMaximize(target);
+            trigger("success");
         }} 
       />
     </div>
@@ -1186,198 +1282,16 @@ const WindowControls = ({ target }) => {
 export default WindowControls;
 </file>
 
-<file path="src/store/window.js">
-import { INITIAL_Z_INDEX, WINDOW_CONFIG } from "#constants";
-import { create } from "zustand";
-import { immer } from "zustand/middleware/immer";
-
-const useWindowStore = create(
-  immer((set) => ({
-    windows: WINDOW_CONFIG,
-    nextZIndex: INITIAL_Z_INDEX + 1,
-    openWindow: (windowKey, data = null, launchPos = null) =>
-      set((state) => {
-        const win = state.windows[windowKey];
-        if (!win) return;
-        win.isOpen = true;
-        win.zIndex = state.nextZIndex;
-        win.data = data ?? win.data;
-        win.launchPos = launchPos;
-        state.nextZIndex++;
-      }),
-    closeWindow: (windowKey) => set((state) => {
-      const win = state.windows[windowKey];
-      if (!win) return;
-      win.isOpen = false;
-      win.isMaximized = false;
-      win.zIndex = INITIAL_Z_INDEX;
-      win.data = null;
-      win.launchPos = null;
-    }),
-    toggleMaximize: (windowKey) => set((state) => {
-      const win = state.windows[windowKey];
-      if (win) win.isMaximized = !win.isMaximized;
-    }),
-    focusWindow: (windowKey) => set((state) => {
-      const win = state.windows[windowKey];
-      if (!win) return;
-      win.zIndex = state.nextZIndex++;
-    }),
-  })),
-);
-export default useWindowStore;
-</file>
-
-<file path="src/components/Home.jsx">
-import { locations, dockApps } from "#constants";
-import clsx from "clsx";
-import { useGSAP } from "@gsap/react";
-import Draggable from "gsap/Draggable";
-import gsap from "gsap";
-import useWindowStore from "#store/window.js";
-import useLocationStore from "#store/location.js";
-import { useState, useEffect } from "react";
-import dayjs from "dayjs";
-
-const projects = locations.work?.children ??[];
-
-const Home = () => {
-  const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
-  const openWindow = useWindowStore((s) => s.openWindow);
-  const [time, setTime] = useState(dayjs());
-
-  useEffect(() => {
-    const timer = setInterval(() => setTime(dayjs()), 1000);
-    return () => clearInterval(timer);
-  },[]);
-
-  const handleOpenProjectFinder = (e, project) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const launchPos = {
-      x: rect.left + rect.width / 2,
-      y: rect.top + rect.height / 2,
-      width: rect.width,
-      height: rect.height,
-    };
-    setActiveLocation(project);
-    openWindow("finder", null, launchPos);
-  };
-
-  const handleOpenApp = (e, app) => {
-    if (!app.canOpen) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const launchPos = {
-      x: rect.left + rect.width / 2,
-      y: rect.top + rect.height / 2,
-      width: rect.width,
-      height: rect.height,
-    };
-    openWindow(app.id, null, launchPos);
-  };
-
-  useGSAP(() => {
-    let draggables =[];
-    const initDrag = () => {
-      if (window.innerWidth > 768) {
-        if (draggables.length === 0) {
-          draggables = Draggable.create(".folder", {
-            type: "x,y",
-            bounds: "body",
-            dragClickables: true
-          });
-        } else {
-          draggables.forEach(d => d.enable());
-        }
-      } else {
-        if (draggables.length > 0) {
-          draggables.forEach(d => d.disable());
-          gsap.set(".folder", { clearProps: "x,y,transform" });
-        }
-      }
-    };
-    initDrag();
-    window.addEventListener("resize", initDrag);
-    return () => window.removeEventListener("resize", initDrag);
-  },[]);
-
-  // Intercept the apps array to replace Trash with Resume ONLY on mobile
-  const mobileApps = dockApps.map(app => 
-    app.id === "trash" ? { id: "resume", name: "Resume", icon: "pdf.png", canOpen: true } : app
-  );
-
-  return (
-    <section id="home" className="absolute inset-0 w-full h-full z-0 overflow-hidden">
-      <div className="absolute top-[12vh] left-0 w-full flex flex-col items-center justify-center md:hidden text-white drop-shadow-xl z-20 pointer-events-none select-none">
-        <h1 className="text-[5.5rem] font-light tracking-tight leading-none text-center">
-          {time.format("h:mm")}
-        </h1>
-        <p className="text-[1.2rem] font-medium mt-2 tracking-wide text-center">
-          {time.format("dddd, MMMM D")}
-        </p>
-      </div>
-      
-      <ul className="desktop-projects w-full h-full max-md:hidden">
-        {projects.map((project) => (
-          <li
-            key={project.id}
-            className={clsx("group folder", project.windowPosition)}
-            onClick={(e) => handleOpenProjectFinder(e, project)}
-          >
-            <img 
-              src="/images/folder.png" 
-              alt={project.name}
-              width={64}
-              height={64}
-              loading="eager"
-              className="pointer-events-none" 
-            />
-            <p>{project.name}</p>
-          </li>
-        ))}
-      </ul>
-
-      <ul className="hidden max-md:grid grid-cols-4 gap-x-2 gap-y-6 px-5 relative z-30 w-full box-border mt-[38vh]">
-        {mobileApps.map((app) => (
-          <li 
-            key={app.id || app.name}
-            onClick={(e) => handleOpenApp(e, app)}
-            className="flex flex-col items-center gap-[6px] cursor-pointer"
-          >
-            <img 
-              src={`/images/${app.icon}`} 
-              alt={app.name} 
-              className={clsx(
-                "w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover",
-                !app.canOpen && "opacity-60"
-              )}
-            />
-            <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
-              {app.name}
-            </p>
-          </li>
-        ))}
-        {projects.map((project) => (
-          <li 
-            key={project.id}
-            onClick={(e) => handleOpenProjectFinder(e, project)}
-            className="flex flex-col items-center gap-[6px] cursor-pointer"
-          >
-            <img 
-              src="/images/folder.png" 
-              alt={project.name} 
-              className="w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover"
-            />
-            <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
-              {project.name}
-            </p>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-};
-
-export default Home;
+<file path="src/windows/index.js">
+import Terminal from "#windows/Terminal.jsx";
+import ZenBrowser from "#windows/ZenBrowser.jsx";
+import Resume from "#windows/Resume.jsx";
+import Finder from "#windows/Finder.jsx";
+import Text from "#windows/Text.jsx";
+import Image from "#windows/Image.jsx";
+import Contact from "#windows/Contact.jsx";
+import Photos from "#windows/Photos.jsx"
+export { Terminal, ZenBrowser, Resume, Finder, Text, Image, Contact, Photos };
 </file>
 
 <file path="src/windows/Resume.jsx">
@@ -1528,7 +1442,7 @@ Ensure you have **Node.js** and **npm** installed on your machine.
 This portfolio is a living project. I’m planning to implement the following features and would love for the community to contribute:
 
 - [ ] 🌓 **Light / Dark Mode:** Implement a full theme-switching mechanism using the existing `oklch` CSS variable structure.
-- [ ] 📱 **Mobile iOS Version:** Transform the desktop layout into a responsive iOS-inspired experience for mobile users.
+- [x] 📱 **Mobile iOS Version:** Transform the desktop layout into a responsive iOS-inspired experience for mobile users.
 - [x] ⌨️ **Interactive Terminal:** Upgrade the static terminal into a functional CLI that accepts commands like `ls`, `cd`, and `cat` autocomplete, open apps and more.
 - [ ]  **Arch Linux Boot Sequence:** When The Website opens it shows a looding arch linux screen like GRUB & SDDM.
 - [ ]  **System Sounds:** Adding subtle sound effects (a mechanical keyboard click for the terminal, a swoosh when a window opens, a crumple sound when something goes to the trash) elevates the "feel" of the OS incredibly.
@@ -1578,16 +1492,305 @@ src/
 Distributed under the **MIT License**. See `LICENSE` for more information.
 </file>
 
-<file path="src/windows/index.js">
-import Terminal from "#windows/Terminal.jsx";
-import ZenBrowser from "#windows/ZenBrowser.jsx";
-import Resume from "#windows/Resume.jsx";
-import Finder from "#windows/Finder.jsx";
-import Text from "#windows/Text.jsx";
-import Image from "#windows/Image.jsx";
-import Contact from "#windows/Contact.jsx";
-import Photos from "#windows/Photos.jsx"
-export { Terminal, ZenBrowser, Resume, Finder, Text, Image, Contact, Photos };
+<file path="src/components/Home.jsx">
+import { locations, dockApps } from "#constants";
+import clsx from "clsx";
+import { useGSAP } from "@gsap/react";
+import Draggable from "gsap/Draggable";
+import gsap from "gsap";
+import { useWebHaptics } from "web-haptics/react";
+import useWindowStore from "#store/window.js";
+import useLocationStore from "#store/location.js";
+import { useState, useEffect } from "react";
+import dayjs from "dayjs";
+
+const projects = locations.work?.children ??[];
+
+const Home = () => {
+  const { trigger } = useWebHaptics();
+  const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const [time, setTime] = useState(dayjs());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(dayjs()), 1000);
+    return () => clearInterval(timer);
+  },[]);
+
+  const handleOpenProjectFinder = (e, project) => {
+    trigger("nudge");
+    const rect = e.currentTarget.getBoundingClientRect();
+    const launchPos = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+      width: rect.width,
+      height: rect.height,
+    };
+    setActiveLocation(project);
+    openWindow("finder", null, launchPos);
+  };
+
+  const handleOpenApp = (e, app) => {
+    if (!app.canOpen) { 
+      trigger("error");
+      return;
+    }
+    trigger("nudge", { intensity: 0.8 }); 
+    const rect = e.currentTarget.getBoundingClientRect();
+    const launchPos = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+      width: rect.width,
+      height: rect.height,
+    };
+    openWindow(app.id, null, launchPos);
+  };
+
+  useGSAP(() => {
+    let draggables =[];
+    const initDrag = () => {
+      if (window.innerWidth > 768) {
+        if (draggables.length === 0) {
+          draggables = Draggable.create(".folder", {
+            type: "x,y",
+            bounds: "body",
+            dragClickables: true
+          });
+        } else {
+          draggables.forEach(d => d.enable());
+        }
+      } else {
+        if (draggables.length > 0) {
+          draggables.forEach(d => d.disable());
+          gsap.set(".folder", { clearProps: "x,y,transform" });
+        }
+      }
+    };
+    initDrag();
+    window.addEventListener("resize", initDrag);
+    return () => window.removeEventListener("resize", initDrag);
+  },[]);
+
+  // Intercept the apps array to replace Trash with Resume ONLY on mobile
+  const mobileApps = dockApps.map(app => 
+    app.id === "trash" ? { id: "resume", name: "Resume", icon: "pdf.png", canOpen: true } : app
+  );
+
+  return (
+    <section id="home" className="absolute inset-0 w-full h-full z-0 overflow-hidden">
+      <div className="absolute top-[12vh] left-0 w-full flex flex-col items-center justify-center md:hidden text-white drop-shadow-xl z-20 pointer-events-none select-none">
+        <h1 className="text-[5.5rem] font-light tracking-tight leading-none text-center">
+          {time.format("h:mm")}
+        </h1>
+        <p className="text-[1.2rem] font-medium mt-2 tracking-wide text-center">
+          {time.format("dddd, MMMM D")}
+        </p>
+      </div>
+      
+      <ul className="desktop-projects w-full h-full max-md:hidden">
+        {projects.map((project) => (
+          <li
+            key={project.id}
+            className={clsx("group folder", project.windowPosition)}
+            onClick={(e) => handleOpenProjectFinder(e, project)}
+          >
+            <img 
+              src="/images/folder.png" 
+              alt={project.name}
+              width={64}
+              height={64}
+              loading="eager"
+              className="pointer-events-none" 
+            />
+            <p>{project.name}</p>
+          </li>
+        ))}
+      </ul>
+
+      <ul className="hidden max-md:grid grid-cols-4 gap-x-2 gap-y-6 px-5 relative z-30 w-full box-border mt-[38vh]">
+        {mobileApps.map((app) => (
+          <li 
+            key={app.id || app.name}
+            onClick={(e) => handleOpenApp(e, app)}
+            className="flex flex-col items-center gap-[6px] cursor-pointer"
+          >
+            <img 
+              src={`/images/${app.icon}`} 
+              alt={app.name} 
+              className={clsx(
+                "w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover",
+                !app.canOpen && "opacity-60"
+              )}
+            />
+            <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
+              {app.name}
+            </p>
+          </li>
+        ))}
+        {projects.map((project) => (
+          <li 
+            key={project.id}
+            onClick={(e) => handleOpenProjectFinder(e, project)}
+            className="flex flex-col items-center gap-[6px] cursor-pointer"
+          >
+            <img 
+              src="/images/folder.png" 
+              alt={project.name} 
+              className="w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover"
+            />
+            <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
+              {project.name}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+};
+
+export default Home;
+</file>
+
+<file path="src/components/Dock.jsx">
+import { dockApps } from "#constants/index.js";
+import useWindowStore from "#store/window.js";
+import { memo } from "react";
+import { Tooltip } from "react-tooltip";
+import { Proximity } from "../proximity-engine/Proximity.jsx";
+
+const Dock = memo(() => {
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const closeWindow = useWindowStore((s) => s.closeWindow);
+  const windows = useWindowStore((s) => s.windows);
+
+  const toggleApp = (app) => {
+    if (!app.canOpen) {
+      return;
+    };
+    const windowState = windows[app.id];
+    if (windowState?.isOpen) {
+      closeWindow(app.id);
+    } else {
+      openWindow(app.id);
+    }
+  };
+
+  return (
+    <section id="dock" className="max-md:hidden">
+      <Proximity
+        className="dock-container"
+        selector=".dock-icon"
+        preset="scale-y"
+        reach={1}
+        falloff={2.4}
+        config={{
+          scale:[1, 1.3],
+          y: [0, -20],
+          duration: 0.1,
+          resetDuration: 1,
+          ease: "power1.out",
+          resetEase: "elastic"
+        }}
+      >
+        {dockApps.map(({ id, name, icon, canOpen }) => (
+          <div key={id ?? name} className="relative flex justify-center">
+            <button
+              type="button"
+              className="dock-icon flex items-center justify-center will-change-transform"
+              aria-label={name}
+              data-tooltip-id="dock-tooltip"
+              data-tooltip-content={name}
+              data-tooltip-delay-show={150}
+              disabled={!canOpen}
+              onClick={() => toggleApp({ id, canOpen })}
+            >
+              <img
+                src={`/images/${icon}`}
+                alt={name}
+                width={56}
+                height={56}
+                loading="lazy"
+                decoding="async"
+                className={canOpen ? "" : "opacity-60"}
+              />
+            </button>
+          </div>
+        ))}
+        <Tooltip id="dock-tooltip" place="top" className="tooltip" />
+      </Proximity>
+    </section>
+  );
+});
+
+export default Dock;
+</file>
+
+<file path="src/components/Navbar.jsx">
+import React, { memo, useState, useEffect } from "react";
+import { navIcons, navLinks } from "#constants";
+import useWindowStore from "#store/window.js";
+import dayjs from "dayjs";
+import { Battery, Signal, Wifi } from "lucide-react";
+
+const Navbar = memo(() => {
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const[time, setTime] = useState(dayjs().format("ddd MMM D   h:mm A"));
+  const[timeStr, setTimeStr] = useState(dayjs().format("h:mm"));
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(dayjs().format("ddd MMM D   h:mm A"));
+      setTimeStr(dayjs().format("h:mm"));
+    }, 10000);
+    return () => clearInterval(timer);
+  },[]);
+
+  return (
+    <nav className="relative z-50 max-md:z-1500 max-md:fixed max-md:top-0 max-md:left-0 max-md:right-0 max-md:h-12 max-md:bg-transparent max-md:border-none max-md:pointer-events-none max-md:p-0 max-md:px-0 box-border">
+    
+      {/* PC Navbar */}
+      <div className="flex items-center gap-4 max-md:hidden">
+        <img src="/images/logo.svg" alt="logo" width={20} height={20} className="w-5 h-5" />
+        <p className="font-bold whitespace-nowrap">Yousef's Portfolio</p>
+        <ul className="flex items-center gap-3">
+          {navLinks.map(({ id, name, type }) => (
+            <li key={id} className="relative cursor-pointer" onClick={() => openWindow(type)}>
+              <p className="z-10">{name}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+      
+      {/* iOS Mobile Status Bar */}
+      <div className="hidden max-md:flex w-full h-full items-center justify-between text-white drop-shadow-md pointer-events-auto px-6 box-border">
+        <time className="text-[15px] font-bold tracking-wide">{timeStr}</time>
+        
+        {/* Dynamic Island - Now perfectly centered vertically in the h-12 nav */}
+        <div className="absolute left-1/2 -translate-x-1/2 top-1 w-[120px] h-[32px] bg-black rounded-full z-50 shadow-sm" />
+        
+        <div className="flex items-center gap-1.5">
+          <Signal size={16} className="fill-white" strokeWidth={2.5} />
+          <Wifi size={16} strokeWidth={2.5} />
+          <Battery size={20} strokeWidth={2} className="fill-white" />
+        </div>
+      </div>
+
+      {/* PC Right Side */}
+      <div className="flex items-center gap-5 max-md:hidden">
+        <ul>
+          {navIcons.map(({ id, img }) => (
+            <li key={id}>
+              <img src={img} alt={`icon-${id}`} width={18} height={18} className="icon-hover w-[18px] h-[18px] cursor-pointer" loading="lazy" />
+            </li>
+          ))}
+        </ul>
+        <time>{time}</time>
+      </div>
+    </nav>
+  );
+});
+
+export default Navbar;
 </file>
 
 <file path="src/hoc/WindowWrapper.jsx">
@@ -1596,7 +1799,6 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Draggable } from "gsap/Draggable";
 import { useRef, useState, useEffect, memo } from "react";
-
 const WindowWrapper = (Component, windowKey) => {
   const Wrapped = memo((props) => {
     const isOpen = useWindowStore((s) => s.windows[windowKey].isOpen);
@@ -1628,8 +1830,8 @@ const WindowWrapper = (Component, windowKey) => {
         setIsActuallyVisible(true);
         if (isMobile) {
           if (launchPos) {
-            gsap.fromTo(el, 
-              { 
+            gsap.fromTo(el,
+              {
                 opacity: 0,
                 scale: 0.8,
                 transformOrigin: `${launchPos.x}px ${launchPos.y}px`,
@@ -1637,25 +1839,25 @@ const WindowWrapper = (Component, windowKey) => {
                 x: 0,
                 y: 0
               },
-              { 
-                opacity: 1, 
+              {
+                opacity: 1,
                 scale: 1,
                 borderRadius: "0px",
-                duration: 0.35, 
-                ease: "power3.out", 
+                duration: 0.35,
+                ease: "power3.out",
                 overwrite: "auto",
                 x: 0,
                 y: 0
               }
             );
           } else {
-            gsap.fromTo(el, 
+            gsap.fromTo(el,
               { yPercent: 100, opacity: 1, x: 0, y: 0 },
               { yPercent: 0, duration: 0.35, ease: "power3.out", overwrite: "auto", x: 0, y: 0 }
             );
           }
         } else {
-          gsap.fromTo(el, 
+          gsap.fromTo(el,
             { scale: 0.9, opacity: 0, y: 20, yPercent: 0 },
             { scale: 1, opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.5)", overwrite: "auto" }
           );
@@ -1665,8 +1867,8 @@ const WindowWrapper = (Component, windowKey) => {
           gsap.to(el, {
             opacity: 0,
             scale: 0.9,
-            duration: 0.25, 
-            ease: "power3.in", 
+            duration: 0.25,
+            ease: "power3.in",
             overwrite: "auto",
             onComplete: () => setIsActuallyVisible(false),
           });
@@ -1680,7 +1882,7 @@ const WindowWrapper = (Component, windowKey) => {
     }, [isOpen, dataId, isMobile]);
 
     useGSAP(() => {
-      if (isMobile) return; 
+      if (isMobile) return;
       const el = ref.current;
       if (!el || !isOpen) return;
 
@@ -1691,7 +1893,7 @@ const WindowWrapper = (Component, windowKey) => {
         preMaxState.current = { width: el.offsetWidth, height: el.offsetHeight, x: currentX, y: currentY };
         if (dragInstance.current) dragInstance.current.disable();
         resizeInstances.current.forEach(i => i.disable());
-        gsap.to(el, { x: currentX - rect.left, y: currentY - rect.top, width: "100vw", height: "100vh", borderRadius: "0px", duration: 0.5, ease: "expo.inOut" });
+        gsap.to(el, { x: currentX - rect.left, y: currentY - rect.top, width: "100vw", height: "100vh", maxWidth: "none", maxHeight: "none",  borderRadius: "0px", duration: 0.5, ease: "expo.inOut" });
       } else if (preMaxState.current) {
         if (dragInstance.current) dragInstance.current.enable();
         resizeInstances.current.forEach(i => i.enable());
@@ -1776,15 +1978,15 @@ const WindowWrapper = (Component, windowKey) => {
         id={windowKey}
         ref={ref}
         className="os-window absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none max-md:bg-white"
-        style={{ 
-            zIndex, 
+        style={{
+            zIndex,
             display: isActuallyVisible ? "flex" : "none",
             willChange: "transform, width, height, opacity",
             transform: "translate3d(0,0,0)",
         }}
       >
         <Component {...props} />
-        
+
         {isMobile && (
           <div className="absolute bottom-0 left-0 w-full h-8 z-[2000] flex justify-center items-end pb-2 pointer-events-none">
             <div className="w-[130px] h-1.5 bg-black/40 rounded-full" />
@@ -1815,199 +2017,54 @@ const WindowWrapper = (Component, windowKey) => {
 export default WindowWrapper;
 </file>
 
-<file path="package.json">
-{
-  "name": "zportfolio",
-  "private": false, 
-  "version": "1.0.0",
-  "author": "Yousef Zedan (ZED Studios) <zedstudios.devs@gmail.com>",
-  "license": "MIT",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@fontsource-variable/geist": "^5.2.8",
-    "@gsap/react": "^2.1.2",
-    "@tailwindcss/vite": "^4.2.2",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "dayjs": "^1.11.20",
-    "gsap": "^3.14.2",
-    "immer": "^11.1.4",
-    "lucide-react": "^1.7.0",
-    "radix-ui": "^1.4.3",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-pdf": "^10.4.1",
-    "react-tooltip": "^5.30.0",
-    "shadcn": "^4.2.0",
-    "tailwind-merge": "^3.5.0",
-    "tailwindcss": "^4.2.2",
-    "tw-animate-css": "^1.4.0",
-    "zustand": "^5.0.12"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.4",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
-    "eslint": "^9.39.4",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
-    "globals": "^17.4.0",
-    "vite": "^8.0.1",
-    "vite-plugin-static-copy": "^4.0.0"
-  }
-}
-</file>
+<file path="src/components/Welcome.jsx">
+import { ProximityText } from "../proximity-engine/ProximityText.jsx";
 
-<file path="src/components/Navbar.jsx">
-import React, { memo, useState, useEffect } from "react";
-import { navIcons, navLinks } from "#constants";
-import useWindowStore from "#store/window.js";
-import dayjs from "dayjs";
-import { Battery, Signal, Wifi } from "lucide-react";
-
-const Navbar = memo(() => {
-  const openWindow = useWindowStore((s) => s.openWindow);
-  const[time, setTime] = useState(dayjs().format("ddd MMM D   h:mm A"));
-  const[timeStr, setTimeStr] = useState(dayjs().format("h:mm"));
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTime(dayjs().format("ddd MMM D   h:mm A"));
-      setTimeStr(dayjs().format("h:mm"));
-    }, 10000);
-    return () => clearInterval(timer);
-  },[]);
-
+const Welcome = () => {
   return (
-    <nav className="relative z-50 max-md:z-1500 max-md:fixed max-md:top-0 max-md:left-0 max-md:right-0 max-md:h-12 max-md:bg-transparent max-md:border-none max-md:pointer-events-none max-md:p-0 max-md:px-0 box-border">
-    
-      {/* PC Navbar */}
-      <div className="flex items-center gap-4 max-md:hidden">
-        <img src="/images/logo.svg" alt="logo" width={20} height={20} className="w-5 h-5" />
-        <p className="font-bold whitespace-nowrap">Yousef's Portfolio</p>
-        <ul className="flex items-center gap-3">
-          {navLinks.map(({ id, name, type }) => (
-            <li key={id} className="relative cursor-pointer" onClick={() => openWindow(type)}>
-              <p className="z-10">{name}</p>
-            </li>
-          ))}
-        </ul>
-      </div>
-      
-      {/* iOS Mobile Status Bar */}
-      <div className="hidden max-md:flex w-full h-full items-center justify-between text-white drop-shadow-md pointer-events-auto px-6 box-border">
-        <time className="text-[15px] font-bold tracking-wide">{timeStr}</time>
-        
-        {/* Dynamic Island - Now perfectly centered vertically in the h-12 nav */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-1 w-[120px] h-[32px] bg-black rounded-full z-50 shadow-sm" />
-        
-        <div className="flex items-center gap-1.5">
-          <Signal size={16} className="fill-white" strokeWidth={2.5} />
-          <Wifi size={16} strokeWidth={2.5} />
-          <Battery size={20} strokeWidth={2} className="fill-white" />
-        </div>
-      </div>
-
-      {/* PC Right Side */}
-      <div className="max-md:hidden">
-        <ul>
-          {navIcons.map(({ id, img }) => (
-            <li key={id}>
-              <img src={img} alt={`icon-${id}`} width={18} height={18} className="icon-hover w-[18px] h-[18px] cursor-pointer" loading="lazy" />
-            </li>
-          ))}
-        </ul>
-        <time>{time}</time>
-      </div>
-    </nav>
-  );
-});
-
-export default Navbar;
-</file>
-
-<file path="src/components/Dock.jsx">
-import { dockApps } from "#constants/index.js";
-import useWindowStore from "#store/window.js";
-import { memo } from "react";
-import { Tooltip } from "react-tooltip";
-import { Proximity } from "../proximity-engine/Proximity.jsx";
-
-const Dock = memo(() => {
-  const openWindow = useWindowStore((s) => s.openWindow);
-  const closeWindow = useWindowStore((s) => s.closeWindow);
-  const windows = useWindowStore((s) => s.windows);
-
-  const toggleApp = (app) => {
-    if (!app.canOpen) return;
-
-    const windowState = windows[app.id];
-    if (windowState?.isOpen) {
-      closeWindow(app.id);
-    } else {
-      openWindow(app.id);
-    }
-  };
-
-  return (
-    <section id="dock" className="max-md:hidden">
-      <Proximity
-        className="dock-container"
-        selector=".dock-icon"
-        preset="scale-y"
-        reach={1}
-        falloff={2.4}
+    <section id="welcome" className="max-md:hidden pointer-events-none w-full">
+      <ProximityText
+        text="Hey, I'm Yousef Zedan! Welcome to my"
+        preset="opacity-y"
+        splitBy="letter"
+        global={true}
         config={{
-          scale:[1, 1.3],
-          y: [0, -20],
-          duration: 0.1,
-          resetDuration: 1,
-          ease: "power1.out",
+          duration: 1.5,
+          resetDuration: 1.5,
+          ease: "elastic",
           resetEase: "elastic"
         }}
-      >
-        {dockApps.map(({ id, name, icon, canOpen }) => (
-          <div key={id ?? name} className="relative flex justify-center">
-            <button
-              type="button"
-              className="dock-icon flex items-center justify-center will-change-transform"
-              aria-label={name}
-              data-tooltip-id="dock-tooltip"
-              data-tooltip-content={name}
-              data-tooltip-delay-show={150}
-              disabled={!canOpen}
-              onClick={() => toggleApp({ id, canOpen })}
-            >
-              <img
-                src={`/images/${icon}`}
-                alt={name}
-                width={56}
-                height={56}
-                loading="lazy"
-                decoding="async"
-                className={canOpen ? "" : "opacity-60"}
-              />
-            </button>
-          </div>
-        ))}
-        <Tooltip id="dock-tooltip" place="top" className="tooltip" />
-      </Proximity>
+        reach={0.6}
+        falloff={2}
+        className="cursor-default text-center px-4"
+        textClassName="text-[5vw] sm:text-2xl md:text-3xl font-georama font-[150]"
+      />
+      <ProximityText
+        text="ZPortfolio"
+        preset="weight"
+        global={true}
+        config={{
+          duration: 1,
+          resetDuration: 1,
+          weight: [400, 900],
+          ease: "elastic",
+          resetEase: "elastic"
+        }}
+        reach={0.5}
+        falloff={2}
+        className="mt-4 md:mt-7 cursor-default text-center"
+        textClassName="text-[10.5vw] sm:text-7xl md:text-9xl italic font-georama"
+      />
     </section>
   );
-});
+};
 
-export default Dock;
+export default Welcome;
 </file>
 
 <file path="src/windows/Terminal.jsx">
 import React, { useState, useRef, useEffect } from "react";
+import { useWebHaptics } from "web-haptics/react";
 import { techStack } from "#constants";
 import WindowWrapper from "#hoc/WindowWrapper.jsx";
 import { Check, Terminal as TerminalIcon } from "lucide-react";
@@ -2055,6 +2112,7 @@ const validCommands =[
 ];
 
 const Terminal = () => {
+  const { trigger } = useWebHaptics();
   const openWindow = useWindowStore((s) => s.openWindow);
   const [input, setInput] = useState("");
   const[cwd, setCwd] = useState([]); 
@@ -2190,6 +2248,13 @@ const Terminal = () => {
   const executeCommand = (cmdText) => {
     const args = cmdText.trim().split(/\s+/);
     const cmd = args[0].toLowerCase();
+    
+    if (validCommands.includes(cmd) || SYSTEM_APPS[cmd]) {
+          trigger("nudge");
+        } else {
+          trigger("error");
+        }
+    
     const arg = args[1];
     let response = null;
 
@@ -2341,18 +2406,19 @@ const Terminal = () => {
             <div className="flex gap-4 text-xs mt-2">
               <pre className="text-blue-500 font-bold leading-tight">
                 {`
-      /zzzzzzzz
-     |_____ zz
-          /zz/
-         /zz/
-        /zz/
-       /zz/
-      /zzzzzzzz
+      /ZZZZZZZZ
+     |_____ ZZ
+          /ZZ/
+         /ZZ/
+        /ZZ/
+       /ZZ/
+      /ZZZZZZZZ
      |________/
                 `}
               </pre>
               <div className="space-y-1 text-white">
                 <p><span className="text-blue-500 font-bold">OS:</span> ZED OS v1.0</p>
+                <p><span className="text-blue-500 font-bold">Distro:</span> CachyOS (Based on Arch BTW)</p>
                 <p><span className="text-blue-500 font-bold">Host:</span> Yousef's-PC</p>
                 <p><span className="text-blue-500 font-bold">Kernel:</span> React-19.0.0</p>
                 <p><span className="text-blue-500 font-bold">Shell:</span> zsh 5.8</p>
@@ -2498,51 +2564,6 @@ const Terminal = () => {
 
 const TerminalWindow = WindowWrapper(Terminal, "terminal");
 export default TerminalWindow;
-</file>
-
-<file path="src/components/Welcome.jsx">
-import { ProximityText } from "../proximity-engine/ProximityText.jsx";
-
-const Welcome = () => {
-  return (
-    <section id="welcome" className="max-md:hidden pointer-events-none w-full">
-      <ProximityText
-        text="Hey, I'm Yousef Zedan! Welcome to my"
-        preset="opacity-y"
-        splitBy="letter"
-        global={true}
-        config={{
-          duration: 1.5,
-          resetDuration: 1.5,
-          ease: "elastic",
-          resetEase: "elastic"
-        }}
-        reach={0.6}
-        falloff={2}
-        className="cursor-default text-center px-4"
-        textClassName="text-[5vw] sm:text-2xl md:text-3xl font-georama font-[150]"
-      />
-      <ProximityText
-        text="ZPortfolio"
-        preset="weight"
-        global={true}
-        config={{
-          duration: 1,
-          resetDuration: 1,
-          weight: [400, 900],
-          ease: "elastic",
-          resetEase: "elastic"
-        }}
-        reach={0.5}
-        falloff={2}
-        className="mt-4 md:mt-7 cursor-default text-center"
-        textClassName="text-[10.5vw] sm:text-7xl md:text-9xl italic font-georama"
-      />
-    </section>
-  );
-};
-
-export default Welcome;
 </file>
 
 <file path="src/App.jsx">
@@ -3065,12 +3086,6 @@ export {
 
     nav {
         @apply flex justify-between items-center bg-white/30 backdrop-blur-xl p-2 px-5 select-none max-md:p-0 max-md:px-0;
-        div {
-            @apply flex items-center max-sm:w-full max-sm:justify-center gap-5;
-            &:last-child {
-                @apply max-sm:hidden;
-            }
-        }
         ul {
             @apply flex items-center gap-5 max-sm:hidden;
             p {
@@ -3160,7 +3175,7 @@ export {
                 }
             }
             .blog {
-                @apply bg-transparent backdrop-blur-xl max-md:h-full max-md:overflow-y-auto max-md:bg-white;
+                @apply max-md:h-full max-md:overflow-y-auto max-md:bg-white;
                 .blog-container {
                     @apply p-10 max-w-3xl mx-auto max-md:p-6 max-md:w-full max-md:max-w-full pb-20;
                 }
@@ -3168,7 +3183,7 @@ export {
                     @apply text-xl font-bold text-pink-600 mb-10 max-md:text-2xl max-md:text-black max-md:mb-6 text-center max-md:text-center;
                 }
                 .blog-post {
-                    @apply grid grid-cols-12 space-x-5 max-md:flex max-md:flex-col max-md:gap-4 max-md:mb-10 max-md:ml-0 max-md:space-x-0 bg-white/50 max-md:bg-gray-50 max-md:p-3 max-md:rounded-3xl shadow-sm max-md:shadow-none;
+                    @apply grid grid-cols-12 space-x-5 max-md:flex max-md:flex-col max-md:gap-4 max-md:mb-10 max-md:ml-0 max-md:space-x-0 bg-white/50 max-md:bg-gray-50 max-md:p-3 rounded-3xl p-5 max-md:rounded-3xl shadow-sm max-md:shadow-none;
                     img {
                         @apply size-full rounded-md object-cover max-md:w-full max-md:h-auto max-md:object-contain max-md:rounded-2xl max-md:bg-gray-200 shadow-sm;
                     }
@@ -3202,7 +3217,7 @@ export {
     }
 
     #contact {
-        @apply max-w-2xl absolute top-60 left-5/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-[#f2f2f7];
+        @apply w-[650px] absolute top-60 left-5/12 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-[#f2f2f7];
         h2 {
             @apply font-bold text-sm text-center w-full;
         }
@@ -3216,9 +3231,9 @@ export {
             @apply max-md:text-gray-600;
         }
         ul {
-            @apply flex items-center gap-3 max-md:flex-col max-md:items-center max-md:p-0 max-md:mt-6;
+            @apply flex flex-wrap items-center gap-3 max-md:flex-col max-md:items-center max-md:p-0 max-md:mt-6;
             li {
-                @apply rounded-lg p-3 w-60 hover:-translate-y-0.5 hover:scale-105 origin-center transition-all duration-300 max-md:w-full max-md:mb-3 max-md:rounded-xl max-md:transform-none max-md:hover:scale-100;
+                @apply flex-1 rounded-lg p-3 min-w-[100px] max-w-[400px] hover:-translate-y-0.5 hover:scale-105 origin-center transition-all duration-300 max-md:w-full max-md:mb-3 max-md:rounded-xl max-md:transform-none max-md:hover:scale-100;
                 a {
                     @apply space-y-5;
                 }
@@ -3230,7 +3245,7 @@ export {
     }
 
     #photos {
-        @apply max-w-3xl absolute top-96 left-1/2 -translate-y-1/2 bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white;
+        @apply w-125 top-[20%] left-[20%] absolute bg-white/30 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white;
         .sidebar {
             @apply w-3/12 flex-none bg-black/10 border-r border-black/10 flex flex-col p-5 max-md:hidden;
             h2 {
