@@ -302,17 +302,43 @@
                 @apply max-md:flex max-md:flex-col max-md:overflow-hidden;
             }
             li {
-                @apply absolute flex items-center flex-col gap-3 max-md:relative max-md:top-0 max-md:left-0 max-md:flex-row max-md:justify-start max-md:p-3 max-md:gap-4;
-                &:last-child {
-                    @apply max-md:border-b-0;
-                }
-                img {
-                    @apply object-contain object-center size-16 relative group-hover:scale-105 max-md:w-10 max-md:h-10 max-md:rounded-lg;
-                }
-                p {
-                    @apply text-sm text-center font-medium w-40 max-md:text-left max-md:w-full max-md:text-[17px] max-md:text-black max-md:font-normal;
-                }
-            }
+                            @apply absolute flex items-center flex-col gap-2 p-3 -m-3 cursor-pointer z-10 max-md:relative max-md:top-0 max-md:left-0 max-md:m-0 max-md:flex-row max-md:justify-start max-md:p-3 max-md:gap-4;
+                            
+                            /* ✨ The "Alive" Hover Highlight */
+                            &::before {
+                                content: '';
+                                @apply absolute inset-0 bg-black/5 rounded-2xl opacity-0 scale-75 transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-[-1] max-md:hidden;
+                            }
+                            
+                            &:hover::before {
+                                @apply opacity-100 scale-100;
+                            }
+                            
+                            &:active::before {
+                                @apply bg-black/10 scale-95 transition-all duration-150 ease-out;
+                            }
+            
+                            &:last-child {
+                                @apply max-md:border-b-0;
+                            }
+            
+                            img {
+                                @apply object-contain object-center size-16 relative transition-transform duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] max-md:w-10 max-md:h-10 max-md:rounded-lg;
+                            }
+            
+                            /* Trigger image bounce when the <li> is hovered/active */
+                            &:hover img {
+                                @apply scale-110;
+                            }
+            
+                            &:active img {
+                                @apply scale-95;
+                            }
+            
+                            p {
+                                @apply text-sm text-center font-medium w-40 text-gray-800 transition-colors duration-300 max-md:text-left max-md:w-full max-md:text-[17px] max-md:text-black max-md:font-normal;
+                            }
+                        }
             h3 {
                 @apply max-md:hidden;
             }
