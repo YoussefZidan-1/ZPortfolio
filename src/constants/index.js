@@ -401,7 +401,7 @@ const WINDOW_CONFIG = {
   terminal: { isOpen: false, isMaximized: false, zIndex: INITIAL_Z_INDEX, data: null },
   txtfile: { isOpen: false, isMaximized: false, zIndex: INITIAL_Z_INDEX, data: null },
   imgfile: { isOpen: false, isMaximized: false, zIndex: INITIAL_Z_INDEX, data: null },
-  vscode: { isOpen: false, isMaximized: true, zIndex: INITIAL_Z_INDEX, data: null },
+  vscode: { isOpen: false, isMaximized: false, zIndex: INITIAL_Z_INDEX, data: null },
 };
 
 export { 
