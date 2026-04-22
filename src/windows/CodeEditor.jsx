@@ -4,7 +4,6 @@ import { memo, useState, useMemo, useEffect } from "react";
 import Editor from "@monaco-editor/react";
 import { ChevronRight, ChevronDown, Folder, FolderOpen, Code2, Braces, Hash, PanelLeft } from "lucide-react";
 
-// 🚀 VITE MAGIC: Automatically fetch all files in the project
 const rawFiles = import.meta.glob([
   '/src/**/*.{jsx,js,css}',
   '/package.json',
@@ -42,7 +41,6 @@ const getLanguage = (name) => {
   return 'plaintext';
 };
 
-// 🎨 Catppuccin Mocha Theme Injector
 const handleEditorWillMount = (monaco) => {
   monaco.editor.defineTheme("catppuccin-mocha", {
     base: "vs-dark",
@@ -125,7 +123,7 @@ const FileTreeNode = ({ node, level, activePath, setActivePath, onFileClick }) =
       style={{ paddingLeft: `${level * 12 + 28}px` }}
       onClick={() => {
         setActivePath(node.path);
-        if (onFileClick) onFileClick(); // Notify parent to close mobile sidebar
+        if (onFileClick) onFileClick();
       }}
     >
       {getIcon()}
@@ -134,13 +132,11 @@ const FileTreeNode = ({ node, level, activePath, setActivePath, onFileClick }) =
   );
 };
 
-// 🖥️ Main CodeEditor Component
 const CodeEditor = memo(() => {
   const fileTree = useMemo(() => buildFileTree(rawFiles), []);
   const[activePath, setActivePath] = useState("src/App.jsx");
   const [filesContent, setFilesContent] = useState(() => ({ ...rawFiles }));
   
-  // 📁 Sidebar State (Default open on Desktop, closed on Mobile)
   const [isSidebarOpen, setIsSidebarOpen] = useState(
     typeof window !== 'undefined' ? window.innerWidth > 768 : true
   );
@@ -149,7 +145,7 @@ const CodeEditor = memo(() => {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
-        e.preventDefault(); // Stop browser bookmark menu
+        e.preventDefault();
         setIsSidebarOpen(prev => !prev);
       }
     };
@@ -169,10 +165,9 @@ const CodeEditor = memo(() => {
 
   return (
     <>
-      <div id="window-header" className="shrink-0 border-b border-[#181825] text-[#cdd6f4] bg-[#11111b] relative flex items-center justify-center">
+      <div id="window-header" className="shrink-0 text-[#cdd6f4] relative flex items-center justify-center">
         <WindowControls target="vscode" />
         
-        {/* Mobile Toggle Icon (Positioned Absolute Left) */}
         <PanelLeft 
           className="hidden max-md:block absolute left-14 text-[#a6adc8] hover:text-[#cdd6f4] cursor-pointer z-50 transition-transform active:scale-95" 
           size={20} 
@@ -195,7 +190,6 @@ const CodeEditor = memo(() => {
           onClick={() => setIsSidebarOpen(false)}
         />
 
-        {/* 📂 LEFT SIDEBAR (Animated) */}
         <div 
           className={`shrink-0 border-[#11111b] overflow-hidden transition-all duration-300 ease-in-out z-50 bg-[#181825] 
             max-md:absolute max-md:h-full max-md:shadow-2xl 
