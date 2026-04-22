@@ -321,6 +321,10 @@
             }
         }
     }
+    
+    #vscode {
+            @apply absolute bg-[#1e1e1e]/95 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden top-[12%] left-[15%] w-[850px] h-[600px] transition-none max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-[#1e1e1e];
+        }
 
     .ios-home-indicator {
         @apply fixed bottom-2 left-1/2 -translate-x-1/2 w-[130px] h-1.5 bg-white/60 rounded-full z-[100] pointer-events-none max-md:block hidden;

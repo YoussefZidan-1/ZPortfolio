@@ -12,12 +12,12 @@ const CodeEditor = memo(() => {
       </div>
 
       {/* The iframe Editor */}
-      <div className="flex-1 w-full bg-[#1e1e1e] relative min-h-150">
+      <div className="flex-1 w-full bg-[#1e1e1e] min-h-0">
         <iframe
           // StackBlitz React/Vite template embedded in dark mode!
           src="https://stackblitz.com/edit/vitejs-vite-r26ruzwf?embed=1&file=src%2FApp.jsx"
-          className="w-full h-full border-none"
-          title="VS Code Sandbox"
+          className="w-full h-full border-none block"
+          title="ZED Code Sandbox"
           allow="cross-origin-isolated"
         />
       </div>
