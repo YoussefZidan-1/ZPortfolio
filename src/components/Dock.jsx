@@ -26,16 +26,15 @@ const Dock = memo(() => {
       <Proximity
         className="dock-container"
         selector=".dock-icon"
-        preset="scale-y"
-        reach={3}
-        falloff={2.4}
+        preset="scale-y-opacity"
+        reach={2}
         config={{
           scale:[1, 1.3],
           y: [0, -20],
           duration: 0.1,
           resetDuration: 1,
           ease: "power1.out",
-          resetEase: "elastic"
+          resetEase: "elastic",
         }}
       >
         {dockApps.map(({ id, name, icon, canOpen }) => (
