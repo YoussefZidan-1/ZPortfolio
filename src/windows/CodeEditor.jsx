@@ -12,7 +12,7 @@ const CodeEditor = memo(() => {
       </div>
 
       {/* The iframe Editor */}
-      <div className="flex-1 w-full bg-[#1e1e1e] relative min-h-50">
+      <div className="flex-1 w-full bg-[#1e1e1e] relative min-h-150">
         <iframe
           // StackBlitz React/Vite template embedded in dark mode!
           src="https://stackblitz.com/edit/vitejs-vite-r26ruzwf?embed=1&file=src%2FApp.jsx"
