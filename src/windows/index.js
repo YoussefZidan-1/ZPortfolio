@@ -6,4 +6,5 @@ import Text from "#windows/Text.jsx";
 import Image from "#windows/Image.jsx";
 import Contact from "#windows/Contact.jsx";
 import Photos from "#windows/Photos.jsx"
-export { Terminal, ZenBrowser, Resume, Finder, Text, Image, Contact, Photos };
+import CodeEditor from "#windows/CodeEditor.jsx";
+export { Terminal, ZenBrowser, Resume, Finder, Text, Image, Contact, Photos, CodeEditor };

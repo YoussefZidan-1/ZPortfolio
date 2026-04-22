@@ -23,7 +23,7 @@ const Text = lazy(() => import("#windows/Text.jsx"));
 const Image = lazy(() => import("#windows/Image.jsx"));
 const Contact = lazy(() => import("#windows/Contact.jsx"));
 const Photos = lazy(() => import("#windows/Photos.jsx"));
-
+const CodeEditor = lazy(() => import("#windows/CodeEditor.jsx"));
 // 🕵️‍♂️ The "ZED" Signature - Visible only in the browser console
 
 if (typeof window !== "undefined") {
@@ -52,6 +52,7 @@ const App = () => {
         <Image />
         <Contact />
         <Photos />
+        <CodeEditor /> 
       </Suspense>
     </main>
   );

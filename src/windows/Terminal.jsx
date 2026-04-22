@@ -38,6 +38,7 @@ const SYSTEM_APPS = {
   "photos": { id: "photos", name: "Photos Gallery" },
   "contact": { id: "contact", name: "Contact Manager" },
   "resume": { id: "resume", name: "Resume Viewer" },
+  "code": {id: "vscode", name: "ZED Code Editor"}
 };
 
 // Valid commands for Syntax Highlighting & Auto-complete
@@ -225,7 +226,7 @@ const Terminal = () => {
               <span className="text-blue-400 font-bold">- whoami:</span> About the developer <br />
               <span className="text-blue-400 font-bold">- fastfetch:</span> System information <br />
               <span className="text-blue-400 font-bold">- clear:</span> Clear terminal output <br /><br />
-              <span className="text-gray-500">Global Executables:</span> <span className="text-white">zen-browser, projects, gallery, contact, resume</span>
+              <span className="text-gray-500">Global Executables:</span> <span className="text-white">zen-browser, projects, gallery, contact, resume, code</span>
             </div>
           );
           break;

@@ -27,13 +27,13 @@ const Dock = memo(() => {
         className="dock-container"
         selector=".dock-icon"
         preset="scale-y"
-        reach={1}
+        reach={2}
         falloff={2.4}
         ignoreSelectors={[".os-window"]}
         config={{
           scale:[1, 1.3],
           y: [0, -20],
-          duration: 0.1,
+          duration: 0.3,
           resetDuration: 1,
           ease: "power1.out",
           resetEase: "elastic"
