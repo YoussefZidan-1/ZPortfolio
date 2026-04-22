@@ -75,8 +75,8 @@ const Home = () => {
             dragClickables: true,
             
                       onDragEnd: function () {
-                          const gridW = 120; 
-                          const gridH = 140; 
+                          const gridW = 100; 
+                          const gridH = 85; 
                           const offsetX = 80; 
                           const offsetY = 80; 
                           const rect = this.target.getBoundingClientRect();

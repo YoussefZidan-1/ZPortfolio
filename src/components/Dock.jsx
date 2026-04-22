@@ -26,11 +26,13 @@ const Dock = memo(() => {
       <Proximity
         className="dock-container"
         selector=".dock-icon"
-        preset="scale-y-opacity"
+        preset="scale-y"
         reach={2}
+        global={true}
+        ignoreSelectors={[".os-window"]}
         config={{
           scale:[1, 1.3],
-          y: [0, -20],
+          y: [0, -40],
           duration: 0.1,
           resetDuration: 1,
           ease: "power1.out",
