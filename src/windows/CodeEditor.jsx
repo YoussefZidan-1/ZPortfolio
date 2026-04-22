@@ -1,30 +1,285 @@
 import WindowWrapper from "#hoc/WindowWrapper.jsx";
 import { WindowControls } from "#components";
-import { memo } from "react";
+import { memo, useState, useMemo, useEffect } from "react";
+import Editor from "@monaco-editor/react";
+import { ChevronRight, ChevronDown, Folder, FolderOpen, Code2, Braces, Hash, PanelLeft } from "lucide-react";
 
+// 🚀 VITE MAGIC: Automatically fetch all files in the project
+const rawFiles = import.meta.glob([
+  '/src/**/*.{jsx,js,css}',
+  '/package.json',
+  '/vite.config.js',
+  '/eslint.config.js',
+  '/index.html'
+], { query: '?raw', import: 'default', eager: true });
+
+const buildFileTree = (files) => {
+  const root = {};
+  Object.entries(files).forEach(([path]) => {
+    const cleanPath = path.replace(/^\//, ''); 
+    const parts = cleanPath.split('/');
+    let current = root;
+
+    parts.forEach((part, idx) => {
+      if (idx === parts.length - 1) {
+        current[part] = { type: 'file', name: part, path: cleanPath };
+      } else {
+        if (!current[part]) {
+          current[part] = { type: 'folder', name: part, children: {} };
+        }
+        current = current[part].children;
+      }
+    });
+  });
+  return root;
+};
+
+const getLanguage = (name) => {
+  if (name.endsWith('.js') || name.endsWith('.jsx')) return 'javascript';
+  if (name.endsWith('.css')) return 'css';
+  if (name.endsWith('.json')) return 'json';
+  if (name.endsWith('.html')) return 'html';
+  return 'plaintext';
+};
+
+// 🎨 Catppuccin Mocha Theme Injector
+const handleEditorWillMount = (monaco) => {
+  monaco.editor.defineTheme("catppuccin-mocha", {
+    base: "vs-dark",
+    inherit: true,
+    rules:[
+      { token: "", foreground: "cdd6f4" }, 
+      { token: "comment", foreground: "6c7086", fontStyle: "italic" }, 
+      { token: "keyword", foreground: "cba6f7" }, 
+      { token: "identifier", foreground: "cdd6f4" }, 
+      { token: "string", foreground: "a6e3a1" }, 
+      { token: "number", foreground: "fab387" }, 
+      { token: "type", foreground: "f9e2af" }, 
+      { token: "class", foreground: "f9e2af" }, 
+      { token: "function", foreground: "8caaee" }, 
+      { token: "variable", foreground: "cdd6f4" }, 
+      { token: "constant", foreground: "fab387" }, 
+      { token: "operator", foreground: "89dceb" }, 
+      { token: "property", foreground: "74c7ec" }, 
+    ],
+    colors: {
+      "editor.background": "#1e1e2e", 
+      "editor.foreground": "#cdd6f4", 
+      "editorLineNumber.foreground": "#585b70", 
+      "editorCursor.foreground": "#f5e0dc", 
+      "editor.selectionBackground": "#45475a", 
+      "editor.inactiveSelectionBackground": "#313244", 
+      "editorIndentGuide.background": "#313244", 
+      "editorIndentGuide.activeBackground": "#585b70", 
+      "editorWidget.background": "#181825", 
+      "scrollbarSlider.background": "#31324480",
+      "scrollbarSlider.hoverBackground": "#45475a",
+      "scrollbarSlider.activeBackground": "#585b70",
+    },
+  });
+};
+
+const FileTreeNode = ({ node, level, activePath, setActivePath, onFileClick }) => {
+  const[isOpen, setIsOpen] = useState(true);
+  const isFolder = node.type === 'folder';
+  const isActive = activePath === node.path;
+
+  const getIcon = () => {
+    if (isFolder) return isOpen ? <FolderOpen size={14} color="#8caaee" /> : <Folder size={14} color="#8caaee" />; 
+    if (node.name.endsWith('.jsx')) return <span className="text-[#cba6f7] font-bold text-[10px]">JSX</span>; 
+    if (node.name.endsWith('.js')) return <span className="text-[#f9e2af] font-bold text-[10px]">JS</span>; 
+    if (node.name.endsWith('.css')) return <Hash size={14} color="#89dceb" />; 
+    if (node.name.endsWith('.json')) return <Braces size={14} color="#a6e3a1" />; 
+    return <Code2 size={14} color="#bac2de" />; 
+  };
+
+  if (isFolder) {
+    const children = Object.values(node.children).sort((a, b) => {
+      if (a.type === b.type) return a.name.localeCompare(b.name);
+      return a.type === 'folder' ? -1 : 1;
+    });
+
+    return (
+      <div className="select-none">
+        <div 
+          className="flex items-center gap-1.5 py-1 px-2 cursor-pointer hover:bg-[#313244] text-[#cdd6f4] text-sm whitespace-nowrap transition-colors"
+          style={{ paddingLeft: `${level * 12 + 8}px` }}
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          {isOpen ? <ChevronDown size={14} color="#a6adc8" /> : <ChevronRight size={14} color="#a6adc8" />}
+          {getIcon()}
+          <span>{node.name}</span>
+        </div>
+        {isOpen && children.map(child => (
+          <FileTreeNode key={child.name} node={child} level={level + 1} activePath={activePath} setActivePath={setActivePath} onFileClick={onFileClick} />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      className={`flex items-center gap-2 py-1 cursor-pointer text-sm whitespace-nowrap transition-colors ${
+        isActive ? 'bg-[#45475a] text-[#cdd6f4]' : 'hover:bg-[#313244] text-[#bac2de]'
+      }`}
+      style={{ paddingLeft: `${level * 12 + 28}px` }}
+      onClick={() => {
+        setActivePath(node.path);
+        if (onFileClick) onFileClick(); // Notify parent to close mobile sidebar
+      }}
+    >
+      {getIcon()}
+      <span>{node.name}</span>
+    </div>
+  );
+};
+
+// 🖥️ Main CodeEditor Component
 const CodeEditor = memo(() => {
+  const fileTree = useMemo(() => buildFileTree(rawFiles), []);
+  const[activePath, setActivePath] = useState("src/App.jsx");
+  const [filesContent, setFilesContent] = useState(() => ({ ...rawFiles }));
+  
+  // 📁 Sidebar State (Default open on Desktop, closed on Mobile)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(
+    typeof window !== 'undefined' ? window.innerWidth > 768 : true
+  );
+
+  // ⌨️ Keyboard Shortcut Listener (Ctrl+B / Cmd+B)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault(); // Stop browser bookmark menu
+        setIsSidebarOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  },[]);
+
+  const handleEditorChange = (value) => {
+    setFilesContent((prev) => ({
+      ...prev,[`/${activePath}`]: value
+    }));
+  };
+
+  const activeFileContent = filesContent[`/${activePath}`] || "// File not found or empty";
+  const activeFileName = activePath.split('/').pop();
+  const activeLanguage = getLanguage(activeFileName);
+
   return (
     <>
-      {/* Draggable Header */}
-      <div id="window-header" className="shrink-0 border-b border-[#333] text-gray-300">
+      <div id="window-header" className="shrink-0 border-b border-[#181825] text-[#cdd6f4] bg-[#11111b] relative flex items-center justify-center">
         <WindowControls target="vscode" />
-        <h2 className="text-sm font-medium pr-4 truncate w-full text-center">App.jsx — ZED CodeEditor</h2>
+        
+        {/* Mobile Toggle Icon (Positioned Absolute Left) */}
+        <PanelLeft 
+          className="hidden max-md:block absolute left-14 text-[#a6adc8] hover:text-[#cdd6f4] cursor-pointer z-50 transition-transform active:scale-95" 
+          size={20} 
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsSidebarOpen(!isSidebarOpen);
+          }} 
+        />
+
+        <h2 className="text-sm font-medium pr-4 truncate w-full text-center">ZED Code — {activeFileName}</h2>
       </div>
 
-      {/* The iframe Editor */}
-      <div className="flex-1 w-full bg-[#1e1e1e] min-h-0">
-        <iframe
-          // StackBlitz React/Vite template embedded in dark mode!
-          src="https://stackblitz.com/edit/vitejs-vite-r26ruzwf?embed=1&file=src%2FApp.jsx"
-          className="w-full h-full border-none block"
-          title="ZED Code Sandbox"
-          allow="cross-origin-isolated"
+      <div className="flex-1 w-full bg-[#1e1e2e] min-h-0 flex flex-row relative">
+        
+        {/* Mobile Backdrop Overlay */}
+        <div 
+          className={`md:hidden absolute inset-0 bg-black/50 z-40 transition-opacity duration-300 ease-in-out ${
+            isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          }`}
+          onClick={() => setIsSidebarOpen(false)}
         />
+
+        {/* 📂 LEFT SIDEBAR (Animated) */}
+        <div 
+          className={`shrink-0 border-[#11111b] overflow-hidden transition-all duration-300 ease-in-out z-50 bg-[#181825] 
+            max-md:absolute max-md:h-full max-md:shadow-2xl 
+            ${isSidebarOpen ? "max-md:translate-x-0 md:w-56 border-r" : "max-md:-translate-x-full md:w-0 border-r-0"}
+          `}
+        >
+          {/* Inner container stays fixed width to prevent text wrapping during animation */}
+          <div className="w-60 md:w-56 pt-3 pb-6 h-full flex flex-col vscode-scroll">
+            <div className="flex items-center justify-between px-4 mb-2">
+              <span className="text-[11px] text-[#a6adc8] font-semibold uppercase tracking-wider">Explorer</span>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto vscode-scroll">
+              {Object.values(fileTree).sort((a, b) => a.type === 'folder' ? -1 : 1).map(node => (
+                <FileTreeNode 
+                  key={node.name} 
+                  node={node} 
+                  level={0} 
+                  activePath={activePath} 
+                  setActivePath={setActivePath}
+                  // Close sidebar on mobile when a file is clicked!
+                  onFileClick={() => {
+                    if (window.innerWidth < 768) setIsSidebarOpen(false);
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* 💻 RIGHT PANEL */}
+        <div className="flex-1 flex flex-col min-w-0 bg-[#1e1e2e]">
+          
+          <div className="flex bg-[#11111b] overflow-x-auto scrollbar-hide shrink-0 items-center">
+            
+            {/* Desktop Toggle Sidebar Icon inside Tabs row */}
+            <button 
+              onClick={() => setIsSidebarOpen(p => !p)}
+              className="p-2 ml-1 text-[#a6adc8] hover:text-[#cdd6f4] transition-colors md:block hidden cursor-pointer"
+              title="Toggle Sidebar (Ctrl+B)"
+            >
+              <PanelLeft size={16} />
+            </button>
+
+            <div className="px-4 py-2 text-sm whitespace-nowrap border-t-2 bg-[#1e1e2e] text-[#cdd6f4] border-[#cba6f7] flex items-center gap-2">
+              <span className="text-[#cba6f7] font-bold text-[10px]">
+                {activeFileName.split('.').pop().toUpperCase()}
+              </span>
+              <span>{activeFileName}</span>
+            </div>
+          </div>
+
+          <div className="flex-1 w-full min-h-0 pt-2 relative">
+            <Editor
+              height="100%"
+              language={activeLanguage}
+              theme="catppuccin-mocha"
+              value={activeFileContent}
+              onChange={handleEditorChange}
+              beforeMount={handleEditorWillMount}
+              options={{
+                minimap: { enabled: true },
+                fontSize: 14,
+                readOnly: false,
+                wordWrap: "on",
+                padding: { top: 16 },
+                scrollBeyondLastLine: false,
+                smoothScrolling: true,
+                cursorSmoothCaretAnimation: 'on',
+                cursorBlinking: "expand",
+                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                scrollbar: {
+                  verticalScrollbarSize: 10,
+                  horizontalScrollbarSize: 10,
+                }
+              }}
+            />
+          </div>
+
+        </div>
       </div>
     </>
   );
 });
 
-// Wrap it so it becomes a draggable, resizable OS window
 const CodeEditorWindow = WindowWrapper(CodeEditor, "vscode");
 export default CodeEditorWindow;

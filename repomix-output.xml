@@ -710,183 +710,6 @@ export default defineConfig({
 })
 </file>
 
-<file path="src/store/window.js">
-import { INITIAL_Z_INDEX, WINDOW_CONFIG } from "#constants";
-import { create } from "zustand";
-import { immer } from "zustand/middleware/immer";
-
-const useWindowStore = create(
-  immer((set) => ({
-    windows: WINDOW_CONFIG,
-    nextZIndex: INITIAL_Z_INDEX + 1,
-    openWindow: (windowKey, data = null, launchPos = null) =>
-      set((state) => {
-        const win = state.windows[windowKey];
-        if (!win) return;
-        win.isOpen = true;
-        win.zIndex = state.nextZIndex;
-        win.data = data ?? win.data;
-        win.launchPos = launchPos;
-        state.nextZIndex++;
-      }),
-    closeWindow: (windowKey) => set((state) => {
-      const win = state.windows[windowKey];
-      if (!win) return;
-      win.isOpen = false;
-      win.isMaximized = false;
-      win.zIndex = INITIAL_Z_INDEX;
-      win.data = null;
-      win.launchPos = null;
-    }),
-    toggleMaximize: (windowKey) => set((state) => {
-      const win = state.windows[windowKey];
-      if (win) win.isMaximized = !win.isMaximized;
-    }),
-    focusWindow: (windowKey) => set((state) => {
-      const win = state.windows[windowKey];
-      if (!win) return;
-      win.zIndex = state.nextZIndex++;
-    }),
-  })),
-);
-export default useWindowStore;
-</file>
-
-<file path="src/windows/CodeEditor.jsx">
-import WindowWrapper from "#hoc/WindowWrapper.jsx";
-import { WindowControls } from "#components";
-import { memo } from "react";
-
-const CodeEditor = memo(() => {
-  return (
-    <>
-      {/* Draggable Header */}
-      <div id="window-header" className="shrink-0 border-b border-[#333] text-gray-300">
-        <WindowControls target="vscode" />
-        <h2 className="text-sm font-medium pr-4 truncate w-full text-center">App.jsx — ZED CodeEditor</h2>
-      </div>
-
-      {/* The iframe Editor */}
-      <div className="flex-1 bg-[#1e1e1e] min-h-150 min-w-250">
-        <iframe
-          // StackBlitz React/Vite template embedded in dark mode!
-          src="https://stackblitz.com/edit/vitejs-vite-r26ruzwf?embed=1&file=src%2FApp.jsx"
-          className="min-h-150 min-w-250 border-none"
-          title="ZED Code Sandbox"
-          allow="cross-origin-isolated"
-        />
-      </div>
-    </>
-  );
-});
-
-// Wrap it so it becomes a draggable, resizable OS window
-const CodeEditorWindow = WindowWrapper(CodeEditor, "vscode");
-export default CodeEditorWindow;
-</file>
-
-<file path="src/windows/Contact.jsx">
-import { WindowControls } from "#components";
-import { socials } from "#constants";
-import WindowWrapper from "#hoc/WindowWrapper"
-
-const Contact = () => {
-  return (
-    <>
-      <div id="window-header" className="shrink-0">
-        <WindowControls target="contact"/>
-        <h2>Contact Me!</h2>
-      </div>
-      <div className="p-5 space-y-5 flex-1 overflow-y-auto min-h-0">
-        <img src="/images/yousef-5.webp" alt="Yousef" className="w-20 rounded-full" />
-        <h3>Let's Connect</h3>
-        <p>Got an idea? A bug to squash? Or just wanna talk tech? I'm in.</p>
-        <p><a href="mailto:zedstudios.devs@gmail.com" target="_blank" className="text-indigo-600 hover:text-indigo-700 hover:font-bold transition-all duration-300 ease-in-out">
-          zedstudios.devs@gmail.com
-        </a></p>
-        <ul>
-          {socials.map(({ id, bg, link, icon, text }) => (
-            <li key={id} style={{ backgroundColor: bg}}>
-              <a href={link} target="_blank" rel="noopener noreferrer" title={text}>
-                <img src={icon} alt={text} className="size-5" />
-                <p>{text}</p>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </>
-  )
-}
-
-const ContactWindow = WindowWrapper(Contact, 'contact');
-
-export default ContactWindow;
-</file>
-
-<file path="src/windows/Photos.jsx">
-import { Mail, Search } from "lucide-react"
-import WindowWrapper from "#hoc/WindowWrapper"
-import WindowControls from "#components/WindowControls"
-import { gallery, photosLinks } from "#constants/index.js"
-import useWindowStore from "#store/window"
-
-const Photos = () => {
-  const { openWindow } = useWindowStore();
-  return (
-    <>
-      <div id="window-header" className="shrink-0">
-        <WindowControls target="photos" />
-        <div className="w-full flex justify-end items-center gap-3 text-indigo-500">
-          <Mail className="icon" />
-          <Search className="icon"/>
-        </div>
-      </div>
-      
-      <div className="flex flex-1 h-full overflow-hidden">
-        <div className="sidebar shrink-0 h-full overflow-y-auto">
-          <h2>Photos</h2>
-          <ul>
-            {photosLinks.map(({ id, icon, title }) => (
-              <li key={id}>
-                <img src={icon} alt={title} />
-                <p>{title}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="gallery flex-1 h-full overflow-y-auto min-h-0 p-5">
-          <ul>
-            {gallery.map(({ id, img }) => (
-              <li
-                key={id}
-                onClick={() => 
-                  openWindow("imgfile", {
-                    id,
-                    name: "Gallery image",
-                    icon: "/images/image.png",
-                    kind: "file",
-                    fileType: "img",
-                    imageUrl: img,
-                  })
-                }
-              >
-                <img src={img} alt={`Gallery Image ${id}`}/>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </>
-  )
-}
-
-const PhotosWindow = WindowWrapper(Photos, "photos");
-PhotosWindow.displayName = "Photos";
-
-export default PhotosWindow;
-</file>
-
 <file path="package.json">
 {
   "name": "zportfolio",
@@ -936,6 +759,87 @@ export default PhotosWindow;
     "vite-plugin-static-copy": "^4.0.0"
   }
 }
+</file>
+
+<file path="src/store/window.js">
+import { INITIAL_Z_INDEX, WINDOW_CONFIG } from "#constants";
+import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
+
+const useWindowStore = create(
+  immer((set) => ({
+    windows: WINDOW_CONFIG,
+    nextZIndex: INITIAL_Z_INDEX + 1,
+    openWindow: (windowKey, data = null, launchPos = null) =>
+      set((state) => {
+        const win = state.windows[windowKey];
+        if (!win) return;
+        win.isOpen = true;
+        win.zIndex = state.nextZIndex;
+        win.data = data ?? win.data;
+        win.launchPos = launchPos;
+        state.nextZIndex++;
+      }),
+    closeWindow: (windowKey) => set((state) => {
+      const win = state.windows[windowKey];
+      if (!win) return;
+      win.isOpen = false;
+      win.isMaximized = false;
+      win.zIndex = INITIAL_Z_INDEX;
+      win.data = null;
+      win.launchPos = null;
+    }),
+    toggleMaximize: (windowKey) => set((state) => {
+      const win = state.windows[windowKey];
+      if (win) win.isMaximized = !win.isMaximized;
+    }),
+    focusWindow: (windowKey) => set((state) => {
+      const win = state.windows[windowKey];
+      if (!win) return;
+      win.zIndex = state.nextZIndex++;
+    }),
+  })),
+);
+export default useWindowStore;
+</file>
+
+<file path="src/windows/Contact.jsx">
+import { WindowControls } from "#components";
+import { socials } from "#constants";
+import WindowWrapper from "#hoc/WindowWrapper"
+
+const Contact = () => {
+  return (
+    <>
+      <div id="window-header" className="shrink-0">
+        <WindowControls target="contact"/>
+        <h2>Contact Me!</h2>
+      </div>
+      <div className="p-5 space-y-5 flex-1 overflow-y-auto min-h-0">
+        <img src="/images/yousef-5.webp" alt="Yousef" className="w-20 rounded-full" />
+        <h3>Let's Connect</h3>
+        <p>Got an idea? A bug to squash? Or just wanna talk tech? I'm in.</p>
+        <p><a href="mailto:zedstudios.devs@gmail.com" target="_blank" className="text-indigo-600 hover:text-indigo-700 hover:font-bold transition-all duration-300 ease-in-out">
+          zedstudios.devs@gmail.com
+        </a></p>
+        <ul>
+          {socials.map(({ id, bg, link, icon, text }) => (
+            <li key={id} style={{ backgroundColor: bg}}>
+              <a href={link} target="_blank" rel="noopener noreferrer" title={text}>
+                <img src={icon} alt={text} className="size-5" />
+                <p>{text}</p>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
+  )
+}
+
+const ContactWindow = WindowWrapper(Contact, 'contact');
+
+export default ContactWindow;
 </file>
 
 <file path="src/windows/Finder.jsx">
@@ -1042,6 +946,115 @@ const Finder = () => {
 const FinderWindow = WindowWrapper(Finder, "finder");
 
 export default FinderWindow;
+</file>
+
+<file path="src/windows/Photos.jsx">
+import { Mail, Search } from "lucide-react"
+import WindowWrapper from "#hoc/WindowWrapper"
+import WindowControls from "#components/WindowControls"
+import { gallery, photosLinks } from "#constants/index.js"
+import useWindowStore from "#store/window"
+
+const Photos = () => {
+  const { openWindow } = useWindowStore();
+  return (
+    <>
+      <div id="window-header" className="shrink-0">
+        <WindowControls target="photos" />
+        <div className="w-full flex justify-end items-center gap-3 text-indigo-500">
+          <Mail className="icon" />
+          <Search className="icon"/>
+        </div>
+      </div>
+      
+      <div className="flex flex-1 h-full overflow-hidden">
+        <div className="sidebar shrink-0 h-full overflow-y-auto">
+          <h2>Photos</h2>
+          <ul>
+            {photosLinks.map(({ id, icon, title }) => (
+              <li key={id}>
+                <img src={icon} alt={title} />
+                <p>{title}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="gallery flex-1 h-full overflow-y-auto min-h-0 p-5">
+          <ul>
+            {gallery.map(({ id, img }) => (
+              <li
+                key={id}
+                onClick={() => 
+                  openWindow("imgfile", {
+                    id,
+                    name: "Gallery image",
+                    icon: "/images/image.png",
+                    kind: "file",
+                    fileType: "img",
+                    imageUrl: img,
+                  })
+                }
+              >
+                <img src={img} alt={`Gallery Image ${id}`}/>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </>
+  )
+}
+
+const PhotosWindow = WindowWrapper(Photos, "photos");
+PhotosWindow.displayName = "Photos";
+
+export default PhotosWindow;
+</file>
+
+<file path="src/windows/CodeEditor.jsx">
+import WindowWrapper from "#hoc/WindowWrapper.jsx";
+import { WindowControls } from "#components";
+import { memo } from "react";
+
+const CodeEditor = memo(() => {
+  return (
+    <>
+      {/* Draggable Header */}
+      <div id="window-header" className="shrink-0 border-b border-[#333] text-gray-300">
+        <WindowControls target="vscode" />
+        <h2 className="text-sm font-medium pr-4 truncate w-full text-center">App.jsx — ZED CodeEditor</h2>
+      </div>
+
+      {/* The iframe Editor */}
+      <div className="flex-1 w-full bg-[#1e1e1e] min-h-0">
+        <iframe
+          // StackBlitz React/Vite template embedded in dark mode!
+          src="https://stackblitz.com/edit/vitejs-vite-r26ruzwf?embed=1&file=src%2FApp.jsx"
+          className="w-full h-full border-none block"
+          title="ZED Code Sandbox"
+          allow="cross-origin-isolated"
+        />
+      </div>
+    </>
+  );
+});
+
+// Wrap it so it becomes a draggable, resizable OS window
+const CodeEditorWindow = WindowWrapper(CodeEditor, "vscode");
+export default CodeEditorWindow;
+</file>
+
+<file path="src/windows/index.js">
+import Terminal from "#windows/Terminal.jsx";
+import ZenBrowser from "#windows/ZenBrowser.jsx";
+import Resume from "#windows/Resume.jsx";
+import Finder from "#windows/Finder.jsx";
+import Text from "#windows/Text.jsx";
+import Image from "#windows/Image.jsx";
+import Contact from "#windows/Contact.jsx";
+import Photos from "#windows/Photos.jsx"
+import CodeEditor from "#windows/CodeEditor.jsx";
+export { Terminal, ZenBrowser, Resume, Finder, Text, Image, Contact, Photos, CodeEditor };
 </file>
 
 <file path="src/windows/Resume.jsx">
@@ -1440,17 +1453,52 @@ export const Proximity = ({
 };
 </file>
 
-<file path="src/windows/index.js">
-import Terminal from "#windows/Terminal.jsx";
-import ZenBrowser from "#windows/ZenBrowser.jsx";
-import Resume from "#windows/Resume.jsx";
-import Finder from "#windows/Finder.jsx";
-import Text from "#windows/Text.jsx";
-import Image from "#windows/Image.jsx";
-import Contact from "#windows/Contact.jsx";
-import Photos from "#windows/Photos.jsx"
-import CodeEditor from "#windows/CodeEditor.jsx";
-export { Terminal, ZenBrowser, Resume, Finder, Text, Image, Contact, Photos, CodeEditor };
+<file path="src/components/WindowControls.jsx">
+import useWindowStore from "#store/window.js";
+import { ChevronDown } from "lucide-react";
+import { useWebHaptics } from "web-haptics/react";
+const WindowControls = ({ target }) => {
+  const closeWindow = useWindowStore((s) => s.closeWindow);
+  const toggleMaximize = useWindowStore((s) => s.toggleMaximize);
+  const { trigger } = useWebHaptics();
+  return (
+    <div id="window-controls">
+      <button 
+        type="button"
+        className="close cursor-pointer" 
+        onPointerDown={(e) => { 
+            e.stopPropagation();
+            closeWindow(target);
+            trigger("nudge");
+        }}
+      >
+        <ChevronDown className="hidden max-md:block text-gray-700 stroke-[3px] pointer-events-none" size={18} />
+      </button>
+      
+      <button 
+        type="button" 
+        className="minimize cursor-pointer" 
+        onPointerDown={(e) => {
+            e.stopPropagation();
+            closeWindow(target);
+            trigger("nudge");
+        }}
+      />
+      
+      <button 
+        type="button" 
+        className="maximize cursor-pointer" 
+        onPointerDown={(e) => {
+            e.stopPropagation();
+            toggleMaximize(target);
+            trigger("success");
+        }} 
+      />
+    </div>
+  )
+}
+
+export default WindowControls;
 </file>
 
 <file path="README.md">
@@ -1635,54 +1683,6 @@ const Navbar = memo(() => {
 });
 
 export default Navbar;
-</file>
-
-<file path="src/components/WindowControls.jsx">
-import useWindowStore from "#store/window.js";
-import { ChevronDown } from "lucide-react";
-import { useWebHaptics } from "web-haptics/react";
-const WindowControls = ({ target }) => {
-  const closeWindow = useWindowStore((s) => s.closeWindow);
-  const toggleMaximize = useWindowStore((s) => s.toggleMaximize);
-  const { trigger } = useWebHaptics();
-  return (
-    <div id="window-controls">
-      <button 
-        type="button"
-        className="close cursor-pointer" 
-        onPointerDown={(e) => { 
-            e.stopPropagation();
-            closeWindow(target);
-            trigger("nudge");
-        }}
-      >
-        <ChevronDown className="hidden max-md:block text-gray-700 stroke-[3px] pointer-events-none" size={18} />
-      </button>
-      
-      <button 
-        type="button" 
-        className="minimize cursor-pointer" 
-        onPointerDown={(e) => {
-            e.stopPropagation();
-            closeWindow(target);
-            trigger("nudge");
-        }}
-      />
-      
-      <button 
-        type="button" 
-        className="maximize cursor-pointer" 
-        onPointerDown={(e) => {
-            e.stopPropagation();
-            toggleMaximize(target);
-            trigger("success");
-        }} 
-      />
-    </div>
-  )
-}
-
-export default WindowControls;
 </file>
 
 <file path="src/hoc/WindowWrapper.jsx">
@@ -3563,6 +3563,10 @@ export default TerminalWindow;
             }
         }
     }
+    
+    #vscode {
+            @apply absolute bg-[#1e1e1e]/95 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden top-[12%] left-[15%] w-[850px] h-[600px] transition-none max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-[#1e1e1e];
+        }
 
     .ios-home-indicator {
         @apply fixed bottom-2 left-1/2 -translate-x-1/2 w-[130px] h-1.5 bg-white/60 rounded-full z-[100] pointer-events-none max-md:block hidden;
