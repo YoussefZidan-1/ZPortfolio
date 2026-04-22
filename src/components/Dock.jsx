@@ -28,11 +28,9 @@ const Dock = memo(() => {
         selector=".dock-icon"
         preset="scale-y"
         reach={2}
-        global={true}
-        ignoreSelectors={[".os-window"]}
         config={{
-          scale:[1, 1.3],
-          y: [0, -40],
+          scale: [1, 1.3],
+          y:[0, -30],
           duration: 0.1,
           resetDuration: 1,
           ease: "power1.out",
@@ -63,8 +61,8 @@ const Dock = memo(() => {
             </button>
           </div>
         ))}
-        <Tooltip id="dock-tooltip" place="top" className="tooltip" />
       </Proximity>
+      <Tooltip id="dock-tooltip" place="top" className="tooltip" />
     </section>
   );
 });
