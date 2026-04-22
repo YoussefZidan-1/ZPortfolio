@@ -112,12 +112,10 @@ const WindowWrapper = (Component, windowKey) => {
       if (isMobile) return;
 
       [dragInstance.current] = Draggable.create(el, {
-        onPress: () => focusWindow(windowKey),
         trigger: el.querySelector("#window-header") || el,
         bounds: "main",
       });
 
-      // Clear the instances array to avoid memory leaks if isMobile toggles
       resizeInstances.current =[];
 
       const minW = 350;
@@ -181,6 +179,7 @@ const WindowWrapper = (Component, windowKey) => {
       <section
         id={windowKey}
         ref={ref}
+        onPointerDownCapture={() => focusWindow(windowKey)}
         className="os-window absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none max-md:bg-white"
         style={{
             zIndex,

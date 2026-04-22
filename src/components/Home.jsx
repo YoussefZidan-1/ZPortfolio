@@ -7,7 +7,7 @@ import SpotifyWidget from "./SpotifyWidget.jsx";
 import { useWebHaptics } from "web-haptics/react";
 import useWindowStore from "#store/window.js";
 import useLocationStore from "#store/location.js";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import dayjs from "dayjs";
 
 const projects = locations.work?.children ??[];
@@ -21,9 +21,18 @@ const Home = () => {
   useEffect(() => {
     const timer = setInterval(() => setTime(dayjs()), 1000);
     return () => clearInterval(timer);
-  },[]);
+  }, []);
+  
+  const pointerPos = useRef({ x: 0, y: 0 });
+  
+    const handlePointerDown = (e) => {
+      pointerPos.current = { x: e.clientX, y: e.clientY };
+    };
 
   const handleOpenProjectFinder = (e, project) => {
+    const dx = Math.abs(e.clientX - pointerPos.current.x);
+        const dy = Math.abs(e.clientY - pointerPos.current.y);
+        if (dx > 5 || dy > 5) return;
     trigger("nudge");
     const rect = e.currentTarget.getBoundingClientRect();
     const launchPos = {
@@ -37,6 +46,9 @@ const Home = () => {
   };
 
   const handleOpenApp = (e, app) => {
+    const dx = Math.abs(e.clientX - pointerPos.current.x);
+        const dy = Math.abs(e.clientY - pointerPos.current.y);
+        if (dx > 5 || dy > 5) return;
     if (!app.canOpen) { 
       trigger("error");
       return;
@@ -60,7 +72,28 @@ const Home = () => {
           draggables = Draggable.create(".folder", {
             type: "x,y",
             bounds: "body",
-            dragClickables: true
+            dragClickables: true,
+            
+                      onDragEnd: function () {
+                          const gridW = 120; 
+                          const gridH = 140; 
+                          const offsetX = 80; 
+                          const offsetY = 80; 
+                          const rect = this.target.getBoundingClientRect();
+                          const centerX = rect.left + rect.width / 2;
+                          const centerY = rect.top + rect.height / 2;
+                          const targetCenterX = Math.round((centerX - offsetX) / gridW) * gridW + offsetX;
+                          const targetCenterY = Math.round((centerY - offsetY) / gridH) * gridH + offsetY;
+                          const deltaX = targetCenterX - centerX;
+                          const deltaY = targetCenterY - centerY;
+                          gsap.to(this.target, {
+                            x: this.x + deltaX,
+                            y: this.y + deltaY,
+                            duration: 0.3,
+                            ease: "back.out(1.5)",
+                            overwrite: "auto"
+                          });
+                        }
           });
         } else {
           draggables.forEach(d => d.enable());
@@ -99,7 +132,8 @@ const Home = () => {
           <li
             key={project.id}
             className={clsx("group folder", project.windowPosition)}
-            onPointerDown={(e) => handleOpenProjectFinder(e, project)}
+            onPointerDown={handlePointerDown}
+            onPointerUp={(e) => handleOpenProjectFinder(e, project)}
           >
             <img 
               src="/images/folder.png" 
@@ -118,7 +152,8 @@ const Home = () => {
         {mobileApps.map((app) => (
           <li 
             key={app.id || app.name}
-            onPointerDown={(e) => handleOpenApp(e, app)}
+            onPointerDown={handlePointerDown}
+            onPointerUp={(e) => handleOpenApp(e, app)}
             className="flex flex-col items-center gap-[6px] cursor-pointer"
           >
             <img 
@@ -137,7 +172,8 @@ const Home = () => {
         {projects.map((project) => (
           <li 
             key={project.id}
-            onPointerDown={(e) => handleOpenProjectFinder(e, project)}
+            onPointerDown={handlePointerDown}
+            onPointerUp={(e) => handleOpenProjectFinder(e, project)}
             className="flex flex-col items-center gap-[6px] cursor-pointer"
           >
             <img 
