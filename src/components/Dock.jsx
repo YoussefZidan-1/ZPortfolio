@@ -33,7 +33,7 @@ const Dock = memo(() => {
           y:[0, -30],
           duration: 0.1,
           resetDuration: 1,
-          ease: "power1.out",
+          ease: "power2.out",
           resetEase: "elastic",
         }}
       >

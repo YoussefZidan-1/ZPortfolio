@@ -1,16 +1,5 @@
-
-/**
- * 💻 ZPortfolio — MacOS Inspired Creative Portfolio
- * ------------------------------------------------
- * Created & Developed by: Yousef Zedan (ZED Studios)
- * GitHub: https://github.com/YoussefZidan-1/zportfolio
- * License: MIT (Attribution is required)
- * ------------------------------------------------
- * "If you're using this template, a star on GitHub would mean a lot! ⭐"
- */
-
-import React, { Suspense, lazy } from "react";
-import { Navbar, Welcome, Dock, Home } from "#components";
+import React, { Suspense, lazy, useState } from "react";
+import { Navbar, Welcome, Dock, Home, BootSequence } from "#components";
 import gsap from "gsap";
 import { Draggable } from "gsap/Draggable";
 gsap.registerPlugin(Draggable);
@@ -24,7 +13,6 @@ const Image = lazy(() => import("#windows/Image.jsx"));
 const Contact = lazy(() => import("#windows/Contact.jsx"));
 const Photos = lazy(() => import("#windows/Photos.jsx"));
 const CodeEditor = lazy(() => import("#windows/CodeEditor.jsx"));
-// 🕵️‍♂️ The "ZED" Signature - Visible only in the browser console
 
 if (typeof window !== "undefined") {
   console.log(
@@ -36,8 +24,14 @@ if (typeof window !== "undefined") {
 }
 
 const App = () => {
+  const [isBooted, setIsBooted] = useState(false);
+
+  if (!isBooted) {
+    return <BootSequence onComplete={() => setIsBooted(true)} />;
+  }
+
   return (
-    <main>
+    <main className="animate-in fade-in duration-700">
       <div className="ios-home-indicator" />
       <Navbar />
       <Welcome />
