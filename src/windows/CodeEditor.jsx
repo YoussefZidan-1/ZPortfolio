@@ -1,8 +1,9 @@
 import WindowWrapper from "#hoc/WindowWrapper.jsx";
 import { WindowControls } from "#components";
-import { memo, useState, useMemo, useEffect } from "react";
+import { memo, useState, useMemo, useEffect, useRef, useCallback } from "react";
 import Editor from "@monaco-editor/react";
-import { ChevronRight, ChevronDown, Folder, FolderOpen, Code2, Braces, Hash, PanelLeft } from "lucide-react";
+import { ChevronRight, ChevronDown, Folder, FolderOpen, Code2, Braces, Hash, PanelLeft, Info} from "lucide-react";
+import { useWebHaptics } from "web-haptics/react";
 
 const rawFiles = import.meta.glob([
   '/src/**/*.{jsx,js,css}',
@@ -123,7 +124,7 @@ const FileTreeNode = ({ node, level, activePath, setActivePath, onFileClick }) =
       style={{ paddingLeft: `${level * 12 + 28}px` }}
       onClick={() => {
         setActivePath(node.path);
-        if (onFileClick) onFileClick();
+        if (onFileClick) onFileClick(); 
       }}
     >
       {getIcon()}
@@ -132,7 +133,9 @@ const FileTreeNode = ({ node, level, activePath, setActivePath, onFileClick }) =
   );
 };
 
+// 🖥️ Main CodeEditor Component
 const CodeEditor = memo(() => {
+  const { trigger } = useWebHaptics();
   const fileTree = useMemo(() => buildFileTree(rawFiles), []);
   const[activePath, setActivePath] = useState("src/App.jsx");
   const [filesContent, setFilesContent] = useState(() => ({ ...rawFiles }));
@@ -141,17 +144,42 @@ const CodeEditor = memo(() => {
     typeof window !== 'undefined' ? window.innerWidth > 768 : true
   );
 
-  // ⌨️ Keyboard Shortcut Listener (Ctrl+B / Cmd+B)
+  // 💾 Easter Egg Toast State
+  const[saveToast, setSaveToast] = useState(false);
+  const toastTimeoutRef = useRef(null);
+
+  const triggerSaveToast = useCallback(() => {
+    trigger("success");
+    setSaveToast(true);
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    toastTimeoutRef.current = setTimeout(() => setSaveToast(false), 5000);
+  }, [trigger]);
+
+  // ⌨️ Global Keyboard Shortcut Listener
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
-        e.preventDefault();
-        setIsSidebarOpen(prev => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  },[]);
+      const handleKeyDown = (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+          e.preventDefault();
+          setIsSidebarOpen(prev => !prev);
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+          e.preventDefault();
+          triggerSaveToast();
+        }
+      };
+  
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [triggerSaveToast]);
+
+  const handleEditorDidMount = (editor, monaco) => {
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+      triggerSaveToast();
+    });
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyB, () => {
+      setIsSidebarOpen(p => !p);
+    });
+  };
 
   const handleEditorChange = (value) => {
     setFilesContent((prev) => ({
@@ -165,7 +193,7 @@ const CodeEditor = memo(() => {
 
   return (
     <>
-      <div id="window-header" className="shrink-0 text-[#cdd6f4] relative flex items-center justify-center">
+      <div id="window-header" className="shrink-0 text-[#cdd6f4] relative flex items-center justify-center z-10">
         <WindowControls target="vscode" />
         
         <PanelLeft 
@@ -180,9 +208,31 @@ const CodeEditor = memo(() => {
         <h2 className="text-sm font-medium pr-4 truncate w-full text-center">ZED Code — {activeFileName}</h2>
       </div>
 
-      <div className="flex-1 w-full bg-[#1e1e2e] min-h-0 flex flex-row relative">
+      <div className="flex-1 w-full bg-[#1e1e2e] min-h-0 flex flex-row relative overflow-hidden">
         
-        {/* Mobile Backdrop Overlay */}
+        {/* 🍞 EASTER EGG TOAST NOTIFICATION */}
+        <div 
+          className={`absolute bottom-6 right-6 z-[100] bg-[#1e1e2e] border border-[#313244] shadow-2xl rounded-lg p-4 max-w-[320px] transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] ${
+            saveToast ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0 pointer-events-none"
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <Info className="text-[#8caaee] mt-0.5 shrink-0" size={18} />
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[#cdd6f4] text-sm font-semibold leading-tight">
+                Nice try! 😏
+              </span>
+              <span className="text-[#bac2de] text-xs leading-relaxed">
+                Actually, you are the only one seeing this. Go to GitHub and send me a PR if you dare! 
+                <a href="https://github.com/YoussefZidan-1/zportfolio" target="_blank" rel="noopener noreferrer" className="text-[#cba6f7] hover:underline font-bold flex items-center gap-1 mt-1.5 w-fit">
+                  Open Repository
+                <span className="font-terminal text-2xl font-normal px-2"></span>
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+
         <div 
           className={`md:hidden absolute inset-0 bg-black/50 z-40 transition-opacity duration-300 ease-in-out ${
             isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
@@ -196,7 +246,6 @@ const CodeEditor = memo(() => {
             ${isSidebarOpen ? "max-md:translate-x-0 md:w-56 border-r" : "max-md:-translate-x-full md:w-0 border-r-0"}
           `}
         >
-          {/* Inner container stays fixed width to prevent text wrapping during animation */}
           <div className="w-60 md:w-56 pt-3 pb-6 h-full flex flex-col vscode-scroll">
             <div className="flex items-center justify-between px-4 mb-2">
               <span className="text-[11px] text-[#a6adc8] font-semibold uppercase tracking-wider">Explorer</span>
@@ -210,7 +259,6 @@ const CodeEditor = memo(() => {
                   level={0} 
                   activePath={activePath} 
                   setActivePath={setActivePath}
-                  // Close sidebar on mobile when a file is clicked!
                   onFileClick={() => {
                     if (window.innerWidth < 768) setIsSidebarOpen(false);
                   }}
@@ -220,12 +268,9 @@ const CodeEditor = memo(() => {
           </div>
         </div>
 
-        {/* 💻 RIGHT PANEL */}
         <div className="flex-1 flex flex-col min-w-0 bg-[#1e1e2e]">
           
           <div className="flex bg-[#11111b] overflow-x-auto scrollbar-hide shrink-0 items-center">
-            
-            {/* Desktop Toggle Sidebar Icon inside Tabs row */}
             <button 
               onClick={() => setIsSidebarOpen(p => !p)}
               className="p-2 ml-1 text-[#a6adc8] hover:text-[#cdd6f4] transition-colors md:block hidden cursor-pointer"
@@ -250,6 +295,7 @@ const CodeEditor = memo(() => {
               value={activeFileContent}
               onChange={handleEditorChange}
               beforeMount={handleEditorWillMount}
+              onMount={handleEditorDidMount}
               options={{
                 minimap: { enabled: true },
                 fontSize: 14,
