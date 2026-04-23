@@ -49,13 +49,13 @@ const dockApps = [
   {
     id: "finder",
     name: "Portfolio",
-    icon: "finder.png",
+    icon: "finder.webp",
     canOpen: true,
   },
   {
     id: "safari",
     name: "Certificates",
-    icon: "safari.png",
+    icon: "safari.webp",
     canOpen: true,
   },
   {
@@ -73,7 +73,7 @@ const dockApps = [
   {
     id: "terminal",
     name: "Skills",
-    icon: "terminal.png",
+    icon: "terminal.webp",
     canOpen: true,
   },
   {
@@ -85,7 +85,7 @@ const dockApps = [
   {
     id: "trash",
     name: "Archive",
-    icon: "trash.png",
+    icon: "trash.webp",
     canOpen: false,
   },
 ];
@@ -236,7 +236,7 @@ const WORK_LOCATION = {
           kind: "file",
           fileType: "img",
           position: "top-10 left-72",
-          imageUrl: "/images/project-1.png",
+          imageUrl: "/images/project-1.webp",
         },
       ],
     },
@@ -369,7 +369,7 @@ const TRASH_LOCATION = {
       kind: "file",
       fileType: "img",
       position: "top-10 left-10",
-      imageUrl: "/images/trash-1.png",
+      imageUrl: "/images/trash-1.webp",
     },
     {
       id: 42,
@@ -378,7 +378,7 @@ const TRASH_LOCATION = {
       kind: "file",
       fileType: "img",
       position: "top-40 left-80",
-      imageUrl: "/images/trash-2.png",
+      imageUrl: "/images/trash-2.webp",
     },
   ],
 };
