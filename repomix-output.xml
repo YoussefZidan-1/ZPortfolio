@@ -293,130 +293,6 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 </file>
 
-<file path="src/components/ControlCenter.jsx">
-import { memo } from "react";
-import useSettingsStore from "#store/settings.js";
-import { Wifi, Bluetooth, Volume2, VolumeX, Moon, Sun, Monitor } from "lucide-react";
-import clsx from "clsx";
-
-const ControlCenter = memo(({ isOpen }) => {
-  const { volume, setVolume, isMuted, toggleMute, isDarkMode, toggleDarkMode } = useSettingsStore();
-
-  return (
-    <div 
-      className={clsx(
-        "absolute top-10 right-0 w-[320px] border border-white/40 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-[24px] p-3.5 flex flex-col gap-3 z-[9999] text-gray-800 origin-top-right transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]",
-        isOpen ? "opacity-100 scale-100 pointer-events-auto translate-y-0" : "opacity-0 scale-[0.8] pointer-events-none -translate-y-8"
-      )}
-      // Forcing the blur inline guarantees it works on Safari, Chrome, and bypasses Tailwind compilation issues
-      style={{ 
-        WebkitBackdropFilter: "blur(50px) saturate(180%)", 
-        backdropFilter: "blur(50px) saturate(180%)", 
-        backgroundColor: "rgba(255, 255, 255, 0.25)" 
-      }}
-    >
-      
-      {/* Top Grid */}
-      <div className="grid grid-cols-2 gap-3">
-        
-        {/* Connectivity Block - Animates in 1st */}
-        <div className={clsx(
-            "transition-all duration-500 ease-out",
-            isOpen ? "opacity-100 translate-y-0 delay-[50ms]" : "opacity-0 -translate-y-4"
-        )}>
-          <div className="bg-white/40 rounded-2xl p-3 flex flex-col gap-3 shadow-sm border border-white/50 hover:bg-white/50 transition-colors duration-300 h-full">
-            <div className="flex items-center gap-2 cursor-pointer group">
-              <div className="size-8 rounded-full bg-blue-500 flex items-center justify-center shadow-md group-hover:bg-blue-400 group-active:scale-90 transition-all duration-300">
-                <Wifi size={16} className="text-white" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-bold leading-tight">Wi-Fi</span>
-                <span className="text-[10px] text-gray-600 font-medium group-hover:text-gray-800">ZED Network</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 cursor-pointer group">
-              <div className="size-8 rounded-full bg-blue-500 flex items-center justify-center shadow-md group-hover:bg-blue-400 group-active:scale-90 transition-all duration-300">
-                <Bluetooth size={16} className="text-white" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-bold leading-tight">Bluetooth</span>
-                <span className="text-[10px] text-gray-600 font-medium group-hover:text-gray-800">On</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Dark Mode & Display Block */}
-        <div className="grid grid-rows-2 gap-3">
-          {/* Dark Mode - Animates in 2nd */}
-          <div className={clsx(
-              "transition-all duration-500 ease-out",
-              isOpen ? "opacity-100 translate-y-0 delay-[100ms]" : "opacity-0 -translate-y-4"
-          )}>
-            <div 
-              onClick={toggleDarkMode}
-              className="bg-white/40 hover:bg-white/60 rounded-2xl p-3 flex items-center justify-center gap-2 shadow-sm border border-white/50 cursor-pointer active:scale-95 transition-all duration-300 group h-full"
-            >
-              <div className="group-hover:rotate-12 group-active:-rotate-12 transition-transform duration-300">
-                {isDarkMode ? <Moon size={18} className="text-indigo-600" /> : <Sun size={18} className="text-orange-500" />}
-              </div>
-              <span className="text-xs font-bold">{isDarkMode ? "Dark Mode" : "Light Mode"}</span>
-            </div>
-          </div>
-
-          {/* Display - Animates in 3rd */}
-          <div className={clsx(
-              "transition-all duration-500 ease-out",
-              isOpen ? "opacity-100 translate-y-0 delay-[150ms]" : "opacity-0 -translate-y-4"
-          )}>
-            <div className="bg-white/20 rounded-2xl p-3 flex items-center justify-center gap-2 shadow-sm border border-white/30 cursor-default opacity-50 h-full">
-              <Monitor size={18} />
-              <span className="text-xs font-bold">Display</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Volume Slider Block - Animates in 4th */}
-      <div className={clsx(
-          "transition-all duration-500 ease-out",
-          isOpen ? "opacity-100 translate-y-0 delay-[200ms]" : "opacity-0 -translate-y-4"
-      )}>
-        <div className="bg-white/40 rounded-2xl p-3 shadow-sm border border-white/50 hover:bg-white/50 transition-colors duration-300">
-          <span className="text-xs font-bold ml-1 mb-2 block">Sound</span>
-          <div className="flex items-center gap-3">
-            <div 
-              className="size-8 rounded-full bg-white flex items-center justify-center shadow-md cursor-pointer hover:scale-105 active:scale-90 transition-all duration-300 shrink-0 border border-gray-100 group"
-              onClick={toggleMute}
-            >
-              <div className="group-hover:scale-110 transition-transform duration-300">
-                {isMuted || volume === 0 ? <VolumeX size={16} className="text-gray-400" /> : <Volume2 size={16} className="text-gray-800" />}
-              </div>
-            </div>
-            <input 
-              type="range" 
-              min="0" 
-              max="1" 
-              step="0.01" 
-              value={isMuted ? 0 : volume}
-              onChange={(e) => setVolume(parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-white/50 rounded-lg appearance-none cursor-pointer hover:h-2 transition-all duration-200 shadow-inner"
-              style={{
-                 background: `linear-gradient(to right, #3b82f6 ${(isMuted ? 0 : volume) * 100}%, rgba(255,255,255,0.4) ${(isMuted ? 0 : volume) * 100}%)`,
-                 outline: 'none',
-              }}
-            />
-          </div>
-        </div>
-      </div>
-
-    </div>
-  );
-});
-
-export default ControlCenter;
-</file>
-
 <file path="src/main.jsx">
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -454,21 +330,6 @@ const useLocationStore = create(
 );
 
 export default useLocationStore;
-</file>
-
-<file path="src/store/settings.js">
-import { create } from "zustand";
-
-const useSettingsStore = create((set) => ({
-  volume: 0.5,
-  isMuted: false,
-  setVolume: (val) => set({ volume: val, isMuted: val === 0 }),
-  toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
-  isDarkMode: false,
-  toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
-}));
-
-export default useSettingsStore;
 </file>
 
 <file path=".gitignore">
@@ -525,15 +386,158 @@ dist-ssr
 </html>
 </file>
 
-<file path="src/components/index.js">
-import Navbar from "#components/Navbar.jsx";
-import Welcome from "#components/Welcome.jsx";
-import Dock from "#components/Dock.jsx"
-import WindowControls from "#components/WindowControls.jsx";
-import Home from "#components/Home.jsx";
-import BootSequence from "#components/BootSequence.jsx";
-import ControlCenter from "#components/ControlCenter.jsx";
-export { Navbar, Welcome, Dock, WindowControls, Home, BootSequence, ControlCenter };
+<file path="src/components/ControlCenter.jsx">
+import { memo, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
+import useSettingsStore from "#store/settings.js";
+import { Wifi, Bluetooth, Volume2, VolumeX, Moon, Sun, Monitor } from "lucide-react";
+import clsx from "clsx";
+
+const ControlCenter = memo(({ isOpen }) => {
+  const { volume, setVolume, isMuted, toggleMute, isDarkMode, toggleDarkMode } = useSettingsStore();
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const stopProp = (e) => e.stopPropagation();
+    el.addEventListener("mousedown", stopProp);
+    el.addEventListener("touchstart", stopProp, { passive: true });
+    return () => {
+      el.removeEventListener("mousedown", stopProp);
+      el.removeEventListener("touchstart", stopProp);
+    };
+  }, [isOpen]);
+
+  const content = (
+    <div 
+      ref={containerRef}
+      className={clsx(
+        "fixed top-11 right-2 w-[320px] border border-white/40 shadow-[0_20px_80px_rgba(0,0,0,0.2)] rounded-[28px] p-3.5 flex flex-col gap-3 z-[99999] text-gray-800 origin-top-right transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
+        "bg-white/20 backdrop-blur-[60px] backdrop-saturate-[200%]",
+        isOpen 
+          ? "opacity-100 scale-100 pointer-events-auto translate-y-0" 
+          : "opacity-0 scale-75 pointer-events-none -translate-y-4"
+      )}
+    >
+      
+      {/* Top Grid */}
+      <div className="grid grid-cols-2 gap-3">
+        
+        {/* Connectivity Block */}
+        <div className={clsx(
+            "transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
+            isOpen ? "opacity-100 translate-y-0 scale-100 delay-[70ms]" : "opacity-0 translate-y-4 scale-90"
+        )}>
+          <div className="bg-white/40 rounded-2xl p-3 flex flex-col gap-3 shadow-sm border border-white/50 hover:bg-white/60 transition-all duration-300 h-full active:scale-[0.98]">
+            <div className="flex items-center gap-2 cursor-pointer group">
+              <div className="size-8 rounded-full bg-blue-500 flex items-center justify-center shadow-md group-hover:bg-blue-400 group-active:scale-90 transition-all duration-300">
+                <Wifi size={16} className="text-white" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-bold leading-tight">Wi-Fi</span>
+                <span className="text-[10px] text-gray-600 font-medium group-hover:text-gray-800">ZED Network</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 cursor-pointer group">
+              <div className="size-8 rounded-full bg-blue-500 flex items-center justify-center shadow-md group-hover:bg-blue-400 group-active:scale-90 transition-all duration-300">
+                <Bluetooth size={16} className="text-white" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-bold leading-tight">Bluetooth</span>
+                <span className="text-[10px] text-gray-600 font-medium group-hover:text-gray-800">On</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Dark Mode & Display Block */}
+        <div className="grid grid-rows-2 gap-3">
+          {/* Dark Mode */}
+          <div className={clsx(
+              "transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
+              isOpen ? "opacity-100 translate-y-0 scale-100 delay-[140ms]" : "opacity-0 translate-y-4 scale-90"
+          )}>
+            <div 
+              onClick={toggleDarkMode}
+              className="bg-white/40 hover:bg-white/60 rounded-2xl p-3 flex items-center justify-center gap-2 shadow-sm border border-white/50 cursor-pointer active:scale-95 transition-all duration-300 group h-full"
+            >
+              <div className="group-hover:rotate-12 group-active:-rotate-12 transition-transform duration-300">
+                {isDarkMode ? <Moon size={18} className="text-indigo-600" /> : <Sun size={18} className="text-orange-500" />}
+              </div>
+              <span className="text-xs font-bold">{isDarkMode ? "Dark Mode" : "Light Mode"}</span>
+            </div>
+          </div>
+
+          {/* Display */}
+          <div className={clsx(
+              "transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
+              isOpen ? "opacity-100 translate-y-0 scale-100 delay-[210ms]" : "opacity-0 translate-y-4 scale-90"
+          )}>
+            <div className="bg-white/20 rounded-2xl p-3 flex items-center justify-center gap-2 shadow-sm border border-white/30 cursor-default opacity-50 h-full">
+              <Monitor size={18} />
+              <span className="text-xs font-bold">Display</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Volume Slider Block */}
+      <div className={clsx(
+          "transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
+          isOpen ? "opacity-100 translate-y-0 scale-100 delay-[280ms]" : "opacity-0 translate-y-4 scale-90"
+      )}>
+        <div className="bg-white/40 rounded-2xl p-3 shadow-sm border border-white/50 hover:bg-white/60 transition-all duration-300 active:scale-[0.98]">
+          <span className="text-xs font-bold ml-1 mb-2 block">Sound</span>
+          <div className="flex items-center gap-3">
+            <div 
+              className="size-8 rounded-full bg-white flex items-center justify-center shadow-md cursor-pointer hover:scale-105 active:scale-90 transition-all duration-300 shrink-0 border border-gray-100 group"
+              onClick={toggleMute}
+            >
+              <div className="group-hover:scale-110 transition-transform duration-300">
+                {isMuted || volume === 0 ? <VolumeX size={16} className="text-gray-400" /> : <Volume2 size={16} className="text-gray-800" />}
+              </div>
+            </div>
+            <input 
+              type="range" 
+              min="0" 
+              max="1" 
+              step="0.01" 
+              value={isMuted ? 0 : volume}
+              onChange={(e) => setVolume(parseFloat(e.target.value))}
+              className="w-full h-1.5 bg-white/50 rounded-lg appearance-none cursor-pointer hover:h-2 transition-all duration-200 shadow-inner"
+              style={{
+                 background: `linear-gradient(to right, #3b82f6 ${(isMuted ? 0 : volume) * 100}%, rgba(255,255,255,0.4) ${(isMuted ? 0 : volume) * 100}%)`,
+                 outline: 'none',
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
+    </div>
+  );
+
+  if (typeof document === "undefined") return null;
+  return createPortal(content, document.body);
+});
+
+export default ControlCenter;
+</file>
+
+<file path="src/store/settings.js">
+import { create } from "zustand";
+
+const useSettingsStore = create((set) => ({
+  volume: 0.5,
+  isMuted: false,
+  setVolume: (val) => set({ volume: val, isMuted: val === 0 }),
+  toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
+  isDarkMode: false,
+  toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
+}));
+
+export default useSettingsStore;
 </file>
 
 <file path="src/windows/Image.jsx">
@@ -1006,6 +1010,17 @@ const BootSequence = ({ onComplete }) => {
 export default BootSequence;
 </file>
 
+<file path="src/components/index.js">
+import Navbar from "#components/Navbar.jsx";
+import Welcome from "#components/Welcome.jsx";
+import Dock from "#components/Dock.jsx"
+import WindowControls from "#components/WindowControls.jsx";
+import Home from "#components/Home.jsx";
+import BootSequence from "#components/BootSequence.jsx";
+import ControlCenter from "#components/ControlCenter.jsx";
+export { Navbar, Welcome, Dock, WindowControls, Home, BootSequence, ControlCenter };
+</file>
+
 <file path="src/proximity-engine/ProximityContext.jsx">
 import { createContext, useContext } from "react";
 
@@ -1294,59 +1309,6 @@ export default defineConfig({
 })
 </file>
 
-<file path="package.json">
-{
-  "name": "zportfolio",
-  "private": false,
-  "version": "1.0.0",
-  "author": "Yousef Zedan (ZED Studios) <zedstudios.devs@gmail.com>",
-  "license": "MIT",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@fontsource-variable/geist": "^5.2.8",
-    "@gsap/react": "^2.1.2",
-    "@monaco-editor/react": "^4.7.0",
-    "@tailwindcss/vite": "^4.2.2",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "dayjs": "^1.11.20",
-    "gsap": "^3.14.2",
-    "immer": "^11.1.4",
-    "lucide-react": "^1.7.0",
-    "radix-ui": "^1.4.3",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-pdf": "^10.4.1",
-    "react-tooltip": "^5.30.0",
-    "shadcn": "^4.2.0",
-    "tailwind-merge": "^3.5.0",
-    "tailwindcss": "^4.2.2",
-    "tw-animate-css": "^1.4.0",
-    "use-sound": "^5.0.0",
-    "web-haptics": "^0.0.6",
-    "zustand": "^5.0.12"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.4",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
-    "eslint": "^9.39.4",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
-    "globals": "^17.4.0",
-    "vite": "^8.0.1",
-    "vite-plugin-static-copy": "^4.0.0"
-  }
-}
-</file>
-
 <file path="src/components/SpotifyWidget.jsx">
 import { memo, useState } from "react";
 import { Play, Music } from "lucide-react";
@@ -1438,6 +1400,59 @@ const useWindowStore = create(
 export default useWindowStore;
 </file>
 
+<file path="package.json">
+{
+  "name": "zportfolio",
+  "private": false,
+  "version": "1.0.0",
+  "author": "Yousef Zedan (ZED Studios) <zedstudios.devs@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.2.8",
+    "@gsap/react": "^2.1.2",
+    "@monaco-editor/react": "^4.7.0",
+    "@tailwindcss/vite": "^4.2.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "dayjs": "^1.11.20",
+    "gsap": "^3.14.2",
+    "immer": "^11.1.4",
+    "lucide-react": "^1.7.0",
+    "radix-ui": "^1.4.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-pdf": "^10.4.1",
+    "react-tooltip": "^5.30.0",
+    "shadcn": "^4.2.0",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.2",
+    "tw-animate-css": "^1.4.0",
+    "use-sound": "^5.0.0",
+    "web-haptics": "^0.0.6",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.4.0",
+    "vite": "^8.0.1",
+    "vite-plugin-static-copy": "^4.0.0"
+  }
+}
+</file>
+
 <file path="src/windows/Resume.jsx">
 import React, { useState, useMemo, memo, useEffect } from 'react';
 import { pdfjs, Document, Page } from 'react-pdf';
@@ -1518,68 +1533,6 @@ const Resume = memo(() => {
 
 const ResumeWindow = WindowWrapper(Resume, "resume");
 export default ResumeWindow;
-</file>
-
-<file path="src/components/WindowControls.jsx">
-import useWindowStore from "#store/window.js";
-import { ChevronDown } from "lucide-react";
-import { useWebHaptics } from "web-haptics/react";
-import useSettingsStore from "#store/settings.js";
-import useSound from "use-sound";
-
-const WindowControls = ({ target }) => {
-  const closeWindow = useWindowStore((s) => s.closeWindow);
-  const toggleMaximize = useWindowStore((s) => s.toggleMaximize);
-  const { trigger } = useWebHaptics();
-
-  const { volume, isMuted } = useSettingsStore();
-  const effectiveVolume = isMuted ? 0 : volume;
-
-  const [playClose] = useSound("/sounds/oxygen_close.ogg", { volume: effectiveVolume });
-  const [playMinimize] = useSound("/sounds/oxygen_minimize.ogg", { volume: effectiveVolume });
-  const [playMaximize] = useSound("/sounds/oxygen_maximize.ogg", { volume: effectiveVolume });
-
-  return (
-    <div id="window-controls">
-      <button 
-        type="button"
-        className="close cursor-pointer" 
-        onPointerDown={(e) => { 
-            e.stopPropagation();
-            closeWindow(target);
-            trigger("nudge");
-            playClose();
-        }}
-      >
-        <ChevronDown className="hidden max-md:block text-gray-700 stroke-[3px] pointer-events-none" size={18} />
-      </button>
-      
-      <button 
-        type="button" 
-        className="minimize cursor-pointer" 
-        onPointerDown={(e) => {
-            e.stopPropagation();
-            closeWindow(target);
-            trigger("nudge");
-            playMinimize();
-        }}
-      />
-      
-      <button 
-        type="button" 
-        className="maximize cursor-pointer" 
-        onPointerDown={(e) => {
-            e.stopPropagation();
-            toggleMaximize(target);
-            trigger("success");
-            playMaximize();
-        }} 
-      />
-    </div>
-  )
-}
-
-export default WindowControls;
 </file>
 
 <file path="src/proximity-engine/Proximity.jsx">
@@ -1924,425 +1877,66 @@ export const Proximity = ({
 };
 </file>
 
-<file path="src/components/Navbar.jsx">
-import React, { memo, useState, useEffect, useRef } from "react";
-import { navIcons, navLinks } from "#constants";
+<file path="src/components/WindowControls.jsx">
 import useWindowStore from "#store/window.js";
-import dayjs from "dayjs";
-import { Battery, Signal, Wifi } from "lucide-react";
-import ControlCenter from "./ControlCenter.jsx";
-
-const Navbar = memo(() => {
-  const openWindow = useWindowStore((s) => s.openWindow);
-  const [time, setTime] = useState(dayjs().format("ddd MMM D   h:mm A"));
-  const [timeStr, setTimeStr] = useState(dayjs().format("h:mm"));
-
-  const [isControlCenterOpen, setIsControlCenterOpen] = useState(false);
-  const controlCenterRef = useRef(null);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTime(dayjs().format("ddd MMM D   h:mm A"));
-      setTimeStr(dayjs().format("h:mm"));
-    }, 10000);
-    return () => clearInterval(timer);
-  },[]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (controlCenterRef.current && !controlCenterRef.current.contains(event.target)) {
-        setIsControlCenterOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  },[]);
-
-  return (
-    <nav className="relative z-50 max-md:z-1500 max-md:fixed max-md:top-0 max-md:left-0 max-md:right-0 max-md:h-12 max-md:bg-transparent max-md:border-none max-md:pointer-events-none max-md:p-0 max-md:px-0 box-border">
-    
-      {/* PC Navbar */}
-      <div className="flex items-center gap-4 max-md:hidden">
-        <img src="/images/logo.svg" alt="logo" width={20} height={20} className="w-5 h-5" />
-        <p className="font-bold whitespace-nowrap">Yousef's Portfolio</p>
-        <ul className="flex items-center gap-3">
-          {navLinks.map(({ id, name, type }) => (
-            <li key={id} className="relative cursor-pointer" onClick={() => openWindow(type)}>
-              <p className="z-10">{name}</p>
-            </li>
-          ))}
-        </ul>
-      </div>
-      
-      {/* iOS Mobile Status Bar */}
-      <div className="hidden max-md:flex w-full h-full items-center justify-between text-white drop-shadow-md pointer-events-auto px-6 box-border">
-        <time className="text-[15px] font-bold tracking-wide">{timeStr}</time>
-        
-        {/* Dynamic Island - Now perfectly centered vertically in the h-12 nav */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-1 w-[120px] h-[32px] bg-black rounded-full z-50 shadow-sm" />
-        
-        <div className="flex items-center gap-1.5">
-          <Signal size={16} className="fill-white" strokeWidth={2.5} />
-          <Wifi size={16} strokeWidth={2.5} />
-          <Battery size={20} strokeWidth={2} className="fill-white" />
-        </div>
-      </div>
-
-      {/* PC Right Side */}
-      <div className="flex items-center gap-5 max-md:hidden" ref={controlCenterRef}>
-        <ul>
-          {navIcons.map(({ id, img }) => (
-            <li key={id}>
-              <img 
-                src={img} 
-                alt={`icon-${id}`} 
-                width={18} 
-                height={18} 
-                className="icon-hover w-[18px] h-[18px] cursor-pointer" 
-                loading="lazy" 
-                onClick={() => {
-                  if (id === 4) setIsControlCenterOpen(!isControlCenterOpen);
-                }}
-              />
-            </li>
-          ))}
-        </ul>
-        <time>{time}</time>
-        <ControlCenter isOpen={isControlCenterOpen} />
-      </div>
-    </nav>
-  );
-});
-
-export default Navbar;
-</file>
-
-<file path="src/windows/CodeEditor.jsx">
-import WindowWrapper from "#hoc/WindowWrapper.jsx";
-import { WindowControls } from "#components";
-import { memo, useState, useMemo, useEffect, useRef, useCallback } from "react";
-import Editor from "@monaco-editor/react";
-import { ChevronRight, ChevronDown, Folder, FolderOpen, Code2, Braces, Hash, PanelLeft, Info} from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useWebHaptics } from "web-haptics/react";
+import useSettingsStore from "#store/settings.js";
+import useSound from "use-sound";
 
-const rawFiles = import.meta.glob([
-  '/src/**/*.{jsx,js,css}',
-  '/package.json',
-  '/vite.config.js',
-  '/eslint.config.js',
-  '/index.html'
-], { query: '?raw', import: 'default', eager: true });
-
-const buildFileTree = (files) => {
-  const root = {};
-  Object.entries(files).forEach(([path]) => {
-    const cleanPath = path.replace(/^\//, ''); 
-    const parts = cleanPath.split('/');
-    let current = root;
-
-    parts.forEach((part, idx) => {
-      if (idx === parts.length - 1) {
-        current[part] = { type: 'file', name: part, path: cleanPath };
-      } else {
-        if (!current[part]) {
-          current[part] = { type: 'folder', name: part, children: {} };
-        }
-        current = current[part].children;
-      }
-    });
-  });
-  return root;
-};
-
-const getLanguage = (name) => {
-  if (name.endsWith('.js') || name.endsWith('.jsx')) return 'javascript';
-  if (name.endsWith('.css')) return 'css';
-  if (name.endsWith('.json')) return 'json';
-  if (name.endsWith('.html')) return 'html';
-  return 'plaintext';
-};
-
-const handleEditorWillMount = (monaco) => {
-  monaco.editor.defineTheme("catppuccin-mocha", {
-    base: "vs-dark",
-    inherit: true,
-    rules:[
-      { token: "", foreground: "cdd6f4" }, 
-      { token: "comment", foreground: "6c7086", fontStyle: "italic" }, 
-      { token: "keyword", foreground: "cba6f7" }, 
-      { token: "identifier", foreground: "cdd6f4" }, 
-      { token: "string", foreground: "a6e3a1" }, 
-      { token: "number", foreground: "fab387" }, 
-      { token: "type", foreground: "f9e2af" }, 
-      { token: "class", foreground: "f9e2af" }, 
-      { token: "function", foreground: "8caaee" }, 
-      { token: "variable", foreground: "cdd6f4" }, 
-      { token: "constant", foreground: "fab387" }, 
-      { token: "operator", foreground: "89dceb" }, 
-      { token: "property", foreground: "74c7ec" }, 
-    ],
-    colors: {
-      "editor.background": "#1e1e2e", 
-      "editor.foreground": "#cdd6f4", 
-      "editorLineNumber.foreground": "#585b70", 
-      "editorCursor.foreground": "#f5e0dc", 
-      "editor.selectionBackground": "#45475a", 
-      "editor.inactiveSelectionBackground": "#313244", 
-      "editorIndentGuide.background": "#313244", 
-      "editorIndentGuide.activeBackground": "#585b70", 
-      "editorWidget.background": "#181825", 
-      "scrollbarSlider.background": "#31324480",
-      "scrollbarSlider.hoverBackground": "#45475a",
-      "scrollbarSlider.activeBackground": "#585b70",
-    },
-  });
-};
-
-const FileTreeNode = ({ node, level, activePath, setActivePath, onFileClick }) => {
-  const[isOpen, setIsOpen] = useState(true);
-  const isFolder = node.type === 'folder';
-  const isActive = activePath === node.path;
-
-  const getIcon = () => {
-    if (isFolder) return isOpen ? <FolderOpen size={14} color="#8caaee" /> : <Folder size={14} color="#8caaee" />; 
-    if (node.name.endsWith('.jsx')) return <span className="text-[#cba6f7] font-bold text-[10px]">JSX</span>; 
-    if (node.name.endsWith('.js')) return <span className="text-[#f9e2af] font-bold text-[10px]">JS</span>; 
-    if (node.name.endsWith('.css')) return <Hash size={14} color="#89dceb" />; 
-    if (node.name.endsWith('.json')) return <Braces size={14} color="#a6e3a1" />; 
-    return <Code2 size={14} color="#bac2de" />; 
-  };
-
-  if (isFolder) {
-    const children = Object.values(node.children).sort((a, b) => {
-      if (a.type === b.type) return a.name.localeCompare(b.name);
-      return a.type === 'folder' ? -1 : 1;
-    });
-
-    return (
-      <div className="select-none">
-        <div 
-          className="flex items-center gap-1.5 py-1 px-2 cursor-pointer hover:bg-[#313244] text-[#cdd6f4] text-sm whitespace-nowrap transition-colors"
-          style={{ paddingLeft: `${level * 12 + 8}px` }}
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          {isOpen ? <ChevronDown size={14} color="#a6adc8" /> : <ChevronRight size={14} color="#a6adc8" />}
-          {getIcon()}
-          <span>{node.name}</span>
-        </div>
-        {isOpen && children.map(child => (
-          <FileTreeNode key={child.name} node={child} level={level + 1} activePath={activePath} setActivePath={setActivePath} onFileClick={onFileClick} />
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div 
-      className={`flex items-center gap-2 py-1 cursor-pointer text-sm whitespace-nowrap transition-colors ${
-        isActive ? 'bg-[#45475a] text-[#cdd6f4]' : 'hover:bg-[#313244] text-[#bac2de]'
-      }`}
-      style={{ paddingLeft: `${level * 12 + 28}px` }}
-      onClick={() => {
-        setActivePath(node.path);
-        if (onFileClick) onFileClick(); 
-      }}
-    >
-      {getIcon()}
-      <span>{node.name}</span>
-    </div>
-  );
-};
-
-// 🖥️ Main CodeEditor Component
-const CodeEditor = memo(() => {
+const WindowControls = ({ target }) => {
+  const closeWindow = useWindowStore((s) => s.closeWindow);
+  const toggleMaximize = useWindowStore((s) => s.toggleMaximize);
   const { trigger } = useWebHaptics();
-  const fileTree = useMemo(() => buildFileTree(rawFiles), []);
-  const[activePath, setActivePath] = useState("src/App.jsx");
-  const [filesContent, setFilesContent] = useState(() => ({ ...rawFiles }));
-  
-  const [isSidebarOpen, setIsSidebarOpen] = useState(
-    typeof window !== 'undefined' ? window.innerWidth > 768 : true
-  );
 
-  // 💾 Easter Egg Toast State
-  const[saveToast, setSaveToast] = useState(false);
-  const toastTimeoutRef = useRef(null);
+  const { volume, isMuted } = useSettingsStore();
+  const effectiveVolume = isMuted ? 0 : volume;
 
-  const triggerSaveToast = useCallback(() => {
-    trigger("success");
-    setSaveToast(true);
-    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-    toastTimeoutRef.current = setTimeout(() => setSaveToast(false), 5000);
-  }, [trigger]);
-
-  // ⌨️ Global Keyboard Shortcut Listener
-  useEffect(() => {
-      const handleKeyDown = (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
-          e.preventDefault();
-          setIsSidebarOpen(prev => !prev);
-        }
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-          e.preventDefault();
-          triggerSaveToast();
-        }
-      };
-  
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [triggerSaveToast]);
-
-  const handleEditorDidMount = (editor, monaco) => {
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-      triggerSaveToast();
-    });
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyB, () => {
-      setIsSidebarOpen(p => !p);
-    });
-  };
-
-  const handleEditorChange = (value) => {
-    setFilesContent((prev) => ({
-      ...prev,[`/${activePath}`]: value
-    }));
-  };
-
-  const activeFileContent = filesContent[`/${activePath}`] || "// File not found or empty";
-  const activeFileName = activePath.split('/').pop();
-  const activeLanguage = getLanguage(activeFileName);
+  const [playClose] = useSound("/sounds/oxygen_close.ogg", { volume: effectiveVolume });
+  const [playMinimize] = useSound("/sounds/oxygen_minimize.ogg", { volume: effectiveVolume });
+  const [playMaximize] = useSound("/sounds/oxygen_maximize.ogg", { volume: effectiveVolume });
 
   return (
-    <>
-      <div id="window-header" className="shrink-0 text-[#cdd6f4] relative flex items-center justify-center z-10">
-        <WindowControls target="vscode" />
-        
-        <PanelLeft 
-          className="hidden max-md:block absolute left-14 text-[#a6adc8] hover:text-[#cdd6f4] cursor-pointer z-50 transition-transform active:scale-95" 
-          size={20} 
-          onClick={(e) => {
+    <div id="window-controls">
+      <button 
+        type="button"
+        className="close cursor-pointer" 
+        onPointerDown={(e) => { 
             e.stopPropagation();
-            setIsSidebarOpen(!isSidebarOpen);
-          }} 
-        />
+            closeWindow(target);
+            trigger("nudge");
+            playClose();
+        }}
+      >
+        <ChevronDown className="hidden max-md:block text-gray-700 stroke-[3px] pointer-events-none" size={18} />
+      </button>
+      
+      <button 
+        type="button" 
+        className="minimize cursor-pointer" 
+        onPointerDown={(e) => {
+            e.stopPropagation();
+            closeWindow(target);
+            trigger("nudge");
+            playMinimize();
+        }}
+      />
+      
+      <button 
+        type="button" 
+        className="maximize cursor-pointer" 
+        onPointerDown={(e) => {
+            e.stopPropagation();
+            toggleMaximize(target);
+            trigger("success");
+            playMaximize();
+        }} 
+      />
+    </div>
+  )
+}
 
-        <h2 className="text-sm font-medium pr-4 truncate w-full text-center">ZED Code — {activeFileName}</h2>
-      </div>
-
-      <div className="flex-1 w-full bg-[#1e1e2e] min-h-0 flex flex-row relative overflow-hidden">
-        
-        {/* 🍞 EASTER EGG TOAST NOTIFICATION */}
-        <div 
-          className={`absolute bottom-6 right-6 z-[100] bg-[#1e1e2e] border border-[#313244] shadow-2xl rounded-lg p-4 max-w-[320px] transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] ${
-            saveToast ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0 pointer-events-none"
-          }`}
-        >
-          <div className="flex items-start gap-3">
-            <Info className="text-[#8caaee] mt-0.5 shrink-0" size={18} />
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[#cdd6f4] text-sm font-semibold leading-tight">
-                Nice try! 😏
-              </span>
-              <span className="text-[#bac2de] text-xs leading-relaxed">
-                Actually, you are the only one seeing this. Go to GitHub and send me a PR if you dare! 
-                <a href="https://github.com/YoussefZidan-1/zportfolio" target="_blank" rel="noopener noreferrer" className="text-[#cba6f7] hover:underline font-bold flex items-center gap-1 mt-1.5 w-fit">
-                  Open Repository
-                <span className="font-terminal text-2xl font-normal px-2"></span>
-                </a>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div 
-          className={`md:hidden absolute inset-0 bg-black/50 z-40 transition-opacity duration-300 ease-in-out ${
-            isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-          }`}
-          onClick={() => setIsSidebarOpen(false)}
-        />
-
-        <div 
-          className={`shrink-0 border-[#11111b] overflow-hidden transition-all duration-300 ease-in-out z-50 bg-[#181825] 
-            max-md:absolute max-md:h-full max-md:shadow-2xl 
-            ${isSidebarOpen ? "max-md:translate-x-0 md:w-56 border-r" : "max-md:-translate-x-full md:w-0 border-r-0"}
-          `}
-        >
-          <div className="w-60 md:w-56 pt-3 pb-6 h-full flex flex-col vscode-scroll">
-            <div className="flex items-center justify-between px-4 mb-2">
-              <span className="text-[11px] text-[#a6adc8] font-semibold uppercase tracking-wider">Explorer</span>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto vscode-scroll">
-              {Object.values(fileTree).sort((a, b) => a.type === 'folder' ? -1 : 1).map(node => (
-                <FileTreeNode 
-                  key={node.name} 
-                  node={node} 
-                  level={0} 
-                  activePath={activePath} 
-                  setActivePath={setActivePath}
-                  onFileClick={() => {
-                    if (window.innerWidth < 768) setIsSidebarOpen(false);
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex-1 flex flex-col min-w-0 bg-[#1e1e2e]">
-          
-          <div className="flex bg-[#11111b] overflow-x-auto scrollbar-hide shrink-0 items-center">
-            <button 
-              onClick={() => setIsSidebarOpen(p => !p)}
-              className="p-2 ml-1 text-[#a6adc8] hover:text-[#cdd6f4] transition-colors md:block hidden cursor-pointer"
-              title="Toggle Sidebar (Ctrl+B)"
-            >
-              <PanelLeft size={16} />
-            </button>
-
-            <div className="px-4 py-2 text-sm whitespace-nowrap border-t-2 bg-[#1e1e2e] text-[#cdd6f4] border-[#cba6f7] flex items-center gap-2">
-              <span className="text-[#cba6f7] font-bold text-[10px]">
-                {activeFileName.split('.').pop().toUpperCase()}
-              </span>
-              <span>{activeFileName}</span>
-            </div>
-          </div>
-
-          <div className="flex-1 w-full min-h-0 pt-2 relative">
-            <Editor
-              height="100%"
-              language={activeLanguage}
-              theme="catppuccin-mocha"
-              value={activeFileContent}
-              onChange={handleEditorChange}
-              beforeMount={handleEditorWillMount}
-              onMount={handleEditorDidMount}
-              options={{
-                minimap: { enabled: true },
-                fontSize: 14,
-                readOnly: false,
-                wordWrap: "on",
-                padding: { top: 16 },
-                scrollBeyondLastLine: false,
-                smoothScrolling: true,
-                cursorSmoothCaretAnimation: 'on',
-                cursorBlinking: "expand",
-                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                scrollbar: {
-                  verticalScrollbarSize: 10,
-                  horizontalScrollbarSize: 10,
-                }
-              }}
-            />
-          </div>
-
-        </div>
-      </div>
-    </>
-  );
-});
-
-const CodeEditorWindow = WindowWrapper(CodeEditor, "vscode");
-export default CodeEditorWindow;
+export default WindowControls;
 </file>
 
 <file path="README.md">
@@ -2461,332 +2055,479 @@ src/
 Distributed under the **MIT License**. See `LICENSE` for more information.
 </file>
 
-<file path="src/App.jsx">
-import React, { Suspense, lazy, useState } from "react";
-import { Navbar, Welcome, Dock, Home, BootSequence } from "#components";
-import gsap from "gsap";
-import { Draggable } from "gsap/Draggable";
-gsap.registerPlugin(Draggable);
+<file path="src/components/Navbar.jsx">
+import React, { memo, useState, useEffect, useRef } from "react";
+import { navIcons, navLinks } from "#constants";
+import useWindowStore from "#store/window.js";
+import dayjs from "dayjs";
+import { Battery, Signal, Wifi } from "lucide-react";
+import ControlCenter from "./ControlCenter.jsx";
 
-const Terminal = lazy(() => import("#windows/Terminal.jsx"));
-const ZenBrowser = lazy(() => import("#windows/ZenBrowser.jsx"));
-const Resume = lazy(() => import("#windows/Resume.jsx"));
-const Finder = lazy(() => import("#windows/Finder.jsx"));
-const Text = lazy(() => import("#windows/Text.jsx"));
-const Image = lazy(() => import("#windows/Image.jsx"));
-const Contact = lazy(() => import("#windows/Contact.jsx"));
-const Photos = lazy(() => import("#windows/Photos.jsx"));
-const CodeEditor = lazy(() => import("#windows/CodeEditor.jsx"));
+const Navbar = memo(() => {
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const [time, setTime] = useState(dayjs().format("ddd MMM D   h:mm A"));
+  const [timeStr, setTimeStr] = useState(dayjs().format("h:mm"));
 
-if (typeof window !== "undefined") {
-  console.log(
-    "%c 💻 ZPortfolio by ZED Studios %c Developed by Yousef Zedan %c https://github.com/YoussefZidan-1/zportfolio ",
-    "color: white; background: #000; padding: 5px 10px; border-radius: 5px 0 0 5px; font-weight: bold;",
-    "color: #fff; background: #007aff; padding: 5px 10px; font-weight: bold;",
-    "color: #000; background: #fff; padding: 5px 10px; border-radius: 0 5px 5px 0; border: 1px solid #000;"
+  const [isControlCenterOpen, setIsControlCenterOpen] = useState(false);
+  const controlCenterRef = useRef(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(dayjs().format("ddd MMM D   h:mm A"));
+      setTimeStr(dayjs().format("h:mm"));
+    }, 10000);
+    return () => clearInterval(timer);
+  },[]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (controlCenterRef.current && !controlCenterRef.current.contains(event.target)) {
+        setIsControlCenterOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  },[]);
+
+  return (
+    <nav className="relative z-50 max-md:z-1500 max-md:fixed max-md:top-0 max-md:left-0 max-md:right-0 max-md:h-12 max-md:bg-transparent max-md:border-none max-md:pointer-events-none max-md:p-0 max-md:px-0 box-border">
+    
+      {/* PC Navbar */}
+      <div className="flex items-center gap-4 max-md:hidden">
+        <img src="/images/logo.svg" alt="logo" width={20} height={20} className="w-5 h-5" />
+        <p className="font-bold whitespace-nowrap">Yousef's Portfolio</p>
+        <ul className="flex items-center gap-3">
+          {navLinks.map(({ id, name, type }) => (
+            <li key={id} className="relative cursor-pointer" onClick={() => openWindow(type)}>
+              <p className="z-10">{name}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+      
+      {/* iOS Mobile Status Bar */}
+      <div className="hidden max-md:flex w-full h-full items-center justify-between text-white drop-shadow-md pointer-events-auto px-6 box-border">
+        <time className="text-[15px] font-bold tracking-wide">{timeStr}</time>
+        
+        {/* Dynamic Island - Now perfectly centered vertically in the h-12 nav */}
+        <div className="absolute left-1/2 -translate-x-1/2 top-1 w-[120px] h-[32px] bg-black rounded-full z-50 shadow-sm" />
+        
+        <div className="flex items-center gap-1.5">
+          <Signal size={16} className="fill-white" strokeWidth={2.5} />
+          <Wifi size={16} strokeWidth={2.5} />
+          <Battery size={20} strokeWidth={2} className="fill-white" />
+        </div>
+      </div>
+
+      {/* PC Right Side */}
+      <div className="flex items-center gap-5 max-md:hidden" ref={controlCenterRef}>
+        <ul>
+          {navIcons.map(({ id, img }) => (
+            <li key={id}>
+              <img 
+                src={img} 
+                alt={`icon-${id}`} 
+                width={18} 
+                height={18} 
+                className="icon-hover w-[18px] h-[18px] cursor-pointer" 
+                loading="lazy" 
+                onClick={() => {
+                  if (id === 4) setIsControlCenterOpen(!isControlCenterOpen);
+                }}
+              />
+            </li>
+          ))}
+        </ul>
+        <time>{time}</time>
+        <ControlCenter isOpen={isControlCenterOpen} />
+      </div>
+    </nav>
   );
-}
+});
 
-const App = () => {
-  const [isBooted, setIsBooted] = useState(false);
+export default Navbar;
+</file>
 
-  if (!isBooted) {
-    return <BootSequence onComplete={() => setIsBooted(true)} />;
+<file path="src/windows/CodeEditor.jsx">
+import WindowWrapper from "#hoc/WindowWrapper.jsx";
+import { WindowControls } from "#components";
+import { memo, useState, useMemo, useEffect, useRef, useCallback } from "react";
+import Editor from "@monaco-editor/react";
+import { ChevronRight, ChevronDown, Folder, FolderOpen, Code2, Braces, Hash, PanelLeft, Info, X } from "lucide-react";
+import { useWebHaptics } from "web-haptics/react";
+import clsx from "clsx";
+
+const rawFiles = import.meta.glob([
+  '/src/**/*.{jsx,js,css,json,ts,tsx}',
+  '/src/windows/CodeEditor.jsx', 
+  '/package.json',
+  '/vite.config.js',
+  '/eslint.config.js',
+  '/index.html',
+  '/README.md',
+  '/vercel.json',
+  '/jsconfig.json',
+  '/LICENSE',
+  '/.gitignore',
+], { query: '?raw', import: 'default', eager: true });
+
+const buildFileTree = (files) => {
+  const root = {};
+  Object.entries(files).forEach(([path]) => {
+    // We use the absolute path (with leading slash) as the source of truth
+    const parts = path.replace(/^\//, '').split('/');
+    let current = root;
+
+    parts.forEach((part, idx) => {
+      if (idx === parts.length - 1) {
+        current[part] = { type: 'file', name: part, path: path }; 
+      } else {
+        if (!current[part]) {
+          current[part] = { type: 'folder', name: part, children: {} };
+        }
+        current = current[part].children;
+      }
+    });
+  });
+  return root;
+};
+
+const getLanguage = (name) => {
+  if (name.endsWith('.js') || name.endsWith('.jsx')) return 'javascript';
+  if (name.endsWith('.css')) return 'css';
+  if (name.endsWith('.json')) return 'json';
+  if (name.endsWith('.html')) return 'html';
+  if (name.endsWith('.md')) return 'markdown';
+  return 'plaintext';
+};
+
+const handleEditorWillMount = (monaco) => {
+  monaco.editor.defineTheme("catppuccin-mocha", {
+    base: "vs-dark",
+    inherit: true,
+    rules:[
+      { token: "", foreground: "cdd6f4" }, 
+      { token: "comment", foreground: "6c7086", fontStyle: "italic" }, 
+      { token: "keyword", foreground: "cba6f7" }, 
+      { token: "identifier", foreground: "cdd6f4" }, 
+      { token: "string", foreground: "a6e3a1" }, 
+      { token: "number", foreground: "fab387" }, 
+      { token: "type", foreground: "f9e2af" }, 
+      { token: "class", foreground: "f9e2af" }, 
+      { token: "function", foreground: "8caaee" }, 
+      { token: "variable", foreground: "cdd6f4" }, 
+      { token: "constant", foreground: "fab387" }, 
+      { token: "operator", foreground: "89dceb" }, 
+      { token: "property", foreground: "74c7ec" }, 
+    ],
+    colors: {
+      "editor.background": "#1e1e2e", 
+      "editor.foreground": "#cdd6f4", 
+      "editorLineNumber.foreground": "#585b70", 
+      "editorCursor.foreground": "#f5e0dc", 
+      "editor.selectionBackground": "#45475a", 
+      "editor.inactiveSelectionBackground": "#313244", 
+      "editorIndentGuide.background": "#313244", 
+      "editorIndentGuide.activeBackground": "#585b70", 
+      "editorWidget.background": "#181825", 
+      "scrollbarSlider.background": "#31324480",
+      "scrollbarSlider.hoverBackground": "#45475a",
+      "scrollbarSlider.activeBackground": "#585b70",
+    },
+  });
+};
+
+const FileTreeNode = ({ node, level, activePath, openFile, onFileClick }) => {
+  const [isOpen, setIsOpen] = useState(true);
+  const isFolder = node.type === 'folder';
+  const isActive = activePath === node.path;
+
+  const getIcon = () => {
+    if (isFolder) return isOpen ? <FolderOpen size={14} color="#8caaee" /> : <Folder size={14} color="#8caaee" />; 
+    if (node.name.endsWith('.jsx')) return <span className="text-[#cba6f7] font-bold text-[10px]">JSX</span>; 
+    if (node.name.endsWith('.js')) return <span className="text-[#f9e2af] font-bold text-[10px]">JS</span>; 
+    if (node.name.endsWith('.css')) return <Hash size={14} color="#89dceb" />; 
+    if (node.name.endsWith('.json')) return <Braces size={14} color="#a6e3a1" />; 
+    return <Code2 size={14} color="#bac2de" />; 
+  };
+
+  const organicStyles = clsx(
+    "relative overflow-hidden select-none transition-all duration-150 ease-out cursor-pointer active:scale-[0.97]",
+    "before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0 before:bg-[#313244] before:transition-all before:duration-300 before:ease-in-out hover:before:w-full",
+    "flex items-center gap-1.5 py-1 px-2 text-sm whitespace-nowrap"
+  );
+
+  if (isFolder) {
+    const children = Object.values(node.children).sort((a, b) => {
+      if (a.type === b.type) return a.name.localeCompare(b.name);
+      return a.type === 'folder' ? -1 : 1;
+    });
+
+    return (
+      <div className="select-none">
+        <div 
+          className={clsx(organicStyles, "text-[#cdd6f4]")}
+          style={{ paddingLeft: `${level * 12 + 8}px` }}
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <div className="relative z-10 flex items-center gap-1.5 pointer-events-none">
+            {isOpen ? <ChevronDown size={14} color="#a6adc8" /> : <ChevronRight size={14} color="#a6adc8" />}
+            {getIcon()}
+            <span>{node.name}</span>
+          </div>
+        </div>
+        {isOpen && children.map(child => (
+          <FileTreeNode key={child.name} node={child} level={level + 1} activePath={activePath} openFile={openFile} onFileClick={onFileClick} />
+        ))}
+      </div>
+    );
   }
 
   return (
-    <main className="animate-in fade-in duration-700">
-      <div className="ios-home-indicator" />
-      <Navbar />
-      <Welcome />
-      <Home />
-      <Dock />
-      <Suspense fallback={null}>
-        <Terminal />
-        <ZenBrowser />
-        <Resume />
-        <Finder />
-        <Text />
-        <Image />
-        <Contact />
-        <Photos />
-        <CodeEditor /> 
-      </Suspense>
-    </main>
+    <div 
+      className={clsx(
+        organicStyles, 
+        isActive ? "text-[#cdd6f4] before:w-full before:bg-[#45475a]" : "text-[#bac2de]"
+      )}
+      style={{ paddingLeft: `${level * 12 + 28}px` }}
+      onClick={() => {
+        openFile(node.path);
+        if (onFileClick) onFileClick(); 
+      }}
+    >
+      <div className="relative z-10 flex items-center gap-2 pointer-events-none">
+        {getIcon()}
+        <span>{node.name}</span>
+      </div>
+    </div>
   );
 };
 
-export default App;
-</file>
+const CodeEditor = memo(() => {
+  const { trigger } = useWebHaptics();
+  const fileTree = useMemo(() => buildFileTree(rawFiles), []);
+  
+  const [openFiles, setOpenFiles] = useState(["/src/App.jsx"]); 
+  const [activePath, setActivePath] = useState("/src/App.jsx");
+  const [filesContent, setFilesContent] = useState(() => ({ ...rawFiles }));
+  const [isSidebarOpen, setIsSidebarOpen] = useState(
+    typeof window !== 'undefined' ? window.innerWidth > 768 : true
+  );
 
-<file path="src/hoc/WindowWrapper.jsx">
-import useWindowStore from "#store/window.js";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
-import { Draggable } from "gsap/Draggable";
-import { useRef, useState, useEffect, memo } from "react";
-const WindowWrapper = (Component, windowKey) => {
-  const Wrapped = memo((props) => {
-    const isOpen = useWindowStore((s) => s.windows[windowKey].isOpen);
-    const zIndex = useWindowStore((s) => s.windows[windowKey].zIndex);
-    const isMaximized = useWindowStore((s) => s.windows[windowKey].isMaximized);
-    const dataId = useWindowStore((s) => s.windows[windowKey].data?.id);
-    const launchPos = useWindowStore((s) => s.windows[windowKey].launchPos);
-    const focusWindow = useWindowStore((s) => s.focusWindow);
-    const closeWindow = useWindowStore((s) => s.closeWindow);
+  const [saveToast, setSaveToast] = useState(false);
+  const toastTimeoutRef = useRef(null);
 
-    const ref = useRef(null);
-    const dragInstance = useRef(null);
-    const resizeInstances = useRef([]);
-    const [isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
-    const preMaxState = useRef(null);
-    const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
+  const triggerSaveToast = useCallback(() => {
+    trigger("success");
+    setSaveToast(true);
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    toastTimeoutRef.current = setTimeout(() => setSaveToast(false), 5000);
+  }, [trigger]);
 
-    useEffect(() => {
-      const checkMobile = () => setIsMobile(window.innerWidth < 768);
-      checkMobile();
-      window.addEventListener("resize", checkMobile, { passive: true });
-      return () => window.removeEventListener("resize", checkMobile);
-    },[]);
+  const openFile = (path) => {
+    if (!openFiles.includes(path)) {
+      setOpenFiles(prev => [...prev, path]);
+    }
+    setActivePath(path);
+  };
 
-    useGSAP(() => {
-      const el = ref.current;
-      if (!el) return;
-      if (isOpen) {
-        setIsActuallyVisible(true);
-        if (isMobile) {
-          if (launchPos) {
-            gsap.fromTo(el,
-              {
-                opacity: 0,
-                scale: 0.8,
-                transformOrigin: `${launchPos.x}px ${launchPos.y}px`,
-                borderRadius: "32px",
-                x: 0,
-                y: 0
-              },
-              {
-                opacity: 1,
-                scale: 1,
-                borderRadius: "0px",
-                duration: 0.35,
-                ease: "power3.out",
-                overwrite: "auto",
-                x: 0,
-                y: 0
-              }
-            );
-          } else {
-            gsap.fromTo(el,
-              { yPercent: 100, opacity: 1, x: 0, y: 0 },
-              { yPercent: 0, duration: 0.35, ease: "power3.out", overwrite: "auto", x: 0, y: 0 }
-            );
-          }
-        } else {
-          gsap.fromTo(el,
-            { scale: 0.9, opacity: 0, y: 20, yPercent: 0 },
-            { scale: 1, opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.5)", overwrite: "auto" }
-          );
+  const closeFile = (path, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const newFiles = openFiles.filter(f => f !== path);
+    setOpenFiles(newFiles);
+    if (activePath === path) {
+      setActivePath(newFiles[newFiles.length - 1] || "");
+    }
+  };
+
+  useEffect(() => {
+      const handleKeyDown = (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+          e.preventDefault();
+          setIsSidebarOpen(prev => !prev);
         }
-      } else {
-        if (isMobile) {
-          gsap.to(el, {
-            opacity: 0,
-            scale: 0.9,
-            duration: 0.25,
-            ease: "power3.in",
-            overwrite: "auto",
-            onComplete: () => setIsActuallyVisible(false),
-          });
-        } else {
-          gsap.to(el, {
-            scale: 0.8, opacity: 0, y: 50, duration: 0.25, ease: "power2.in", overwrite: "auto",
-            onComplete: () => setIsActuallyVisible(false),
-          });
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+          e.preventDefault();
+          triggerSaveToast();
         }
-      }
-    }, [isOpen, dataId, isMobile]);
-
-    useGSAP(() => {
-      if (isMobile) return;
-      const el = ref.current;
-      if (!el || !isOpen) return;
-
-      if (isMaximized) {
-        const currentX = gsap.getProperty(el, "x");
-        const currentY = gsap.getProperty(el, "y");
-        const rect = el.getBoundingClientRect();
-        preMaxState.current = { width: el.offsetWidth, height: el.offsetHeight, x: currentX, y: currentY };
-        if (dragInstance.current) dragInstance.current.disable();
-        resizeInstances.current.forEach(i => i.disable());
-        gsap.to(el, { x: currentX - rect.left, y: currentY - rect.top, width: "100vw", height: "100vh", maxWidth: "none", maxHeight: "none",  borderRadius: "0px", duration: 0.5, ease: "expo.inOut" });
-      } else if (preMaxState.current) {
-        if (dragInstance.current) dragInstance.current.enable();
-        resizeInstances.current.forEach(i => i.enable());
-        gsap.to(el, { x: preMaxState.current.x, y: preMaxState.current.y, width: preMaxState.current.width, height: preMaxState.current.height, borderRadius: "12px", duration: 0.5, ease: "expo.inOut", onComplete: () => dragInstance.current.update() });
-      }
-    }, [isMaximized, isMobile]);
-
-    useGSAP(() => {
-      const el = ref.current;
-      if (!el) return;
-
-      if (isMobile) return;
-
-      [dragInstance.current] = Draggable.create(el, {
-        trigger: el.querySelector("#window-header") || el,
-        bounds: "main",
-      });
-
-      resizeInstances.current =[];
-
-      const minW = 350;
-      const minH = 250;
-      const handleConfigs =[
-        { cls: ".resizer-n", type: "n" }, { cls: ".resizer-s", type: "s" },
-        { cls: ".resizer-e", type: "e" }, { cls: ".resizer-w", type: "w" },
-        { cls: ".resizer-nw", type: "nw" }, { cls: ".resizer-ne", type: "ne" },
-        { cls: ".resizer-sw", type: "sw" }, { cls: ".resizer-se", type: "se" },
-      ];
-
-      handleConfigs.forEach(({ cls, type }) => {
-        const hEl = el.querySelector(cls);
-        if (!hEl) return;
-        const [instance] = Draggable.create(hEl, {
-          type: "x,y",
-          onPress: function(e) {
-            e.stopPropagation();
-            focusWindow(windowKey);
-            this.startW = el.offsetWidth;
-            this.startH = el.offsetHeight;
-            this.startX = gsap.getProperty(el, "x");
-            this.startY = gsap.getProperty(el, "y");
-            this.startPointerX = this.pointerX;
-            this.startPointerY = this.pointerY;
-          },
-          onDrag: function() {
-            gsap.set(this.target, { x: 0, y: 0 });
-            const deltaX = this.pointerX - this.startPointerX;
-            const deltaY = this.pointerY - this.startPointerY;
-            let w = this.startW, h = this.startH, x = this.startX, y = this.startY;
-            if (type.includes("e")) w = this.startW + deltaX;
-            if (type.includes("w")) {
-              const constrainedDelta = Math.min(deltaX, this.startW - minW);
-              w = this.startW - constrainedDelta;
-              x = this.startX + constrainedDelta;
-            }
-            if (type.includes("s")) h = this.startH + deltaY;
-            if (type.includes("n")) {
-              const constrainedDelta = Math.min(deltaY, this.startH - minH);
-              h = this.startH - constrainedDelta;
-              y = this.startY + constrainedDelta;
-            }
-            gsap.set(el, { width: Math.max(w, minW), height: Math.max(h, minH), x, y });
-          },
-          onDragEnd: function() {
-            gsap.set(this.target, { x: 0, y: 0 });
-            dragInstance.current.update();
-          }
-        });
-        resizeInstances.current.push(instance);
-      });
-
-      return () => {
-        dragInstance.current?.kill();
-        resizeInstances.current.forEach(i => i.kill());
       };
-    }, [isMobile]);
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [triggerSaveToast]);
 
-    return (
-      <section
-        id={windowKey}
-        ref={ref}
-        onPointerDownCapture={() => focusWindow(windowKey)}
-        className="os-window absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none max-md:bg-white"
-        style={{
-            zIndex,
-            display: isActuallyVisible ? "flex" : "none",
-            willChange: "transform, width, height, opacity",
-            transform: "translate3d(0,0,0)",
-        }}
-      >
-        <Component {...props} />
+  const handleEditorDidMount = (editor, monaco) => {
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+      triggerSaveToast();
+    });
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyB, () => {
+      setIsSidebarOpen(p => !p);
+    });
+  };
 
-        {isMobile && (
-          <div className="absolute bottom-0 left-0 w-full h-8 z-[2000] flex justify-center items-end pb-2 pointer-events-none">
-            <div className="w-[130px] h-1.5 bg-black/40 rounded-full" />
-          </div>
-        )}
+  const handleEditorChange = (value) => {
+    setFilesContent((prev) => ({
+      ...prev, [activePath]: value
+    }));
+  };
 
-        {/* Kept mounted to not destroy GSAP hooks, simply hidden via CSS when maximized */}
-        {!isMobile && (
-          <div className={isMaximized ? "hidden pointer-events-none" : ""}>
-            <div className="resizer-n absolute top-0 left-0 w-full h-1.5 cursor-ns-resize z-50" />
-            <div className="resizer-s absolute bottom-0 left-0 w-full h-1.5 cursor-ns-resize z-50" />
-            <div className="resizer-w absolute top-0 left-0 h-full w-1.5 cursor-ew-resize z-50" />
-            <div className="resizer-e absolute top-0 right-0 h-full w-1.5 cursor-ew-resize z-50" />
-            <div className="resizer-nw absolute top-0 left-0 size-4 cursor-nwse-resize z-[60]" />
-            <div className="resizer-ne absolute top-0 right-0 size-4 cursor-nesw-resize z-[60]" />
-            <div className="resizer-sw absolute bottom-0 left-0 size-4 cursor-nesw-resize z-[60]" />
-            <div className="resizer-se absolute bottom-0 right-0 size-4 cursor-nwse-resize z-[60]" />
-          </div>
-        )}
-      </section>
-    );
-  });
+  const activeFileContent = activePath ? filesContent[activePath] : null;
+  const activeFileName = activePath ? activePath.split('/').pop() : "No file open";
+  const activeLanguage = getLanguage(activeFileName);
 
-  Wrapped.displayName = `WindowWrapper(${Component.displayName || Component.name || "Component"})`;
-  return Wrapped;
-};
-
-export default WindowWrapper;
-</file>
-
-<file path="src/components/Welcome.jsx">
-import { ProximityText } from "../proximity-engine/ProximityText.jsx";
-
-const Welcome = () => {
   return (
-    <section id="welcome" className="max-md:hidden pointer-events-none w-full">
-      <ProximityText
-        text="Hey, I'm Yousef Zedan! Welcome to my"
-        preset="opacity-y"
-        splitBy="letter"
-        global={true}
-        ignoreSelectors={[".os-window"]}
-        config={{
-          duration: 1.5,
-          resetDuration: 1.5,
-          ease: "elastic",
-          resetEase: "elastic"
-        }}
-        reach={0.6}
-        falloff={2}
-        className="cursor-default text-center px-4"
-        textClassName="text-[5vw] sm:text-2xl md:text-3xl font-georama font-[150]"
-      />
-      <ProximityText
-        text="ZPortfolio"
-        preset="weight"
-        global={true}
-        ignoreSelectors={[".os-window"]}
-        config={{
-          duration: 1,
-          resetDuration: 1,
-          weight: [400, 900],
-          ease: "elastic",
-          resetEase: "elastic"
-        }}
-        reach={0.5}
-        falloff={2}
-        className="mt-4 md:mt-7 cursor-default text-center"
-        textClassName="text-[10.5vw] sm:text-7xl md:text-9xl italic font-georama"
-      />
-    </section>
-  );
-};
+    <>
+      <div id="window-header" className="shrink-0 text-[#cdd6f4] relative flex items-center justify-center z-10">
+        <WindowControls target="vscode" />
+        <PanelLeft 
+          className="hidden max-md:block absolute left-14 text-[#a6adc8] hover:text-[#cdd6f4] cursor-pointer z-50 transition-transform active:scale-95" 
+          size={20} 
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsSidebarOpen(!isSidebarOpen);
+          }} 
+        />
+        <h2 className="text-sm font-medium pr-4 truncate w-full text-center">ZED Code — {activeFileName}</h2>
+      </div>
 
-export default Welcome;
+      <div className="flex-1 w-full bg-[#1e1e2e] min-h-0 flex flex-row relative overflow-hidden">
+        
+        {/* EASTER EGG TOAST */}
+        <div 
+          className={`absolute bottom-6 right-6 z-[100] bg-[#1e1e2e] border border-[#313244] shadow-2xl rounded-lg p-4 max-w-[320px] transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] ${
+            saveToast ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0 pointer-events-none"
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <Info className="text-[#8caaee] mt-0.5 shrink-0" size={18} />
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[#cdd6f4] text-sm font-semibold leading-tight">Nice try! 😏</span>
+              <span className="text-[#bac2de] text-xs leading-relaxed">
+                Actually, you are the only one seeing this. Go to GitHub and send me a PR if you dare! 
+                <a href="https://github.com/YoussefZidan-1/zportfolio" target="_blank" rel="noopener noreferrer" className="text-[#cba6f7] hover:underline font-bold flex items-center gap-1 mt-1.5 w-fit">
+                  Open Repository <span className="font-terminal text-2xl font-normal px-2"></span>
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div 
+          className={`md:hidden absolute inset-0 bg-black/50 z-40 transition-opacity duration-300 ease-in-out ${
+            isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          }`}
+          onClick={() => setIsSidebarOpen(false)}
+        />
+
+        <div 
+          className={`shrink-0 border-[#11111b] overflow-hidden transition-all duration-300 ease-in-out z-50 bg-[#181825] 
+            max-md:absolute max-md:h-full max-md:shadow-2xl 
+            ${isSidebarOpen ? "max-md:translate-x-0 md:w-56 border-r" : "max-md:-translate-x-full md:w-0 border-r-0"}
+          `}
+        >
+          <div className="w-60 md:w-56 pt-3 pb-6 h-full flex flex-col vscode-scroll">
+            <div className="flex items-center justify-between px-4 mb-2">
+              <span className="text-[11px] text-[#a6adc8] font-semibold uppercase tracking-wider">Explorer</span>
+            </div>
+            <div className="flex-1 overflow-y-auto vscode-scroll">
+              {Object.values(fileTree).sort((a, b) => a.type === 'folder' ? -1 : 1).map(node => (
+                <FileTreeNode 
+                  key={node.name} 
+                  node={node} 
+                  level={0} 
+                  activePath={activePath} 
+                  openFile={openFile}
+                  onFileClick={() => {
+                    if (window.innerWidth < 768) setIsSidebarOpen(false);
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 flex flex-col min-w-0 bg-[#1e1e2e]">
+          {/* FIXED TAB BAR */}
+          <div className="flex bg-[#11111b] shrink-0 items-center h-10 w-full overflow-hidden">
+            {/* Toggle Button: Outside the scrollable area so it's ALWAYS clickable */}
+            <button 
+              onClick={() => setIsSidebarOpen(p => !p)}
+              className="p-2 ml-1 text-[#a6adc8] hover:text-[#cdd6f4] transition-colors md:block hidden cursor-pointer z-20 shrink-0"
+              title="Toggle Sidebar (Ctrl+B)"
+            >
+              <PanelLeft size={16} />
+            </button>
+
+            {/* Tabs: This part scrolls */}
+            <div className="flex-1 flex h-full overflow-x-auto scrollbar-hide items-center">
+              {openFiles.map((path) => {
+                const fileName = path.split('/').pop();
+                const isActive = path === activePath;
+                return (
+                  <div 
+                    key={path}
+                    onClick={() => setActivePath(path)}
+                    className={clsx(
+                      "group flex items-center gap-2 px-3 py-2 text-xs cursor-pointer transition-all duration-200 border-r border-[#11111b] min-w-fit h-full select-none",
+                      isActive 
+                        ? "bg-[#1e1e2e] text-[#cdd6f4] border-t-2 border-t-[#cba6f7]" 
+                        : "bg-[#181825] text-[#a6adc8] hover:bg-[#24273a]"
+                    )}
+                  >
+                    <span className={clsx("font-medium", isActive && "text-white")}>{fileName}</span>
+                    <X 
+                      size={12} 
+                      className={clsx(
+                        "opacity-0 group-hover:opacity-100 hover:bg-white/10 rounded-sm transition-all z-30",
+                        isActive && "opacity-50"
+                      )} 
+                      onClick={(e) => closeFile(path, e)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex-1 w-full min-h-0 pt-2 relative flex items-center justify-center">
+            {activePath ? (
+              <Editor
+                height="100%"
+                language={activeLanguage}
+                theme="catppuccin-mocha"
+                value={activeFileContent || "// File not found or empty"}
+                onChange={handleEditorChange}
+                beforeMount={handleEditorWillMount}
+                onMount={handleEditorDidMount}
+                options={{
+                  minimap: { enabled: true },
+                  fontSize: 14,
+                  readOnly: false,
+                  wordWrap: "on",
+                  padding: { top: 16 },
+                  scrollBeyondLastLine: false,
+                  smoothScrolling: true,
+                  cursorSmoothCaretAnimation: 'on',
+                  cursorBlinking: "expand",
+                  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                  scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10 }
+                }}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center animate-in zoom-in-95 duration-500">
+                <img src="/images/logo.svg" alt="Arch" className="w-32 h-32 opacity-20 grayscale brightness-200" />
+                <p className="text-[#585b70] text-xs font-terminal mt-4">No file selected</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+});
+
+const CodeEditorWindow = WindowWrapper(CodeEditor, "vscode");
+export default CodeEditorWindow;
 </file>
 
 <file path="src/constants/index.js">
@@ -3208,6 +2949,334 @@ export {
   photosLinks,
   gallery
 };
+</file>
+
+<file path="src/App.jsx">
+import React, { Suspense, lazy, useState } from "react";
+import { Navbar, Welcome, Dock, Home, BootSequence } from "#components";
+import gsap from "gsap";
+import { Draggable } from "gsap/Draggable";
+gsap.registerPlugin(Draggable);
+
+const Terminal = lazy(() => import("#windows/Terminal.jsx"));
+const ZenBrowser = lazy(() => import("#windows/ZenBrowser.jsx"));
+const Resume = lazy(() => import("#windows/Resume.jsx"));
+const Finder = lazy(() => import("#windows/Finder.jsx"));
+const Text = lazy(() => import("#windows/Text.jsx"));
+const Image = lazy(() => import("#windows/Image.jsx"));
+const Contact = lazy(() => import("#windows/Contact.jsx"));
+const Photos = lazy(() => import("#windows/Photos.jsx"));
+const CodeEditor = lazy(() => import("#windows/CodeEditor.jsx"));
+
+if (typeof window !== "undefined") {
+  console.log(
+    "%c 💻 ZPortfolio by ZED Studios %c Developed by Yousef Zedan %c https://github.com/YoussefZidan-1/zportfolio ",
+    "color: white; background: #000; padding: 5px 10px; border-radius: 5px 0 0 5px; font-weight: bold;",
+    "color: #fff; background: #007aff; padding: 5px 10px; font-weight: bold;",
+    "color: #000; background: #fff; padding: 5px 10px; border-radius: 0 5px 5px 0; border: 1px solid #000;"
+  );
+}
+
+const App = () => {
+  const [isBooted, setIsBooted] = useState(false);
+
+  if (!isBooted) {
+    return <BootSequence onComplete={() => setIsBooted(true)} />;
+  }
+
+  return (
+    <main className="animate-in fade-in duration-700">
+      <div className="ios-home-indicator" />
+      <Navbar />
+      <Welcome />
+      <Home />
+      <Dock />
+      <Suspense fallback={null}>
+        <Terminal />
+        <ZenBrowser />
+        <Resume />
+        <Finder />
+        <Text />
+        <Image />
+        <Contact />
+        <Photos />
+        <CodeEditor /> 
+      </Suspense>
+    </main>
+  );
+};
+
+export default App;
+</file>
+
+<file path="src/hoc/WindowWrapper.jsx">
+import useWindowStore from "#store/window.js";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+import { Draggable } from "gsap/Draggable";
+import { useRef, useState, useEffect, memo } from "react";
+const WindowWrapper = (Component, windowKey) => {
+  const Wrapped = memo((props) => {
+    const isOpen = useWindowStore((s) => s.windows[windowKey].isOpen);
+    const zIndex = useWindowStore((s) => s.windows[windowKey].zIndex);
+    const isMaximized = useWindowStore((s) => s.windows[windowKey].isMaximized);
+    const dataId = useWindowStore((s) => s.windows[windowKey].data?.id);
+    const launchPos = useWindowStore((s) => s.windows[windowKey].launchPos);
+    const focusWindow = useWindowStore((s) => s.focusWindow);
+    const closeWindow = useWindowStore((s) => s.closeWindow);
+
+    const ref = useRef(null);
+    const dragInstance = useRef(null);
+    const resizeInstances = useRef([]);
+    const [isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
+    const preMaxState = useRef(null);
+    const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
+
+    useEffect(() => {
+      const checkMobile = () => setIsMobile(window.innerWidth < 768);
+      checkMobile();
+      window.addEventListener("resize", checkMobile, { passive: true });
+      return () => window.removeEventListener("resize", checkMobile);
+    },[]);
+
+    useGSAP(() => {
+      const el = ref.current;
+      if (!el) return;
+      if (isOpen) {
+        setIsActuallyVisible(true);
+        if (isMobile) {
+          if (launchPos) {
+            gsap.fromTo(el,
+              {
+                opacity: 0,
+                scale: 0.8,
+                transformOrigin: `${launchPos.x}px ${launchPos.y}px`,
+                borderRadius: "32px",
+                x: 0,
+                y: 0
+              },
+              {
+                opacity: 1,
+                scale: 1,
+                borderRadius: "0px",
+                duration: 0.35,
+                ease: "power3.out",
+                overwrite: "auto",
+                x: 0,
+                y: 0
+              }
+            );
+          } else {
+            gsap.fromTo(el,
+              { yPercent: 100, opacity: 1, x: 0, y: 0 },
+              { yPercent: 0, duration: 0.35, ease: "power3.out", overwrite: "auto", x: 0, y: 0 }
+            );
+          }
+        } else {
+          gsap.fromTo(el,
+            { scale: 0.9, opacity: 0, y: 20, yPercent: 0 },
+            { scale: 1, opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.5)", overwrite: "auto" }
+          );
+        }
+      } else {
+        if (isMobile) {
+          gsap.to(el, {
+            opacity: 0,
+            scale: 0.9,
+            duration: 0.25,
+            ease: "power3.in",
+            overwrite: "auto",
+            onComplete: () => setIsActuallyVisible(false),
+          });
+        } else {
+          gsap.to(el, {
+            scale: 0.8, opacity: 0, y: 50, duration: 0.25, ease: "power2.in", overwrite: "auto",
+            onComplete: () => setIsActuallyVisible(false),
+          });
+        }
+      }
+    }, [isOpen, dataId, isMobile]);
+
+    useGSAP(() => {
+      if (isMobile) return;
+      const el = ref.current;
+      if (!el || !isOpen) return;
+
+      if (isMaximized) {
+        const currentX = gsap.getProperty(el, "x");
+        const currentY = gsap.getProperty(el, "y");
+        const rect = el.getBoundingClientRect();
+        preMaxState.current = { width: el.offsetWidth, height: el.offsetHeight, x: currentX, y: currentY };
+        if (dragInstance.current) dragInstance.current.disable();
+        resizeInstances.current.forEach(i => i.disable());
+        gsap.to(el, { x: currentX - rect.left, y: currentY - rect.top, width: "100vw", height: "100vh", maxWidth: "none", maxHeight: "none",  borderRadius: "0px", duration: 0.5, ease: "expo.inOut" });
+      } else if (preMaxState.current) {
+        if (dragInstance.current) dragInstance.current.enable();
+        resizeInstances.current.forEach(i => i.enable());
+        gsap.to(el, { x: preMaxState.current.x, y: preMaxState.current.y, width: preMaxState.current.width, height: preMaxState.current.height, borderRadius: "12px", duration: 0.5, ease: "expo.inOut", onComplete: () => dragInstance.current.update() });
+      }
+    }, [isMaximized, isMobile]);
+
+    useGSAP(() => {
+      const el = ref.current;
+      if (!el) return;
+
+      if (isMobile) return;
+
+      [dragInstance.current] = Draggable.create(el, {
+        trigger: el.querySelector("#window-header") || el,
+        bounds: "main",
+      });
+
+      resizeInstances.current =[];
+
+      const minW = 350;
+      const minH = 250;
+      const handleConfigs =[
+        { cls: ".resizer-n", type: "n" }, { cls: ".resizer-s", type: "s" },
+        { cls: ".resizer-e", type: "e" }, { cls: ".resizer-w", type: "w" },
+        { cls: ".resizer-nw", type: "nw" }, { cls: ".resizer-ne", type: "ne" },
+        { cls: ".resizer-sw", type: "sw" }, { cls: ".resizer-se", type: "se" },
+      ];
+
+      handleConfigs.forEach(({ cls, type }) => {
+        const hEl = el.querySelector(cls);
+        if (!hEl) return;
+        const [instance] = Draggable.create(hEl, {
+          type: "x,y",
+          onPress: function(e) {
+            e.stopPropagation();
+            focusWindow(windowKey);
+            this.startW = el.offsetWidth;
+            this.startH = el.offsetHeight;
+            this.startX = gsap.getProperty(el, "x");
+            this.startY = gsap.getProperty(el, "y");
+            this.startPointerX = this.pointerX;
+            this.startPointerY = this.pointerY;
+          },
+          onDrag: function() {
+            gsap.set(this.target, { x: 0, y: 0 });
+            const deltaX = this.pointerX - this.startPointerX;
+            const deltaY = this.pointerY - this.startPointerY;
+            let w = this.startW, h = this.startH, x = this.startX, y = this.startY;
+            if (type.includes("e")) w = this.startW + deltaX;
+            if (type.includes("w")) {
+              const constrainedDelta = Math.min(deltaX, this.startW - minW);
+              w = this.startW - constrainedDelta;
+              x = this.startX + constrainedDelta;
+            }
+            if (type.includes("s")) h = this.startH + deltaY;
+            if (type.includes("n")) {
+              const constrainedDelta = Math.min(deltaY, this.startH - minH);
+              h = this.startH - constrainedDelta;
+              y = this.startY + constrainedDelta;
+            }
+            gsap.set(el, { width: Math.max(w, minW), height: Math.max(h, minH), x, y });
+          },
+          onDragEnd: function() {
+            gsap.set(this.target, { x: 0, y: 0 });
+            dragInstance.current.update();
+          }
+        });
+        resizeInstances.current.push(instance);
+      });
+
+      return () => {
+        dragInstance.current?.kill();
+        resizeInstances.current.forEach(i => i.kill());
+      };
+    }, [isMobile]);
+
+    return (
+      <section
+        id={windowKey}
+        ref={ref}
+        onPointerDownCapture={() => focusWindow(windowKey)}
+        className="os-window absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none max-md:bg-white"
+        style={{
+            zIndex,
+            display: isActuallyVisible ? "flex" : "none",
+            willChange: "transform, width, height, opacity",
+            transform: "translate3d(0,0,0)",
+        }}
+      >
+        <Component {...props} />
+
+        {isMobile && (
+          <div className="absolute bottom-0 left-0 w-full h-8 z-[2000] flex justify-center items-end pb-2 pointer-events-none">
+            <div className="w-[130px] h-1.5 bg-black/40 rounded-full" />
+          </div>
+        )}
+
+        {/* Kept mounted to not destroy GSAP hooks, simply hidden via CSS when maximized */}
+        {!isMobile && (
+          <div className={isMaximized ? "hidden pointer-events-none" : ""}>
+            <div className="resizer-n absolute top-0 left-0 w-full h-1.5 cursor-ns-resize z-50" />
+            <div className="resizer-s absolute bottom-0 left-0 w-full h-1.5 cursor-ns-resize z-50" />
+            <div className="resizer-w absolute top-0 left-0 h-full w-1.5 cursor-ew-resize z-50" />
+            <div className="resizer-e absolute top-0 right-0 h-full w-1.5 cursor-ew-resize z-50" />
+            <div className="resizer-nw absolute top-0 left-0 size-4 cursor-nwse-resize z-[60]" />
+            <div className="resizer-ne absolute top-0 right-0 size-4 cursor-nesw-resize z-[60]" />
+            <div className="resizer-sw absolute bottom-0 left-0 size-4 cursor-nesw-resize z-[60]" />
+            <div className="resizer-se absolute bottom-0 right-0 size-4 cursor-nwse-resize z-[60]" />
+          </div>
+        )}
+      </section>
+    );
+  });
+
+  Wrapped.displayName = `WindowWrapper(${Component.displayName || Component.name || "Component"})`;
+  return Wrapped;
+};
+
+export default WindowWrapper;
+</file>
+
+<file path="src/components/Welcome.jsx">
+import { ProximityText } from "../proximity-engine/ProximityText.jsx";
+
+const Welcome = () => {
+  return (
+    <section id="welcome" className="max-md:hidden pointer-events-none w-full">
+      <ProximityText
+        text="Hey, I'm Yousef Zedan! Welcome to my"
+        preset="opacity-y"
+        splitBy="letter"
+        global={true}
+        ignoreSelectors={[".os-window"]}
+        config={{
+          duration: 1.5,
+          resetDuration: 1.5,
+          ease: "elastic",
+          resetEase: "elastic"
+        }}
+        reach={0.6}
+        falloff={2}
+        className="cursor-default text-center px-4"
+        textClassName="text-[5vw] sm:text-2xl md:text-3xl font-georama font-[150]"
+      />
+      <ProximityText
+        text="ZPortfolio"
+        preset="weight"
+        global={true}
+        ignoreSelectors={[".os-window"]}
+        config={{
+          duration: 1,
+          resetDuration: 1,
+          weight: [400, 900],
+          ease: "elastic",
+          resetEase: "elastic"
+        }}
+        reach={0.5}
+        falloff={2}
+        className="mt-4 md:mt-7 cursor-default text-center"
+        textClassName="text-[10.5vw] sm:text-7xl md:text-9xl italic font-georama"
+      />
+    </section>
+  );
+};
+
+export default Welcome;
 </file>
 
 <file path="src/components/Home.jsx">
