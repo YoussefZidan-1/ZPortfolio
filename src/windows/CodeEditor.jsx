@@ -1,4 +1,5 @@
 import WindowWrapper from "#hoc/WindowWrapper.jsx";
+import codeEditorRaw from "./CodeEditor.jsx?raw";
 import { WindowControls } from "#components";
 import { memo, useState, useMemo, useEffect, useRef, useCallback } from "react";
 import Editor from "@monaco-editor/react";
@@ -6,9 +7,8 @@ import { ChevronRight, ChevronDown, Folder, FolderOpen, Code2, Braces, Hash, Pan
 import { useWebHaptics } from "web-haptics/react";
 import clsx from "clsx";
 
-const rawFiles = import.meta.glob([
-  '/src/**/*.{jsx,js,css,json,ts,tsx}',
-  '/src/windows/CodeEditor.jsx', 
+const globFiles = import.meta.glob([
+  '/src/**/*.{jsx,js,css,json,ts,tsx}', 
   '/package.json',
   '/vite.config.js',
   '/eslint.config.js',
@@ -20,10 +20,14 @@ const rawFiles = import.meta.glob([
   '/.gitignore',
 ], { query: '?raw', import: 'default', eager: true });
 
+const rawFiles = {
+  ...globFiles,
+  '/src/windows/CodeEditor.jsx': codeEditorRaw,
+};
+
 const buildFileTree = (files) => {
   const root = {};
   Object.entries(files).forEach(([path]) => {
-    // We use the absolute path (with leading slash) as the source of truth
     const parts = path.replace(/^\//, '').split('/');
     let current = root;
 
@@ -67,7 +71,13 @@ const handleEditorWillMount = (monaco) => {
       { token: "variable", foreground: "cdd6f4" }, 
       { token: "constant", foreground: "fab387" }, 
       { token: "operator", foreground: "89dceb" }, 
-      { token: "property", foreground: "74c7ec" }, 
+      { token: "property", foreground: "74c7ec" },
+      { token: "tag", foreground: "cba6f7" },              
+      { token: "attribute.name", foreground: "8caaee" },    
+      { token: "attribute.value", foreground: "a6e3a1" },   
+      { token: "delimiter", foreground: "94e2d5" },
+      { token: "string.key.json", foreground: "8caaee" },
+      { token: "keyword.json", foreground: "cba6f7" },  
     ],
     colors: {
       "editor.background": "#1e1e2e", 

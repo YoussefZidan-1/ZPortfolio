@@ -1,9 +1,11 @@
 import React, { Suspense, lazy, useState } from "react";
-import { Navbar, Welcome, Dock, Home, BootSequence } from "#components";
 import gsap from "gsap";
 import { Draggable } from "gsap/Draggable";
-gsap.registerPlugin(Draggable);
-
+import BootSequence from "#components/BootSequence.jsx";
+const Navbar = lazy(() => import("#components/Navbar.jsx"));
+const Welcome = lazy(() => import("#components/Welcome.jsx"));
+const Dock = lazy(() => import("#components/Dock.jsx"));
+const Home = lazy(() => import("#components/Home.jsx"));
 const Terminal = lazy(() => import("#windows/Terminal.jsx"));
 const ZenBrowser = lazy(() => import("#windows/ZenBrowser.jsx"));
 const Resume = lazy(() => import("#windows/Resume.jsx"));
@@ -13,6 +15,8 @@ const Image = lazy(() => import("#windows/Image.jsx"));
 const Contact = lazy(() => import("#windows/Contact.jsx"));
 const Photos = lazy(() => import("#windows/Photos.jsx"));
 const CodeEditor = lazy(() => import("#windows/CodeEditor.jsx"));
+
+gsap.registerPlugin(Draggable);
 
 if (typeof window !== "undefined") {
   console.log(
@@ -26,29 +30,34 @@ if (typeof window !== "undefined") {
 const App = () => {
   const [isBooted, setIsBooted] = useState(false);
 
-  if (!isBooted) {
-    return <BootSequence onComplete={() => setIsBooted(true)} />;
-  }
-
   return (
-    <main className="animate-in fade-in duration-700">
-      <div className="ios-home-indicator" />
-      <Navbar />
-      <Welcome />
-      <Home />
-      <Dock />
-      <Suspense fallback={null}>
-        <Terminal />
-        <ZenBrowser />
-        <Resume />
-        <Finder />
-        <Text />
-        <Image />
-        <Contact />
-        <Photos />
-        <CodeEditor /> 
-      </Suspense>
-    </main>
+    <>
+      {!isBooted && <BootSequence onComplete={() => setIsBooted(true)} />}
+      <div 
+        className={`fixed inset-0 w-full h-full transition-opacity duration-1000 ease-in-out z-0 ${
+          isBooted ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        <Suspense fallback={null}>
+          <main className="w-full h-full">
+            <div className="ios-home-indicator" />
+            <Navbar />
+            <Welcome />
+            <Home />
+            <Dock />
+            <Terminal />
+            <ZenBrowser />
+            <Resume />
+            <Finder />
+            <Text />
+            <Image />
+            <Contact />
+            <Photos />
+            <CodeEditor /> 
+          </main>
+        </Suspense>
+      </div>
+    </>
   );
 };
 
