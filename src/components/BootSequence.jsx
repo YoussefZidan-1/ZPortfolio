@@ -41,6 +41,10 @@ const BootSequence = ({ onComplete }) => {
   const [errorMsg, setErrorMsg] = useState("");
   const containerRef = useRef(null);
   const loginRef = useRef(null);
+  
+  // 🔊 Oxygen KDE Boot Sound
+  const bootSound = useRef(new Audio("/sounds/oxygen_boot.ogg"));
+  
   const { trigger } = useWebHaptics();
 
   useEffect(() => {
@@ -50,6 +54,7 @@ const BootSequence = ({ onComplete }) => {
 
   useEffect(() => {
     if (stage === 0) {
+      // Real GRUB blink duration
       const t = setTimeout(() => setStage(1), 2000);
       return () => clearTimeout(t);
     } else if (stage === 1) {
@@ -86,7 +91,14 @@ const BootSequence = ({ onComplete }) => {
     e?.preventDefault();
     if (password === "1234") {
       trigger("success");
+      
+      // 🚀 PLAY OXYGEN BOOT SOUND
+      bootSound.current.currentTime = 0; 
+      bootSound.current.play().catch(err => console.log("Audio play blocked:", err));
+
       setStage(4);
+      
+      // Organic fade out to the actual OS
       gsap.to(containerRef.current, {
         opacity: 0,
         scale: 1.1,
@@ -113,12 +125,14 @@ const BootSequence = ({ onComplete }) => {
   return (
     <div ref={containerRef} className="fixed inset-0 z-[9999] bg-[#000000] text-white flex flex-col font-terminal overflow-hidden select-none">
       
+      {/* STAGE 0: REAL GRUB Blink */}
       {stage === 0 && (
         <div className="p-5 text-2xl font-bold">
           <span className="cursor-blink">_</span>
         </div>
       )}
 
+      {/* STAGE 1: Boot Logs */}
       {stage === 1 && (
         <div className="p-5 flex flex-col justify-start h-full overflow-hidden">
           {lines.map((line, i) => (
@@ -131,6 +145,7 @@ const BootSequence = ({ onComplete }) => {
         </div>
       )}
 
+      {/* STAGE 2: Arch Logo & Loading Bar */}
       {stage === 2 && (
         <div className="flex-1 flex flex-col items-center justify-center animate-in fade-in duration-700">
           <img 
@@ -144,6 +159,7 @@ const BootSequence = ({ onComplete }) => {
         </div>
       )}
 
+      {/* STAGE 3 & 4: Mac Login Screen */}
       {(stage === 3 || stage === 4) && (
         <div ref={loginRef} className="absolute inset-0 bg-[url('/images/wallpaper.webp')] max-md:bg-[url('/images/wallpaper-2.webp')] bg-cover bg-center">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-3xl flex flex-col items-center">
