@@ -151,7 +151,7 @@ const BootSequence = ({ onComplete }) => {
           <img 
             src="/images/arch.webp" 
             alt="Arch Logo" 
-            fetchpriority="high"
+            fetchPriority="high"
             className="w-32 h-32 md:w-48 md:h-48 mb-10 object-contain" 
           />
           <div className="w-64 h-1 bg-gray-800 rounded-full overflow-hidden">
