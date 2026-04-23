@@ -87,9 +87,13 @@ public/images/yousef.webp
 public/images/zcinema.png
 public/macbook.png
 public/sounds/oxygen_boot.ogg
+public/sounds/oxygen_close.ogg
+public/sounds/oxygen_maximize.ogg
+public/sounds/oxygen_minimize.ogg
 README.md
 src/App.jsx
 src/components/BootSequence.jsx
+src/components/ControlCenter.jsx
 src/components/Dock.jsx
 src/components/Home.jsx
 src/components/index.js
@@ -105,6 +109,7 @@ src/proximity-engine/Proximity.jsx
 src/proximity-engine/ProximityContext.jsx
 src/proximity-engine/ProximityText.jsx
 src/store/location.js
+src/store/settings.js
 src/store/window.js
 src/windows/CodeEditor.jsx
 src/windows/Contact.jsx
@@ -288,6 +293,130 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 </file>
 
+<file path="src/components/ControlCenter.jsx">
+import { memo } from "react";
+import useSettingsStore from "#store/settings.js";
+import { Wifi, Bluetooth, Volume2, VolumeX, Moon, Sun, Monitor } from "lucide-react";
+import clsx from "clsx";
+
+const ControlCenter = memo(({ isOpen }) => {
+  const { volume, setVolume, isMuted, toggleMute, isDarkMode, toggleDarkMode } = useSettingsStore();
+
+  return (
+    <div 
+      className={clsx(
+        "absolute top-10 right-0 w-[320px] border border-white/40 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-[24px] p-3.5 flex flex-col gap-3 z-[9999] text-gray-800 origin-top-right transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]",
+        isOpen ? "opacity-100 scale-100 pointer-events-auto translate-y-0" : "opacity-0 scale-[0.8] pointer-events-none -translate-y-8"
+      )}
+      // Forcing the blur inline guarantees it works on Safari, Chrome, and bypasses Tailwind compilation issues
+      style={{ 
+        WebkitBackdropFilter: "blur(50px) saturate(180%)", 
+        backdropFilter: "blur(50px) saturate(180%)", 
+        backgroundColor: "rgba(255, 255, 255, 0.25)" 
+      }}
+    >
+      
+      {/* Top Grid */}
+      <div className="grid grid-cols-2 gap-3">
+        
+        {/* Connectivity Block - Animates in 1st */}
+        <div className={clsx(
+            "transition-all duration-500 ease-out",
+            isOpen ? "opacity-100 translate-y-0 delay-[50ms]" : "opacity-0 -translate-y-4"
+        )}>
+          <div className="bg-white/40 rounded-2xl p-3 flex flex-col gap-3 shadow-sm border border-white/50 hover:bg-white/50 transition-colors duration-300 h-full">
+            <div className="flex items-center gap-2 cursor-pointer group">
+              <div className="size-8 rounded-full bg-blue-500 flex items-center justify-center shadow-md group-hover:bg-blue-400 group-active:scale-90 transition-all duration-300">
+                <Wifi size={16} className="text-white" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-bold leading-tight">Wi-Fi</span>
+                <span className="text-[10px] text-gray-600 font-medium group-hover:text-gray-800">ZED Network</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 cursor-pointer group">
+              <div className="size-8 rounded-full bg-blue-500 flex items-center justify-center shadow-md group-hover:bg-blue-400 group-active:scale-90 transition-all duration-300">
+                <Bluetooth size={16} className="text-white" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-bold leading-tight">Bluetooth</span>
+                <span className="text-[10px] text-gray-600 font-medium group-hover:text-gray-800">On</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Dark Mode & Display Block */}
+        <div className="grid grid-rows-2 gap-3">
+          {/* Dark Mode - Animates in 2nd */}
+          <div className={clsx(
+              "transition-all duration-500 ease-out",
+              isOpen ? "opacity-100 translate-y-0 delay-[100ms]" : "opacity-0 -translate-y-4"
+          )}>
+            <div 
+              onClick={toggleDarkMode}
+              className="bg-white/40 hover:bg-white/60 rounded-2xl p-3 flex items-center justify-center gap-2 shadow-sm border border-white/50 cursor-pointer active:scale-95 transition-all duration-300 group h-full"
+            >
+              <div className="group-hover:rotate-12 group-active:-rotate-12 transition-transform duration-300">
+                {isDarkMode ? <Moon size={18} className="text-indigo-600" /> : <Sun size={18} className="text-orange-500" />}
+              </div>
+              <span className="text-xs font-bold">{isDarkMode ? "Dark Mode" : "Light Mode"}</span>
+            </div>
+          </div>
+
+          {/* Display - Animates in 3rd */}
+          <div className={clsx(
+              "transition-all duration-500 ease-out",
+              isOpen ? "opacity-100 translate-y-0 delay-[150ms]" : "opacity-0 -translate-y-4"
+          )}>
+            <div className="bg-white/20 rounded-2xl p-3 flex items-center justify-center gap-2 shadow-sm border border-white/30 cursor-default opacity-50 h-full">
+              <Monitor size={18} />
+              <span className="text-xs font-bold">Display</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Volume Slider Block - Animates in 4th */}
+      <div className={clsx(
+          "transition-all duration-500 ease-out",
+          isOpen ? "opacity-100 translate-y-0 delay-[200ms]" : "opacity-0 -translate-y-4"
+      )}>
+        <div className="bg-white/40 rounded-2xl p-3 shadow-sm border border-white/50 hover:bg-white/50 transition-colors duration-300">
+          <span className="text-xs font-bold ml-1 mb-2 block">Sound</span>
+          <div className="flex items-center gap-3">
+            <div 
+              className="size-8 rounded-full bg-white flex items-center justify-center shadow-md cursor-pointer hover:scale-105 active:scale-90 transition-all duration-300 shrink-0 border border-gray-100 group"
+              onClick={toggleMute}
+            >
+              <div className="group-hover:scale-110 transition-transform duration-300">
+                {isMuted || volume === 0 ? <VolumeX size={16} className="text-gray-400" /> : <Volume2 size={16} className="text-gray-800" />}
+              </div>
+            </div>
+            <input 
+              type="range" 
+              min="0" 
+              max="1" 
+              step="0.01" 
+              value={isMuted ? 0 : volume}
+              onChange={(e) => setVolume(parseFloat(e.target.value))}
+              className="w-full h-1.5 bg-white/50 rounded-lg appearance-none cursor-pointer hover:h-2 transition-all duration-200 shadow-inner"
+              style={{
+                 background: `linear-gradient(to right, #3b82f6 ${(isMuted ? 0 : volume) * 100}%, rgba(255,255,255,0.4) ${(isMuted ? 0 : volume) * 100}%)`,
+                 outline: 'none',
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
+    </div>
+  );
+});
+
+export default ControlCenter;
+</file>
+
 <file path="src/main.jsx">
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -325,6 +454,21 @@ const useLocationStore = create(
 );
 
 export default useLocationStore;
+</file>
+
+<file path="src/store/settings.js">
+import { create } from "zustand";
+
+const useSettingsStore = create((set) => ({
+  volume: 0.5,
+  isMuted: false,
+  setVolume: (val) => set({ volume: val, isMuted: val === 0 }),
+  toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
+  isDarkMode: false,
+  toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
+}));
+
+export default useSettingsStore;
 </file>
 
 <file path=".gitignore">
@@ -388,7 +532,8 @@ import Dock from "#components/Dock.jsx"
 import WindowControls from "#components/WindowControls.jsx";
 import Home from "#components/Home.jsx";
 import BootSequence from "#components/BootSequence.jsx";
-export { Navbar, Welcome, Dock, WindowControls, Home, BootSequence };
+import ControlCenter from "#components/ControlCenter.jsx";
+export { Navbar, Welcome, Dock, WindowControls, Home, BootSequence, ControlCenter };
 </file>
 
 <file path="src/windows/Image.jsx">
@@ -1183,6 +1328,7 @@ export default defineConfig({
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.2",
     "tw-animate-css": "^1.4.0",
+    "use-sound": "^5.0.0",
     "web-haptics": "^0.0.6",
     "zustand": "^5.0.12"
   },
@@ -1378,10 +1524,21 @@ export default ResumeWindow;
 import useWindowStore from "#store/window.js";
 import { ChevronDown } from "lucide-react";
 import { useWebHaptics } from "web-haptics/react";
+import useSettingsStore from "#store/settings.js";
+import useSound from "use-sound";
+
 const WindowControls = ({ target }) => {
   const closeWindow = useWindowStore((s) => s.closeWindow);
   const toggleMaximize = useWindowStore((s) => s.toggleMaximize);
   const { trigger } = useWebHaptics();
+
+  const { volume, isMuted } = useSettingsStore();
+  const effectiveVolume = isMuted ? 0 : volume;
+
+  const [playClose] = useSound("/sounds/oxygen_close.ogg", { volume: effectiveVolume });
+  const [playMinimize] = useSound("/sounds/oxygen_minimize.ogg", { volume: effectiveVolume });
+  const [playMaximize] = useSound("/sounds/oxygen_maximize.ogg", { volume: effectiveVolume });
+
   return (
     <div id="window-controls">
       <button 
@@ -1391,6 +1548,7 @@ const WindowControls = ({ target }) => {
             e.stopPropagation();
             closeWindow(target);
             trigger("nudge");
+            playClose();
         }}
       >
         <ChevronDown className="hidden max-md:block text-gray-700 stroke-[3px] pointer-events-none" size={18} />
@@ -1403,6 +1561,7 @@ const WindowControls = ({ target }) => {
             e.stopPropagation();
             closeWindow(target);
             trigger("nudge");
+            playMinimize();
         }}
       />
       
@@ -1413,6 +1572,7 @@ const WindowControls = ({ target }) => {
             e.stopPropagation();
             toggleMaximize(target);
             trigger("success");
+            playMaximize();
         }} 
       />
     </div>
@@ -1765,16 +1925,20 @@ export const Proximity = ({
 </file>
 
 <file path="src/components/Navbar.jsx">
-import React, { memo, useState, useEffect } from "react";
+import React, { memo, useState, useEffect, useRef } from "react";
 import { navIcons, navLinks } from "#constants";
 import useWindowStore from "#store/window.js";
 import dayjs from "dayjs";
 import { Battery, Signal, Wifi } from "lucide-react";
+import ControlCenter from "./ControlCenter.jsx";
 
 const Navbar = memo(() => {
   const openWindow = useWindowStore((s) => s.openWindow);
-  const[time, setTime] = useState(dayjs().format("ddd MMM D   h:mm A"));
-  const[timeStr, setTimeStr] = useState(dayjs().format("h:mm"));
+  const [time, setTime] = useState(dayjs().format("ddd MMM D   h:mm A"));
+  const [timeStr, setTimeStr] = useState(dayjs().format("h:mm"));
+
+  const [isControlCenterOpen, setIsControlCenterOpen] = useState(false);
+  const controlCenterRef = useRef(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -1782,6 +1946,16 @@ const Navbar = memo(() => {
       setTimeStr(dayjs().format("h:mm"));
     }, 10000);
     return () => clearInterval(timer);
+  },[]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (controlCenterRef.current && !controlCenterRef.current.contains(event.target)) {
+        setIsControlCenterOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   },[]);
 
   return (
@@ -1815,15 +1989,26 @@ const Navbar = memo(() => {
       </div>
 
       {/* PC Right Side */}
-      <div className="flex items-center gap-5 max-md:hidden">
+      <div className="flex items-center gap-5 max-md:hidden" ref={controlCenterRef}>
         <ul>
           {navIcons.map(({ id, img }) => (
             <li key={id}>
-              <img src={img} alt={`icon-${id}`} width={18} height={18} className="icon-hover w-[18px] h-[18px] cursor-pointer" loading="lazy" />
+              <img 
+                src={img} 
+                alt={`icon-${id}`} 
+                width={18} 
+                height={18} 
+                className="icon-hover w-[18px] h-[18px] cursor-pointer" 
+                loading="lazy" 
+                onClick={() => {
+                  if (id === 4) setIsControlCenterOpen(!isControlCenterOpen);
+                }}
+              />
             </li>
           ))}
         </ul>
         <time>{time}</time>
+        <ControlCenter isOpen={isControlCenterOpen} />
       </div>
     </nav>
   );

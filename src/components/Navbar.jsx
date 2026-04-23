@@ -1,13 +1,17 @@
-import React, { memo, useState, useEffect } from "react";
+import React, { memo, useState, useEffect, useRef } from "react";
 import { navIcons, navLinks } from "#constants";
 import useWindowStore from "#store/window.js";
 import dayjs from "dayjs";
 import { Battery, Signal, Wifi } from "lucide-react";
+import ControlCenter from "./ControlCenter.jsx";
 
 const Navbar = memo(() => {
   const openWindow = useWindowStore((s) => s.openWindow);
-  const[time, setTime] = useState(dayjs().format("ddd MMM D   h:mm A"));
-  const[timeStr, setTimeStr] = useState(dayjs().format("h:mm"));
+  const [time, setTime] = useState(dayjs().format("ddd MMM D   h:mm A"));
+  const [timeStr, setTimeStr] = useState(dayjs().format("h:mm"));
+
+  const [isControlCenterOpen, setIsControlCenterOpen] = useState(false);
+  const controlCenterRef = useRef(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -15,6 +19,16 @@ const Navbar = memo(() => {
       setTimeStr(dayjs().format("h:mm"));
     }, 10000);
     return () => clearInterval(timer);
+  },[]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (controlCenterRef.current && !controlCenterRef.current.contains(event.target)) {
+        setIsControlCenterOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   },[]);
 
   return (
@@ -48,15 +62,26 @@ const Navbar = memo(() => {
       </div>
 
       {/* PC Right Side */}
-      <div className="flex items-center gap-5 max-md:hidden">
+      <div className="flex items-center gap-5 max-md:hidden" ref={controlCenterRef}>
         <ul>
           {navIcons.map(({ id, img }) => (
             <li key={id}>
-              <img src={img} alt={`icon-${id}`} width={18} height={18} className="icon-hover w-[18px] h-[18px] cursor-pointer" loading="lazy" />
+              <img 
+                src={img} 
+                alt={`icon-${id}`} 
+                width={18} 
+                height={18} 
+                className="icon-hover w-[18px] h-[18px] cursor-pointer" 
+                loading="lazy" 
+                onClick={() => {
+                  if (id === 4) setIsControlCenterOpen(!isControlCenterOpen);
+                }}
+              />
             </li>
           ))}
         </ul>
         <time>{time}</time>
+        <ControlCenter isOpen={isControlCenterOpen} />
       </div>
     </nav>
   );
