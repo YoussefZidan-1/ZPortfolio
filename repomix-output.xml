@@ -51,6 +51,7 @@ public/files/resume.pdf
 public/fonts/JetBrainsMono/JetBrainsMonoNerdFont-Bold.ttf
 public/fonts/JetBrainsMono/JetBrainsMonoNerdFont-Regular.ttf
 public/fonts/JetBrainsMono/OFL.txt
+public/images/arch.webp
 public/images/blog1.png
 public/images/blog2.png
 public/images/blog3.png
@@ -85,8 +86,10 @@ public/images/yousef-5.webp
 public/images/yousef.webp
 public/images/zcinema.png
 public/macbook.png
+public/sounds/oxygen_boot.ogg
 README.md
 src/App.jsx
+src/components/BootSequence.jsx
 src/components/Dock.jsx
 src/components/Home.jsx
 src/components/index.js
@@ -285,15 +288,6 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 </file>
 
-<file path="src/components/index.js">
-import Navbar from "#components/Navbar.jsx";
-import Welcome from "#components/Welcome.jsx";
-import Dock from "#components/Dock.jsx"
-import WindowControls from "#components/WindowControls.jsx";
-import Home from "#components/Home.jsx";
-export { Navbar, Welcome, Dock, WindowControls, Home };
-</file>
-
 <file path="src/main.jsx">
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -387,6 +381,16 @@ dist-ssr
 </html>
 </file>
 
+<file path="src/components/index.js">
+import Navbar from "#components/Navbar.jsx";
+import Welcome from "#components/Welcome.jsx";
+import Dock from "#components/Dock.jsx"
+import WindowControls from "#components/WindowControls.jsx";
+import Home from "#components/Home.jsx";
+import BootSequence from "#components/BootSequence.jsx";
+export { Navbar, Welcome, Dock, WindowControls, Home, BootSequence };
+</file>
+
 <file path="src/windows/Image.jsx">
 import WindowWrapper from "#hoc/WindowWrapper.jsx";
 import { WindowControls } from "#components";
@@ -423,6 +427,82 @@ const Image = memo(() => {
 
 const ImageWindow = WindowWrapper(Image, "imgfile");
 export default ImageWindow;
+</file>
+
+<file path="src/windows/index.js">
+import Terminal from "#windows/Terminal.jsx";
+import ZenBrowser from "#windows/ZenBrowser.jsx";
+import Resume from "#windows/Resume.jsx";
+import Finder from "#windows/Finder.jsx";
+import Text from "#windows/Text.jsx";
+import Image from "#windows/Image.jsx";
+import Contact from "#windows/Contact.jsx";
+import Photos from "#windows/Photos.jsx"
+import CodeEditor from "#windows/CodeEditor.jsx";
+export { Terminal, ZenBrowser, Resume, Finder, Text, Image, Contact, Photos, CodeEditor };
+</file>
+
+<file path="src/windows/Photos.jsx">
+import { Mail, Search } from "lucide-react"
+import WindowWrapper from "#hoc/WindowWrapper"
+import WindowControls from "#components/WindowControls"
+import { gallery, photosLinks } from "#constants/index.js"
+import useWindowStore from "#store/window"
+
+const Photos = () => {
+  const { openWindow } = useWindowStore();
+  return (
+    <>
+      <div id="window-header" className="shrink-0">
+        <WindowControls target="photos" />
+        <div className="w-full flex justify-end items-center gap-3 text-indigo-500">
+          <Mail className="icon" />
+          <Search className="icon"/>
+        </div>
+      </div>
+      
+      <div className="flex flex-1 h-full overflow-hidden">
+        <div className="sidebar shrink-0 h-full overflow-y-auto">
+          <h2>Photos</h2>
+          <ul>
+            {photosLinks.map(({ id, icon, title }) => (
+              <li key={id}>
+                <img src={icon} alt={title} />
+                <p>{title}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="gallery flex-1 h-full overflow-y-auto min-h-0 p-5">
+          <ul>
+            {gallery.map(({ id, img }) => (
+              <li
+                key={id}
+                onClick={() => 
+                  openWindow("imgfile", {
+                    id,
+                    name: "Gallery image",
+                    icon: "/images/image.png",
+                    kind: "file",
+                    fileType: "img",
+                    imageUrl: img,
+                  })
+                }
+              >
+                <img src={img} alt={`Gallery Image ${id}`}/>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </>
+  )
+}
+
+const PhotosWindow = WindowWrapper(Photos, "photos");
+PhotosWindow.displayName = "Photos";
+
+export default PhotosWindow;
 </file>
 
 <file path="src/windows/Text.jsx">
@@ -542,6 +622,243 @@ export default ZenWindow;
     }
   ]
 }
+</file>
+
+<file path="src/components/BootSequence.jsx">
+import { useState, useEffect, useRef } from "react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+import dayjs from "dayjs";
+import { ChevronRight } from "lucide-react";
+import { useWebHaptics } from "web-haptics/react";
+
+const bootLines = [
+  "Starting GRUB bootloader...",
+  "Loading Linux linux-cachyos v7.0 ...",
+  "Loading initial ramdisk ...",
+  ":: running early hook [udev]",
+  "Starting systemd-udevd version 255.3-1-cachyos",
+  ":: running hook [udev]",
+  "Triggering uevents...",
+  "[  OK  ] Reached target Local File Systems (Pre).",
+  "[  OK  ] Reached target Local File Systems.",
+  "Mounting /sys/kernel/debug...",
+  "Mounting /sys/kernel/tracing...",
+  "[  OK  ] Started Create Static Device Nodes in /dev.",
+  "[  OK  ] Started Rule-based Manager for Device Events and Files.",
+  "[  OK  ] Found device /dev/disk/by-uuid/cachy-os-7.0",
+  "Mounting /boot/efi...",
+  "[  OK  ] Reached target Initrd Root Device.",
+  "Starting File System Check on /dev/disk/by-uuid/cachy-7.0...",
+  "[  OK  ] Reached target Initrd Root File System.",
+  "Starting Switch Root...",
+  "Switching root to Linux 7.0.",
+  "[  OK  ] Started Journal Service.",
+  "[  OK  ] Started Load Kernel Modules.",
+  "[  OK  ] Reached target Sound Card.",
+  "[  OK  ] Reached target Network.",
+  "Starting CachyOS Display Manager...",
+];
+
+const BootSequence = ({ onComplete }) => {
+  const [stage, setStage] = useState(0);
+  const [lines, setLines] = useState([]);
+  const [time, setTime] = useState(dayjs());
+  const [password, setPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  const containerRef = useRef(null);
+  const loginRef = useRef(null);
+  
+  // 🔊 Oxygen KDE Boot Sound
+  const bootSound = useRef(new Audio("/sounds/oxygen_boot.ogg"));
+  
+  const { trigger } = useWebHaptics();
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(dayjs()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (stage === 0) {
+      // Real GRUB blink duration
+      const t = setTimeout(() => setStage(1), 2000);
+      return () => clearTimeout(t);
+    } else if (stage === 1) {
+      let currentLine = 0;
+      const interval = setInterval(() => {
+        if (currentLine < bootLines.length) {
+          setLines((prev) => [...prev, bootLines[currentLine]]);
+          currentLine++;
+        } else {
+          clearInterval(interval);
+          setTimeout(() => setStage(2), 800);
+        }
+      }, 70);
+      return () => clearInterval(interval);
+    } else if (stage === 2) {
+      const t = setTimeout(() => {
+        setStage(3);
+      }, 3000);
+      return () => clearTimeout(t);
+    }
+  }, [stage]);
+
+  useGSAP(() => {
+    if (stage === 3 && loginRef.current) {
+      gsap.fromTo(
+        loginRef.current,
+        { opacity: 0, filter: "blur(20px)", scale: 1.1 },
+        { opacity: 1, filter: "blur(0px)", scale: 1, duration: 1.5, ease: "power3.out" }
+      );
+    }
+  }, [stage]);
+
+  const handleLogin = (e) => {
+    e?.preventDefault();
+    if (password === "1234") {
+      trigger("success");
+      
+      // 🚀 PLAY OXYGEN BOOT SOUND
+      bootSound.current.currentTime = 0; 
+      bootSound.current.play().catch(err => console.log("Audio play blocked:", err));
+
+      setStage(4);
+      
+      // Organic fade out to the actual OS
+      gsap.to(containerRef.current, {
+        opacity: 0,
+        scale: 1.1,
+        filter: "blur(30px)",
+        duration: 1.5,
+        ease: "power2.inOut",
+        onComplete: onComplete,
+      });
+    } else {
+      trigger("error");
+      setErrorMsg("it's 1234 baka i am a creative developer for sure that's my password to my bank account !");
+      gsap.fromTo(".login-box", { x: -10 }, { x: 10, yoyo: true, repeat: 5, duration: 0.05 });
+    }
+  };
+
+  const renderLine = (text) => {
+    if (!text || typeof text !== 'string') return ""; 
+    if (text.includes("[  OK  ]")) {
+      return text.replace("[  OK  ]", `<span class="text-green-500">[  OK  ]</span>`);
+    }
+    return text;
+  };
+
+  return (
+    <div ref={containerRef} className="fixed inset-0 z-[9999] bg-[#000000] text-white flex flex-col font-terminal overflow-hidden select-none">
+      
+      {/* STAGE 0: REAL GRUB Blink */}
+      {stage === 0 && (
+        <div className="p-5 text-2xl font-bold">
+          <span className="cursor-blink">_</span>
+        </div>
+      )}
+
+      {/* STAGE 1: Boot Logs */}
+      {stage === 1 && (
+        <div className="p-5 flex flex-col justify-start h-full overflow-hidden">
+          {lines.map((line, i) => (
+            <div 
+              key={i} 
+              className="text-sm md:text-base text-gray-300 leading-tight"
+              dangerouslySetInnerHTML={{ __html: renderLine(line) }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* STAGE 2: Arch Logo & Loading Bar */}
+      {stage === 2 && (
+        <div className="flex-1 flex flex-col items-center justify-center animate-in fade-in duration-700">
+          <img 
+            src="/images/arch.webp" 
+            alt="Arch Logo" 
+            className="w-32 h-32 md:w-48 md:h-48 mb-10 object-contain" 
+          />
+          <div className="w-64 h-1 bg-gray-800 rounded-full overflow-hidden">
+            <div className="h-full bg-[#1793d1] rounded-full animate-[loading_2.5s_ease-in-out_forwards]" style={{width: 0}}></div>
+          </div>
+        </div>
+      )}
+
+      {/* STAGE 3 & 4: Mac Login Screen */}
+      {(stage === 3 || stage === 4) && (
+        <div ref={loginRef} className="absolute inset-0 bg-[url('/images/wallpaper.webp')] max-md:bg-[url('/images/wallpaper-2.webp')] bg-cover bg-center">
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-3xl flex flex-col items-center">
+            
+            <div className="mt-[12vh] md:mt-[15vh] text-center">
+              <h1 className="text-7xl md:text-9xl font-semibold tracking-tighter text-white drop-shadow-lg transition-all duration-300 font-georama">
+                {time.format("h:mm")}
+              </h1>
+              <p className="text-xl md:text-3xl mt-2 font-medium text-white/90 drop-shadow-md font-georama">
+                {time.format("dddd, MMMM D")}
+              </p>
+            </div>
+
+            <div className="login-box mt-auto mb-[20vh] flex flex-col items-center z-10 w-full px-5">
+              <img 
+                src="/images/yousef-5.webp" 
+                alt="Yousef Zedan" 
+                className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover shadow-2xl mb-5 border-[3px] border-white/20"
+              />
+              <h2 className="text-xl md:text-2xl font-bold mb-6 tracking-wide text-white drop-shadow-md font-georama">Yousef Zedan</h2>
+              
+              <form onSubmit={handleLogin} className="relative w-full max-w-[300px]">
+                <input 
+                  type="password" 
+                  autoFocus
+                  placeholder="come on try don't be shy"
+                  className="w-full bg-white/10 border border-white/20 rounded-full px-5 py-3.5 text-center text-white placeholder:text-white/60 outline-none focus:bg-white/20 focus:border-white/40 backdrop-blur-xl transition-all shadow-xl font-georama text-[15px]"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errorMsg) setErrorMsg("");
+                  }}
+                />
+                {password.length > 0 && (
+                  <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors cursor-pointer flex items-center justify-center">
+                    <ChevronRight size={18} />
+                  </button>
+                )}
+              </form>
+              
+              <div className="h-16 mt-4 flex items-start justify-center">
+                {errorMsg && (
+                  <p className="text-red-300 text-[13px] md:text-sm font-medium max-w-sm text-center drop-shadow-md px-2 animate-in fade-in zoom-in-95 font-georama">
+                    {errorMsg}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes loading {
+          0% { width: 0%; }
+          30% { width: 40%; }
+          70% { width: 75%; }
+          100% { width: 100%; }
+        }
+        @keyframes grub-blink {
+          0%, 49% { opacity: 1; }
+          50%, 100% { opacity: 0; }
+        }
+        .cursor-blink {
+          animation: grub-blink 0.8s step-end infinite;
+        }
+      `}} />
+    </div>
+  );
+};
+
+export default BootSequence;
 </file>
 
 <file path="src/proximity-engine/ProximityContext.jsx">
@@ -794,19 +1111,6 @@ const FinderWindow = WindowWrapper(Finder, "finder");
 export default FinderWindow;
 </file>
 
-<file path="src/windows/index.js">
-import Terminal from "#windows/Terminal.jsx";
-import ZenBrowser from "#windows/ZenBrowser.jsx";
-import Resume from "#windows/Resume.jsx";
-import Finder from "#windows/Finder.jsx";
-import Text from "#windows/Text.jsx";
-import Image from "#windows/Image.jsx";
-import Contact from "#windows/Contact.jsx";
-import Photos from "#windows/Photos.jsx"
-import CodeEditor from "#windows/CodeEditor.jsx";
-export { Terminal, ZenBrowser, Resume, Finder, Text, Image, Contact, Photos, CodeEditor };
-</file>
-
 <file path="vite.config.js">
 import { defineConfig, normalizePath } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -988,69 +1292,6 @@ const useWindowStore = create(
 export default useWindowStore;
 </file>
 
-<file path="src/windows/Photos.jsx">
-import { Mail, Search } from "lucide-react"
-import WindowWrapper from "#hoc/WindowWrapper"
-import WindowControls from "#components/WindowControls"
-import { gallery, photosLinks } from "#constants/index.js"
-import useWindowStore from "#store/window"
-
-const Photos = () => {
-  const { openWindow } = useWindowStore();
-  return (
-    <>
-      <div id="window-header" className="shrink-0">
-        <WindowControls target="photos" />
-        <div className="w-full flex justify-end items-center gap-3 text-indigo-500">
-          <Mail className="icon" />
-          <Search className="icon"/>
-        </div>
-      </div>
-      
-      <div className="flex flex-1 h-full overflow-hidden">
-        <div className="sidebar shrink-0 h-full overflow-y-auto">
-          <h2>Photos</h2>
-          <ul>
-            {photosLinks.map(({ id, icon, title }) => (
-              <li key={id}>
-                <img src={icon} alt={title} />
-                <p>{title}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="gallery flex-1 h-full overflow-y-auto min-h-0 p-5">
-          <ul>
-            {gallery.map(({ id, img }) => (
-              <li
-                key={id}
-                onClick={() => 
-                  openWindow("imgfile", {
-                    id,
-                    name: "Gallery image",
-                    icon: "/images/image.png",
-                    kind: "file",
-                    fileType: "img",
-                    imageUrl: img,
-                  })
-                }
-              >
-                <img src={img} alt={`Gallery Image ${id}`}/>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </>
-  )
-}
-
-const PhotosWindow = WindowWrapper(Photos, "photos");
-PhotosWindow.displayName = "Photos";
-
-export default PhotosWindow;
-</file>
-
 <file path="src/windows/Resume.jsx">
 import React, { useState, useMemo, memo, useEffect } from 'react';
 import { pdfjs, Document, Page } from 'react-pdf';
@@ -1131,6 +1372,54 @@ const Resume = memo(() => {
 
 const ResumeWindow = WindowWrapper(Resume, "resume");
 export default ResumeWindow;
+</file>
+
+<file path="src/components/WindowControls.jsx">
+import useWindowStore from "#store/window.js";
+import { ChevronDown } from "lucide-react";
+import { useWebHaptics } from "web-haptics/react";
+const WindowControls = ({ target }) => {
+  const closeWindow = useWindowStore((s) => s.closeWindow);
+  const toggleMaximize = useWindowStore((s) => s.toggleMaximize);
+  const { trigger } = useWebHaptics();
+  return (
+    <div id="window-controls">
+      <button 
+        type="button"
+        className="close cursor-pointer" 
+        onPointerDown={(e) => { 
+            e.stopPropagation();
+            closeWindow(target);
+            trigger("nudge");
+        }}
+      >
+        <ChevronDown className="hidden max-md:block text-gray-700 stroke-[3px] pointer-events-none" size={18} />
+      </button>
+      
+      <button 
+        type="button" 
+        className="minimize cursor-pointer" 
+        onPointerDown={(e) => {
+            e.stopPropagation();
+            closeWindow(target);
+            trigger("nudge");
+        }}
+      />
+      
+      <button 
+        type="button" 
+        className="maximize cursor-pointer" 
+        onPointerDown={(e) => {
+            e.stopPropagation();
+            toggleMaximize(target);
+            trigger("success");
+        }} 
+      />
+    </div>
+  )
+}
+
+export default WindowControls;
 </file>
 
 <file path="src/proximity-engine/Proximity.jsx">
@@ -1306,9 +1595,37 @@ export const Proximity = ({
         initItems();
       }
 
-      const observer = new MutationObserver(() => {
-        initItems();
+      const observer = new MutationObserver((mutationsList) => {
+        if (!container) return;
+      
+        let needsReinit = false;
+      
+        for (const mutation of mutationsList) {
+          if (mutation.type === "childList") {
+            const hasRelevantAdditions = Array.from(mutation.addedNodes).some(
+              (node) =>
+                node.nodeType === 1 &&
+                (node.matches(selector) || node.querySelector(selector))
+            );
+      
+            const hasRelevantRemovals = Array.from(mutation.removedNodes).some(
+              (node) =>
+                node.nodeType === 1 &&
+                (node.matches(selector) || node.querySelector(selector))
+            );
+      
+            if (hasRelevantAdditions || hasRelevantRemovals) {
+              needsReinit = true;
+              break;
+            }
+          }
+        }
+      
+        if (needsReinit) {
+          initItems();
+        }
       });
+      
       observer.observe(container, { childList: true, subtree: true });
   
       window.addEventListener("resize", debouncedUpdateCenters);
@@ -1445,170 +1762,6 @@ export const Proximity = ({
     </div>
   );
 };
-</file>
-
-<file path="src/components/WindowControls.jsx">
-import useWindowStore from "#store/window.js";
-import { ChevronDown } from "lucide-react";
-import { useWebHaptics } from "web-haptics/react";
-const WindowControls = ({ target }) => {
-  const closeWindow = useWindowStore((s) => s.closeWindow);
-  const toggleMaximize = useWindowStore((s) => s.toggleMaximize);
-  const { trigger } = useWebHaptics();
-  return (
-    <div id="window-controls">
-      <button 
-        type="button"
-        className="close cursor-pointer" 
-        onPointerDown={(e) => { 
-            e.stopPropagation();
-            closeWindow(target);
-            trigger("nudge");
-        }}
-      >
-        <ChevronDown className="hidden max-md:block text-gray-700 stroke-[3px] pointer-events-none" size={18} />
-      </button>
-      
-      <button 
-        type="button" 
-        className="minimize cursor-pointer" 
-        onPointerDown={(e) => {
-            e.stopPropagation();
-            closeWindow(target);
-            trigger("nudge");
-        }}
-      />
-      
-      <button 
-        type="button" 
-        className="maximize cursor-pointer" 
-        onPointerDown={(e) => {
-            e.stopPropagation();
-            toggleMaximize(target);
-            trigger("success");
-        }} 
-      />
-    </div>
-  )
-}
-
-export default WindowControls;
-</file>
-
-<file path="README.md">
-# 💻 ZPortfolio — MacOS Inspired Creative Portfolio
-
-Welcome to **ZPortfolio**, a highly interactive, MacOS-inspired personal portfolio designed and developed by **Yousef Zedan (ZED Studios)**. This project isn't just a website; it's a browser-based operating system experience built to showcase creative development skills through draggable windows, a functional file explorer, and high-end animations.
-
----
-
-## ✨ Features
-
-- 🖥️ **Desktop OS Experience:** A custom window manager handling minimize, maximize, and close actions with focus-based z-index logic.
-- 🖱️ **Draggable Windows:** Fluid, interactive window movements powered by **GSAP Draggable**.
-- 📁 **Finder (File Explorer):** A fully functional navigation system to browse projects, read text files, and view images.
-- 🌊 **Animated Dock:** A MacOS-style app dock with proximity-based scaling and magnification effects.
-- 📄 **Integrated PDF Viewer:** View and download my professional resume natively within the interface.
-- 🎨 **Dynamic Typography:** Interactive variable font weight adjustments that react to mouse movements.
-- ⚡ **Optimized State Management:** Powered by **Zustand** and **Immer** for seamless window and location handling.
-
----
-
-## 🛠️ Tech Stack
-
-- **Framework:** [React 19](https://react.dev/) & [Vite](https://vitejs.dev/)
-- **Animations:** [GSAP](https://gsap.com/) & [GSAP Draggable](https://gsap.com/docs/v3/Plugins/Draggable/)
-- **State Management:** [Zustand](https://github.com/pmndrs/zustand) (with Immer middleware)
-- **Styling:** [Tailwind CSS v4](https://tailwindcss.com/)
-- **Icons:** [Lucide React](https://lucide.dev/) & Custom SVGs
-- **PDF Rendering:** [React-PDF](https://github.com/wojtekmaj/react-pdf)
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-Ensure you have **Node.js** and **npm** installed on your machine.
-
-### Installation
-
-1. **Clone the repository:**
-   ```sh
-   git clone https://github.com/YoussefZidan-1/ZPortfolio.git
-   ```
-
-2. **Navigate to the project directory:**
-   ```sh
-   cd zportfolio
-   ```
-
-3. **Install dependencies:**
-   ```sh
-   npm install
-   ```
-
-4. **Start the development server:**
-   ```sh
-   npm run dev
-   ```
-
-5. **Open your browser:** Visit `http://localhost:5173` to see the magic.
-
----
-
-## 🗺️ Roadmap (Open Source Goals)
-
-This portfolio is a living project. I’m planning to implement the following features and would love for the community to contribute:
-
-- [ ] 🌓 **Light / Dark Mode:** Implement a full theme-switching mechanism using the existing `oklch` CSS variable structure.
-- [x] 📱 **Mobile iOS Version:** Transform the desktop layout into a responsive iOS-inspired experience for mobile users.
-- [x] ⌨️ **Interactive Terminal:** Upgrade the static terminal into a functional CLI that accepts commands like `ls`, `cd`, and `cat` autocomplete, open apps and more.
-- [ ]  **Arch Linux Boot Sequence:** When The Website opens it shows a looding arch linux screen like GRUB & SDDM.
-- [ ]  **System Sounds:** Adding subtle sound effects (a mechanical keyboard click for the terminal, a swoosh when a window opens, a crumple sound when something goes to the trash) elevates the "feel" of the OS incredibly.
-
----
-
-## 📂 Project Structure
-
-```text
-src/
-├── components/      # UI Components: Dock, Navbar, Welcome text, WindowControls
-├── constants/       # Core Data: Apps, Projects, Tech Stack, Social links
-├── hoc/             # HOCs: WindowWrapper for draggable and focus logic
-├── store/           # Zustand Stores: Window manager and directory state
-├── windows/         # App Windows: Finder, Safari, Photos, Terminal, etc.
-└── App.jsx          # Main application registry and layout
-```
-
----
-
-## 📫 Contact & Credits
-
-**Yousef Zedan (ZED Studios)**
-
-<div align="center">
-
-[![Email](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:zedstudios.devs@gmail.com)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/yousef-zedan-6a275a400/)
-[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/YoussefZidan-1/)
-[![X](https://img.shields.io/badge/X-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/YousefZeda59629)
-
-</div>
-<p align="center">
-  Developed with passion by <b>Yousef Zedan (ZED Studios)</b>. <br>
-  <i>"Always building, always learning."</i>
-</p>
-
----
-
-### 🎨 Visual Portfolio Preview
-> **Note:** The icons above will take you directly to my profiles. If you want to see the MacOS experience in action, check out the [Live Demo](https://yzportfolio.vercel.app/).
-
----
-
-## 📝 License
-
-Distributed under the **MIT License**. See `LICENSE` for more information.
 </file>
 
 <file path="src/components/Navbar.jsx">
@@ -2007,19 +2160,125 @@ const CodeEditorWindow = WindowWrapper(CodeEditor, "vscode");
 export default CodeEditorWindow;
 </file>
 
-<file path="src/App.jsx">
-/**
- * 💻 ZPortfolio — MacOS Inspired Creative Portfolio
- * ------------------------------------------------
- * Created & Developed by: Yousef Zedan (ZED Studios)
- * GitHub: https://github.com/YoussefZidan-1/zportfolio
- * License: MIT (Attribution is required)
- * ------------------------------------------------
- * "If you're using this template, a star on GitHub would mean a lot! ⭐"
- */
+<file path="README.md">
+# 💻 ZPortfolio — MacOS Inspired Creative Portfolio
 
-import React, { Suspense, lazy } from "react";
-import { Navbar, Welcome, Dock, Home } from "#components";
+Welcome to **ZPortfolio**, a highly interactive, MacOS-inspired personal portfolio designed and developed by **Yousef Zedan (ZED Studios)**. This project isn't just a website; it's a browser-based operating system experience built to showcase creative development skills through draggable windows, a functional file explorer, and high-end animations.
+
+---
+
+## ✨ Features
+
+- 🖥️ **Desktop OS Experience:** A custom window manager handling minimize, maximize, and close actions with focus-based z-index logic.
+- 🖱️ **Draggable Windows:** Fluid, interactive window movements powered by **GSAP Draggable**.
+- 📁 **Finder (File Explorer):** A fully functional navigation system to browse projects, read text files, and view images.
+- 🌊 **Animated Dock:** A MacOS-style app dock with proximity-based scaling and magnification effects.
+- 📄 **Integrated PDF Viewer:** View and download my professional resume natively within the interface.
+- 🎨 **Dynamic Typography:** Interactive variable font weight adjustments that react to mouse movements.
+- ⚡ **Optimized State Management:** Powered by **Zustand** and **Immer** for seamless window and location handling.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework:** [React 19](https://react.dev/) & [Vite](https://vitejs.dev/)
+- **Animations:** [GSAP](https://gsap.com/) & [GSAP Draggable](https://gsap.com/docs/v3/Plugins/Draggable/)
+- **State Management:** [Zustand](https://github.com/pmndrs/zustand) (with Immer middleware)
+- **Styling:** [Tailwind CSS v4](https://tailwindcss.com/)
+- **Icons:** [Lucide React](https://lucide.dev/) & Custom SVGs
+- **PDF Rendering:** [React-PDF](https://github.com/wojtekmaj/react-pdf)
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+Ensure you have **Node.js** and **npm** installed on your machine.
+
+### Installation
+
+1. **Clone the repository:**
+   ```sh
+   git clone https://github.com/YoussefZidan-1/ZPortfolio.git
+   ```
+
+2. **Navigate to the project directory:**
+   ```sh
+   cd zportfolio
+   ```
+
+3. **Install dependencies:**
+   ```sh
+   npm install
+   ```
+
+4. **Start the development server:**
+   ```sh
+   npm run dev
+   ```
+
+5. **Open your browser:** Visit `http://localhost:5173` to see the magic.
+
+---
+
+## 🗺️ Roadmap (Open Source Goals)
+
+This portfolio is a living project. I’m planning to implement the following features and would love for the community to contribute:
+
+- [ ] 🌓 **Light / Dark Mode:** Implement a full theme-switching mechanism.
+- [x] 📱 **Mobile iOS Version:** Transform the desktop layout into a responsive iOS-inspired experience for mobile users.
+- [x] ⌨️ **Interactive Terminal:** Upgrade the static terminal into a functional CLI that accepts commands like `ls`, `cd`, and `cat` autocomplete, open apps and more.
+- [x]  **Arch Linux Boot Sequence:** When The Website opens it shows a looding arch linux screen like GRUB & SDDM.
+- [ ]  **System Sounds:** Adding subtle sound effects (a mechanical keyboard click for the terminal, a swoosh when a window opens, a crumple sound when something goes to the trash) elevates the "feel" of the OS incredibly.
+
+---
+
+## 📂 Project Structure
+
+```text
+src/
+├── components/      # UI Components: Dock, Navbar, Welcome text, WindowControls
+├── constants/       # Core Data: Apps, Projects, Tech Stack, Social links
+├── hoc/             # HOCs: WindowWrapper for draggable and focus logic
+├── store/           # Zustand Stores: Window manager and directory state
+├── windows/         # App Windows: Finder, Safari, Photos, Terminal, etc.
+└── App.jsx          # Main application registry and layout
+```
+
+---
+
+## 📫 Contact & Credits
+
+**Yousef Zedan (ZED Studios)**
+
+<div align="center">
+
+[![Email](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:zedstudios.devs@gmail.com)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/yousef-zedan-6a275a400/)
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/YoussefZidan-1/)
+[![X](https://img.shields.io/badge/X-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/YousefZeda59629)
+
+</div>
+<p align="center">
+  Developed with passion by <b>Yousef Zedan (ZED Studios)</b>. <br>
+  <i>"Always building, always learning."</i>
+</p>
+
+---
+
+### 🎨 Visual Portfolio Preview
+> **Note:** The icons above will take you directly to my profiles. If you want to see the MacOS experience in action, check out the [Live Demo](https://yzportfolio.vercel.app/).
+
+---
+
+## 📝 License
+
+Distributed under the **MIT License**. See `LICENSE` for more information.
+</file>
+
+<file path="src/App.jsx">
+import React, { Suspense, lazy, useState } from "react";
+import { Navbar, Welcome, Dock, Home, BootSequence } from "#components";
 import gsap from "gsap";
 import { Draggable } from "gsap/Draggable";
 gsap.registerPlugin(Draggable);
@@ -2033,7 +2292,6 @@ const Image = lazy(() => import("#windows/Image.jsx"));
 const Contact = lazy(() => import("#windows/Contact.jsx"));
 const Photos = lazy(() => import("#windows/Photos.jsx"));
 const CodeEditor = lazy(() => import("#windows/CodeEditor.jsx"));
-// 🕵️‍♂️ The "ZED" Signature - Visible only in the browser console
 
 if (typeof window !== "undefined") {
   console.log(
@@ -2045,8 +2303,14 @@ if (typeof window !== "undefined") {
 }
 
 const App = () => {
+  const [isBooted, setIsBooted] = useState(false);
+
+  if (!isBooted) {
+    return <BootSequence onComplete={() => setIsBooted(true)} />;
+  }
+
   return (
-    <main>
+    <main className="animate-in fade-in duration-700">
       <div className="ios-home-indicator" />
       <Navbar />
       <Welcome />
@@ -2338,203 +2602,6 @@ const Welcome = () => {
 };
 
 export default Welcome;
-</file>
-
-<file path="src/components/Home.jsx">
-import { locations, dockApps } from "#constants";
-import clsx from "clsx";
-import { useGSAP } from "@gsap/react";
-import Draggable from "gsap/Draggable";
-import gsap from "gsap";
-import SpotifyWidget from "./SpotifyWidget.jsx";
-import { useWebHaptics } from "web-haptics/react";
-import useWindowStore from "#store/window.js";
-import useLocationStore from "#store/location.js";
-import { useState, useEffect, useRef } from "react";
-import dayjs from "dayjs";
-
-const projects = locations.work?.children ??[];
-
-const Home = () => {
-  const { trigger } = useWebHaptics();
-  const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
-  const openWindow = useWindowStore((s) => s.openWindow);
-  const [time, setTime] = useState(dayjs());
-
-  useEffect(() => {
-    const timer = setInterval(() => setTime(dayjs()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-  
-  const pointerPos = useRef({ x: 0, y: 0 });
-  
-    const handlePointerDown = (e) => {
-      pointerPos.current = { x: e.clientX, y: e.clientY };
-    };
-
-  const handleOpenProjectFinder = (e, project) => {
-    const dx = Math.abs(e.clientX - pointerPos.current.x);
-        const dy = Math.abs(e.clientY - pointerPos.current.y);
-        if (dx > 5 || dy > 5) return;
-    trigger("nudge");
-    const rect = e.currentTarget.getBoundingClientRect();
-    const launchPos = {
-      x: rect.left + rect.width / 2,
-      y: rect.top + rect.height / 2,
-      width: rect.width,
-      height: rect.height,
-    };
-    setActiveLocation(project);
-    openWindow("finder", null, launchPos);
-  };
-
-  const handleOpenApp = (e, app) => {
-    const dx = Math.abs(e.clientX - pointerPos.current.x);
-        const dy = Math.abs(e.clientY - pointerPos.current.y);
-        if (dx > 5 || dy > 5) return;
-    if (!app.canOpen) { 
-      trigger("error");
-      return;
-    }
-    trigger("nudge", { intensity: 0.8 }); 
-    const rect = e.currentTarget.getBoundingClientRect();
-    const launchPos = {
-      x: rect.left + rect.width / 2,
-      y: rect.top + rect.height / 2,
-      width: rect.width,
-      height: rect.height,
-    };
-    openWindow(app.id, null, launchPos);
-  };
-
-  useGSAP(() => {
-    let draggables =[];
-    const initDrag = () => {
-      if (window.innerWidth > 768) {
-        if (draggables.length === 0) {
-          draggables = Draggable.create(".folder", {
-            type: "x,y",
-            bounds: "body",
-            dragClickables: true,
-            
-                      onDragEnd: function () {
-                          const gridW = 100; 
-                          const gridH = 85; 
-                          const offsetX = 80; 
-                          const offsetY = 80; 
-                          const rect = this.target.getBoundingClientRect();
-                          const centerX = rect.left + rect.width / 2;
-                          const centerY = rect.top + rect.height / 2;
-                          const targetCenterX = Math.round((centerX - offsetX) / gridW) * gridW + offsetX;
-                          const targetCenterY = Math.round((centerY - offsetY) / gridH) * gridH + offsetY;
-                          const deltaX = targetCenterX - centerX;
-                          const deltaY = targetCenterY - centerY;
-                          gsap.to(this.target, {
-                            x: this.x + deltaX,
-                            y: this.y + deltaY,
-                            duration: 0.3,
-                            ease: "back.out(1.5)",
-                            overwrite: "auto"
-                          });
-                        }
-          });
-        } else {
-          draggables.forEach(d => d.enable());
-        }
-      } else {
-        if (draggables.length > 0) {
-          draggables.forEach(d => d.disable());
-          gsap.set(".folder", { clearProps: "x,y,transform" });
-        }
-      }
-    };
-    initDrag();
-    window.addEventListener("resize", initDrag);
-    return () => window.removeEventListener("resize", initDrag);
-  },[]);
-
-  // Intercept the apps array to replace Trash with Resume ONLY on mobile
-  const mobileApps = dockApps.map(app => 
-    app.id === "trash" ? { id: "resume", name: "Resume", icon: "pdf.png", canOpen: true } : app
-  );
-
-  return (
-    <section id="home" className="absolute inset-0 w-full h-full z-0 overflow-hidden">
-      <SpotifyWidget /> 
-      <div className="absolute top-[12vh] left-0 w-full flex flex-col items-center justify-center md:hidden text-white drop-shadow-xl z-20 pointer-events-none select-none">
-        <h1 className="text-[5.5rem] font-light tracking-tight leading-none text-center">
-          {time.format("h:mm")}
-        </h1>
-        <p className="text-[1.2rem] font-medium mt-2 tracking-wide text-center">
-          {time.format("dddd, MMMM D")}
-        </p>
-      </div>
-      
-      <ul className="desktop-projects w-full h-full max-md:hidden">
-        {projects.map((project) => (
-          <li
-            key={project.id}
-            className={clsx("group folder", project.windowPosition)}
-            onPointerDown={handlePointerDown}
-            onPointerUp={(e) => handleOpenProjectFinder(e, project)}
-          >
-            <img 
-              src="/images/folder.png" 
-              alt={project.name}
-              width={64}
-              height={60}
-              loading="eager"
-              className="pointer-events-none" 
-            />
-            <p>{project.name}</p>
-          </li>
-        ))}
-      </ul>
-
-      <ul className="hidden max-md:grid grid-cols-4 gap-x-2 gap-y-6 px-5 relative z-30 w-full box-border mt-[38vh]">
-        {mobileApps.map((app) => (
-          <li 
-            key={app.id || app.name}
-            onPointerDown={handlePointerDown}
-            onPointerUp={(e) => handleOpenApp(e, app)}
-            className="flex flex-col items-center gap-[6px] cursor-pointer"
-          >
-            <img 
-              src={`/images/${app.icon}`} 
-              alt={app.name} 
-              className={clsx(
-                "w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover",
-                !app.canOpen && "opacity-60"
-              )}
-            />
-            <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
-              {app.name}
-            </p>
-          </li>
-        ))}
-        {projects.map((project) => (
-          <li 
-            key={project.id}
-            onPointerDown={handlePointerDown}
-            onPointerUp={(e) => handleOpenProjectFinder(e, project)}
-            className="flex flex-col items-center gap-[6px] cursor-pointer"
-          >
-            <img 
-              src="/images/folder.png" 
-              alt={project.name} 
-              className="w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover"
-            />
-            <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
-              {project.name}
-            </p>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-};
-
-export default Home;
 </file>
 
 <file path="src/constants/index.js">
@@ -2958,6 +3025,203 @@ export {
 };
 </file>
 
+<file path="src/components/Home.jsx">
+import { locations, dockApps } from "#constants";
+import clsx from "clsx";
+import { useGSAP } from "@gsap/react";
+import Draggable from "gsap/Draggable";
+import gsap from "gsap";
+import SpotifyWidget from "./SpotifyWidget.jsx";
+import { useWebHaptics } from "web-haptics/react";
+import useWindowStore from "#store/window.js";
+import useLocationStore from "#store/location.js";
+import { useState, useEffect, useRef } from "react";
+import dayjs from "dayjs";
+
+const projects = locations.work?.children ??[];
+
+const Home = () => {
+  const { trigger } = useWebHaptics();
+  const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const [time, setTime] = useState(dayjs());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(dayjs()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  
+  const pointerPos = useRef({ x: 0, y: 0 });
+  
+    const handlePointerDown = (e) => {
+      pointerPos.current = { x: e.clientX, y: e.clientY };
+    };
+
+  const handleOpenProjectFinder = (e, project) => {
+    const dx = Math.abs(e.clientX - pointerPos.current.x);
+        const dy = Math.abs(e.clientY - pointerPos.current.y);
+        if (dx > 5 || dy > 5) return;
+    trigger("nudge");
+    const rect = e.currentTarget.getBoundingClientRect();
+    const launchPos = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+      width: rect.width,
+      height: rect.height,
+    };
+    setActiveLocation(project);
+    openWindow("finder", null, launchPos);
+  };
+
+  const handleOpenApp = (e, app) => {
+    const dx = Math.abs(e.clientX - pointerPos.current.x);
+        const dy = Math.abs(e.clientY - pointerPos.current.y);
+        if (dx > 5 || dy > 5) return;
+    if (!app.canOpen) { 
+      trigger("error");
+      return;
+    }
+    trigger("nudge", { intensity: 0.8 }); 
+    const rect = e.currentTarget.getBoundingClientRect();
+    const launchPos = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+      width: rect.width,
+      height: rect.height,
+    };
+    openWindow(app.id, null, launchPos);
+  };
+
+  useGSAP(() => {
+    let draggables =[];
+    const initDrag = () => {
+      if (window.innerWidth > 768) {
+        if (draggables.length === 0) {
+          draggables = Draggable.create(".folder", {
+            type: "x,y",
+            bounds: "body",
+            dragClickables: true,
+            
+                      onDragEnd: function () {
+                          const gridW = 100; 
+                          const gridH = 85; 
+                          const offsetX = 80; 
+                          const offsetY = 80; 
+                          const rect = this.target.getBoundingClientRect();
+                          const centerX = rect.left + rect.width / 2;
+                          const centerY = rect.top + rect.height / 2;
+                          const targetCenterX = Math.round((centerX - offsetX) / gridW) * gridW + offsetX;
+                          const targetCenterY = Math.round((centerY - offsetY) / gridH) * gridH + offsetY;
+                          const deltaX = targetCenterX - centerX;
+                          const deltaY = targetCenterY - centerY;
+                          gsap.to(this.target, {
+                            x: this.x + deltaX,
+                            y: this.y + deltaY,
+                            duration: 0.3,
+                            ease: "back.out(1.5)",
+                            overwrite: "auto"
+                          });
+                        }
+          });
+        } else {
+          draggables.forEach(d => d.enable());
+        }
+      } else {
+        if (draggables.length > 0) {
+          draggables.forEach(d => d.disable());
+          gsap.set(".folder", { clearProps: "x,y,transform" });
+        }
+      }
+    };
+    initDrag();
+    window.addEventListener("resize", initDrag);
+    return () => window.removeEventListener("resize", initDrag);
+  },[]);
+
+  // Intercept the apps array to replace Trash with Resume ONLY on mobile
+  const mobileApps = dockApps.map(app => 
+    app.id === "trash" ? { id: "resume", name: "Resume", icon: "pdf.png", canOpen: true } : app
+  );
+
+  return (
+    <section id="home" className="absolute inset-0 w-full h-full z-0 overflow-hidden">
+      <SpotifyWidget /> 
+      <div className="absolute top-[12vh] left-0 w-full flex flex-col items-center justify-center md:hidden text-white drop-shadow-xl z-20 pointer-events-none select-none">
+        <h1 className="text-[5.5rem] font-light tracking-tight leading-none text-center">
+          {time.format("h:mm")}
+        </h1>
+        <p className="text-[1.2rem] font-medium mt-2 tracking-wide text-center">
+          {time.format("dddd, MMMM D")}
+        </p>
+      </div>
+      
+      <ul className="desktop-projects w-full h-full max-md:hidden">
+        {projects.map((project) => (
+          <li
+            key={project.id}
+            className={clsx("group folder", project.windowPosition)}
+            onPointerDown={handlePointerDown}
+            onPointerUp={(e) => handleOpenProjectFinder(e, project)}
+          >
+            <img 
+              src="/images/folder.png" 
+              alt={project.name}
+              width={64}
+              height={60}
+              loading="eager"
+              className="pointer-events-none" 
+            />
+            <p>{project.name}</p>
+          </li>
+        ))}
+      </ul>
+
+      <ul className="hidden max-md:grid grid-cols-4 gap-x-2 gap-y-6 px-5 relative z-30 w-full box-border mt-[38vh]">
+        {mobileApps.map((app) => (
+          <li 
+            key={app.id || app.name}
+            onPointerDown={handlePointerDown}
+            onPointerUp={(e) => handleOpenApp(e, app)}
+            className="flex flex-col items-center gap-[6px] cursor-pointer"
+          >
+            <img 
+              src={`/images/${app.icon}`} 
+              alt={app.name} 
+              className={clsx(
+                "w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover",
+                !app.canOpen && "opacity-60"
+              )}
+            />
+            <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
+              {app.name}
+            </p>
+          </li>
+        ))}
+        {projects.map((project) => (
+          <li 
+            key={project.id}
+            onPointerDown={handlePointerDown}
+            onPointerUp={(e) => handleOpenProjectFinder(e, project)}
+            className="flex flex-col items-center gap-[6px] cursor-pointer"
+          >
+            <img 
+              src="/images/folder.png" 
+              alt={project.name} 
+              className="w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover"
+            />
+            <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
+              {project.name}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+};
+
+export default Home;
+</file>
+
 <file path="src/components/Dock.jsx">
 import { dockApps } from "#constants/index.js";
 import useWindowStore from "#store/window.js";
@@ -2989,14 +3253,12 @@ const Dock = memo(() => {
         selector=".dock-icon"
         preset="scale-y"
         reach={2}
-        global={true}
-        ignoreSelectors={[".os-window"]}
         config={{
-          scale:[1, 1.3],
-          y: [0, -40],
+          scale: [1, 1.3],
+          y:[0, -30],
           duration: 0.1,
           resetDuration: 1,
-          ease: "power1.out",
+          ease: "power2.out",
           resetEase: "elastic",
         }}
       >
@@ -3024,8 +3286,8 @@ const Dock = memo(() => {
             </button>
           </div>
         ))}
-        <Tooltip id="dock-tooltip" place="top" className="tooltip" />
       </Proximity>
+      <Tooltip id="dock-tooltip" place="top" className="tooltip" />
     </section>
   );
 });
