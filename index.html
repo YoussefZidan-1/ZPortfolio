@@ -9,15 +9,29 @@
     <meta name="author" content="Yousef Zedan (ZED Studios)">
     <meta name="description" content="A highly interactive, Arch Linux-inspired personal portfolio designed by Yousef Zedan.">
     <link rel="preload" as="image" type="image/webp" href="/images/arch.webp" fetchpriority="high">
-        <link rel="preload" as="image" type="image/webp" href="/images/wallpaper.webp" fetchpriority="high">
-        <link rel="preload" as="image" type="image/webp" href="/images/yousef-5.webp" fetchpriority="high">
+    <link rel="preload" as="image" type="image/webp" href="/images/wallpaper.webp" fetchpriority="high">
+    <link rel="preload" as="image" type="image/webp" href="/images/yousef-5.webp" fetchpriority="high">
 
     <meta property="og:title" content="ZPortfolio — Arch Linux Experience">
     <meta property="og:description" content="Check out my interactive Arch Linux-style portfolio built with React and GSAP.">
     <meta property="og:image" content="./macbook.png">
+
+    <style>
+      body { background-color: #000000; margin: 0; }
+      @keyframes grub-blink-init {
+        0%, 49% { opacity: 1; }
+        50%, 100% { opacity: 0; }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div style="position: fixed; inset: 0; background-color: #000000; color: white; display: flex; flex-direction: column; font-family: monospace; z-index: 99999;">
+        <div style="padding: 1.25rem; font-size: 1.5rem; font-weight: bold;">
+          <span style="animation: grub-blink-init 0.8s step-end infinite;">_</span>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -53,29 +53,44 @@ const BootSequence = ({ onComplete }) => {
   }, []);
 
   useEffect(() => {
-    if (stage === 0) {
-      // Real GRUB blink duration
-      const t = setTimeout(() => setStage(1), 2000);
-      return () => clearTimeout(t);
-    } else if (stage === 1) {
-      let currentLine = 0;
-      const interval = setInterval(() => {
-        if (currentLine < bootLines.length) {
-          setLines((prev) => [...prev, bootLines[currentLine]]);
-          currentLine++;
+      if (stage === 0) {
+        const startBoot = () => {
+          setTimeout(() => setStage(1), 800);
+        };
+  
+        const checkReady = () => {
+          if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(startBoot);
+          } else {
+            startBoot();
+          }
+        };
+  
+        if (document.readyState === "complete") {
+          checkReady();
         } else {
-          clearInterval(interval);
-          setTimeout(() => setStage(2), 800);
+          window.addEventListener("load", checkReady);
+          return () => window.removeEventListener("load", checkReady);
         }
-      }, 70);
-      return () => clearInterval(interval);
-    } else if (stage === 2) {
-      const t = setTimeout(() => {
-        setStage(3);
-      }, 3000);
-      return () => clearTimeout(t);
-    }
-  }, [stage]);
+      } else if (stage === 1) {
+        let currentLine = 0;
+        const interval = setInterval(() => {
+          if (currentLine < bootLines.length) {
+            setLines((prev) => [...prev, bootLines[currentLine]]);
+            currentLine++;
+          } else {
+            clearInterval(interval);
+            setTimeout(() => setStage(2), 800);
+          }
+        }, 70);
+        return () => clearInterval(interval);
+      } else if (stage === 2) {
+        const t = setTimeout(() => {
+          setStage(3);
+        }, 3000);
+        return () => clearTimeout(t);
+      }
+    }, [stage]);
 
   useGSAP(() => {
     if (stage === 3 && loginRef.current) {
