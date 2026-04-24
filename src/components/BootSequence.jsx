@@ -5,7 +5,7 @@ import dayjs from "dayjs";
 import { ChevronRight } from "lucide-react";
 import { useWebHaptics } from "web-haptics/react";
 
-const bootLines = [
+const bootLines =[
   "Starting GRUB bootloader...",
   "Loading Linux linux-cachyos v7.0 ...",
   "Loading initial ramdisk ...",
@@ -33,64 +33,93 @@ const bootLines = [
   "Starting CachyOS Display Manager...",
 ];
 
+const ASSETS_TO_PRELOAD =[
+  "/images/wallpaper.webp",
+  "/images/wallpaper-2.webp",
+  "/images/yousef-5.webp",
+  "/images/arch.webp",
+  "/images/folder.png",
+  "/images/finder.webp",
+  "/images/safari.webp",
+  "/images/photos.png",
+  "/images/contact.png",
+  "/images/terminal.webp",
+  "/images/vscode.png",
+  "/images/trash.webp",
+];
+
 const BootSequence = ({ onComplete }) => {
   const [stage, setStage] = useState(0);
-  const [lines, setLines] = useState([]);
+  const[lines, setLines] = useState([]);
   const [time, setTime] = useState(dayjs());
-  const [password, setPassword] = useState("");
+  const[password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [progress, setProgress] = useState(0);
+  const[assetsLoaded, setAssetsLoaded] = useState(false);
   const containerRef = useRef(null);
   const loginRef = useRef(null);
-  
-  // 🔊 Oxygen KDE Boot Sound
   const bootSound = useRef(new Audio("/sounds/oxygen_boot.ogg"));
-  
   const { trigger } = useWebHaptics();
 
   useEffect(() => {
     const timer = setInterval(() => setTime(dayjs()), 1000);
     return () => clearInterval(timer);
-  }, []);
+  },[]);
 
   useEffect(() => {
-      if (stage === 0) {
-        const startBoot = () => {
-          setTimeout(() => setStage(1), 800);
-        };
-  
-        const checkReady = () => {
-          if (document.fonts && document.fonts.ready) {
-            document.fonts.ready.then(startBoot);
-          } else {
-            startBoot();
-          }
-        };
-  
-        if (document.readyState === "complete") {
-          checkReady();
+    let loadedCount = 0;
+    let fontsReady = false;
+
+    const checkCompletion = () => {
+      if (loadedCount >= ASSETS_TO_PRELOAD.length && fontsReady) {
+        setAssetsLoaded(true);
+        setProgress(100);
+      }
+    };
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => {
+        fontsReady = true;
+        checkCompletion();
+      });
+    } else {
+      fontsReady = true;
+    }
+
+    ASSETS_TO_PRELOAD.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = img.onerror = () => {
+        loadedCount++;
+        setProgress(Math.min((loadedCount / ASSETS_TO_PRELOAD.length) * 99, 99));
+        checkCompletion();
+      };
+    });
+  },[]);
+
+  useEffect(() => {
+    if (stage === 0) {
+      const t = setTimeout(() => setStage(1), 100);
+      return () => clearTimeout(t);
+    } else if (stage === 1) {
+      let currentLine = 0;
+      const interval = setInterval(() => {
+        if (currentLine < bootLines.length) {
+          setLines((prev) =>[...prev, bootLines[currentLine]]);
+          currentLine++;
         } else {
-          window.addEventListener("load", checkReady);
-          return () => window.removeEventListener("load", checkReady);
+          clearInterval(interval);
+          setTimeout(() => setStage(2), 100);
         }
-      } else if (stage === 1) {
-        let currentLine = 0;
-        const interval = setInterval(() => {
-          if (currentLine < bootLines.length) {
-            setLines((prev) => [...prev, bootLines[currentLine]]);
-            currentLine++;
-          } else {
-            clearInterval(interval);
-            setTimeout(() => setStage(2), 800);
-          }
-        }, 70);
-        return () => clearInterval(interval);
-      } else if (stage === 2) {
-        const t = setTimeout(() => {
-          setStage(3);
-        }, 3000);
+      }, 15);
+      return () => clearInterval(interval);
+    } else if (stage === 2) {
+      if (assetsLoaded) {
+        const t = setTimeout(() => setStage(3), 400);
         return () => clearTimeout(t);
       }
-    }, [stage]);
+    }
+  },[stage, assetsLoaded]);
 
   useGSAP(() => {
     if (stage === 3 && loginRef.current) {
@@ -106,14 +135,10 @@ const BootSequence = ({ onComplete }) => {
     e?.preventDefault();
     if (password === "1234") {
       trigger("success");
-      
-      // 🚀 PLAY OXYGEN BOOT SOUND
       bootSound.current.currentTime = 0; 
       bootSound.current.play().catch(err => console.log("Audio play blocked:", err));
-
       setStage(4);
       
-      // Organic fade out to the actual OS
       gsap.to(containerRef.current, {
         opacity: 0,
         scale: 1.1,
@@ -140,14 +165,12 @@ const BootSequence = ({ onComplete }) => {
   return (
     <div ref={containerRef} className="fixed inset-0 z-[9999] bg-[#000000] text-white flex flex-col font-terminal overflow-hidden select-none">
       
-      {/* STAGE 0: REAL GRUB Blink */}
       {stage === 0 && (
         <div className="p-5 text-2xl font-bold">
           <span className="cursor-blink">_</span>
         </div>
       )}
 
-      {/* STAGE 1: Boot Logs */}
       {stage === 1 && (
         <div className="p-5 flex flex-col justify-start h-full overflow-hidden">
           {lines.map((line, i) => (
@@ -160,7 +183,6 @@ const BootSequence = ({ onComplete }) => {
         </div>
       )}
 
-      {/* STAGE 2: Arch Logo & Loading Bar */}
       {stage === 2 && (
         <div className="flex-1 flex flex-col items-center justify-center animate-in fade-in duration-700">
           <img 
@@ -170,12 +192,17 @@ const BootSequence = ({ onComplete }) => {
             className="w-32 h-32 md:w-48 md:h-48 mb-10 object-contain" 
           />
           <div className="w-64 h-1 bg-gray-800 rounded-full overflow-hidden">
-            <div className="h-full bg-[#1793d1] rounded-full animate-[loading_2.5s_ease-in-out_forwards]" style={{width: 0}}></div>
+            <div 
+              className="h-full bg-[#1793d1] rounded-full transition-all duration-300 ease-out" 
+              style={{ width: `${progress}%` }}
+            ></div>
           </div>
+          <p className="mt-4 text-[#1793d1] font-terminal text-xs opacity-50">
+            {Math.round(progress)}%
+          </p>
         </div>
       )}
 
-      {/* STAGE 3 & 4: Mac Login Screen */}
       {(stage === 3 || stage === 4) && (
         <div ref={loginRef} className="absolute inset-0 bg-[url('/images/wallpaper.webp')] max-md:bg-[url('/images/wallpaper-2.webp')] bg-cover bg-center">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-3xl flex flex-col items-center">
@@ -229,12 +256,6 @@ const BootSequence = ({ onComplete }) => {
       )}
 
       <style dangerouslySetInnerHTML={{__html: `
-        @keyframes loading {
-          0% { width: 0%; }
-          30% { width: 40%; }
-          70% { width: 75%; }
-          100% { width: 100%; }
-        }
         @keyframes grub-blink {
           0%, 49% { opacity: 1; }
           50%, 100% { opacity: 0; }

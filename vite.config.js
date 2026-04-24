@@ -33,23 +33,22 @@ export default defineConfig({
     },
   },
   build: {
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('@monaco-editor')) return 'editor';
-            if (id.includes('react-pdf') || id.includes('pdfjs-dist')) return 'pdf';
-            if (id.includes('gsap')) return 'gsap';
-            if (
-              id.includes('react') ||
-              id.includes('zustand') ||
-              id.includes('immer')
-            ) {
-              return 'vendor';
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('@monaco-editor')) return 'editor';
+              if (id.includes('react-pdf') || id.includes('pdfjs-dist')) return 'pdf';
+              if (id.includes('gsap')) return 'gsap';
+              if (id.includes('react') || id.includes('zustand') || id.includes('immer')) return 'vendor';
             }
           }
         }
+      },
+      modulePreload: {
+        resolveDependencies: (filename, deps) => {
+          return deps.filter(dep => !dep.includes('pdf') && !dep.includes('editor'));
+        }
       }
-    }
   }
 })

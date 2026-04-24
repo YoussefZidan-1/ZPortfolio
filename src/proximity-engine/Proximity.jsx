@@ -150,19 +150,19 @@ export const Proximity = ({
       };
   
       const initItems = () => {
-        if (items.length > 0) gsap.killTweensOf(items);
-  
-        items = Array.from(container.querySelectorAll(selector));
-        states = items.map(() => ({ isOutside: true }));
-        setters = items.map(item => ({
-          intensity: gsap.quickSetter(item, "--prox-intensity"),
-          dx: gsap.quickSetter(item, "--prox-dx", "px"),
-          dy: gsap.quickSetter(item, "--prox-dy", "px")
-        }));
-  
-        updateCenters();
-        setInitialState();
-      };
+              if (items.length > 0) gsap.killTweensOf(items);
+              items = Array.from(container.querySelectorAll(selector));
+              states = items.map(() => ({ isOutside: true }));
+              setters = items.map(item => ({
+                intensity: gsap.quickSetter(item, "--prox-intensity"),
+                dx: gsap.quickSetter(item, "--prox-dx", "px"),
+                dy: gsap.quickSetter(item, "--prox-dy", "px")
+              }));
+              requestAnimationFrame(() => {
+                updateCenters();
+                setInitialState();
+              });
+            };
   
       if (document.fonts) {
         document.fonts.ready.then(initItems);
