@@ -50,12 +50,13 @@ const ASSETS_TO_PRELOAD =[
 
 const BootSequence = ({ onComplete }) => {
   const [stage, setStage] = useState(0);
-  const[lines, setLines] = useState([]);
+  const [lines, setLines] = useState([]);
   const [time, setTime] = useState(dayjs());
-  const[password, setPassword] = useState("");
+  const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [progress, setProgress] = useState(0);
-  const[assetsLoaded, setAssetsLoaded] = useState(false);
+  const [assetsLoaded, setAssetsLoaded] = useState(false);
+
   const containerRef = useRef(null);
   const loginRef = useRef(null);
   const bootSound = useRef(new Audio("/sounds/oxygen_boot.ogg"));
@@ -105,21 +106,21 @@ const BootSequence = ({ onComplete }) => {
       let currentLine = 0;
       const interval = setInterval(() => {
         if (currentLine < bootLines.length) {
-          setLines((prev) =>[...prev, bootLines[currentLine]]);
+          setLines((prev) => [...prev, bootLines[currentLine]]);
           currentLine++;
         } else {
           clearInterval(interval);
-          setTimeout(() => setStage(2), 100);
+          setTimeout(() => setStage(2), 200);
         }
-      }, 15);
+      }, 40);
       return () => clearInterval(interval);
     } else if (stage === 2) {
       if (assetsLoaded) {
-        const t = setTimeout(() => setStage(3), 400);
+        const t = setTimeout(() => setStage(3), 500);
         return () => clearTimeout(t);
       }
     }
-  },[stage, assetsLoaded]);
+  }, [stage, assetsLoaded]);
 
   useGSAP(() => {
     if (stage === 3 && loginRef.current) {
@@ -129,7 +130,7 @@ const BootSequence = ({ onComplete }) => {
         { opacity: 1, filter: "blur(0px)", scale: 1, duration: 1.5, ease: "power3.out" }
       );
     }
-  }, [stage]);
+  },[stage]);
 
   const handleLogin = (e) => {
     e?.preventDefault();
