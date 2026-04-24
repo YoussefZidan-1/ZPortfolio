@@ -126,8 +126,8 @@ const BootSequence = ({ onComplete }) => {
     if (stage === 3 && loginRef.current) {
       gsap.fromTo(
         loginRef.current,
-        { opacity: 0, filter: "blur(20px)", scale: 1.1 },
-        { opacity: 1, filter: "blur(0px)", scale: 1, duration: 1.5, ease: "power3.out" }
+        { opacity: 0, scale: 1.1 },
+        { opacity: 1, scale: 1, duration: 1.5, ease: "power2.out" }
       );
     }
   },[stage]);
@@ -142,8 +142,7 @@ const BootSequence = ({ onComplete }) => {
       
       gsap.to(containerRef.current, {
         opacity: 0,
-        scale: 1.1,
-        filter: "blur(30px)",
+        scale: 1.2,
         duration: 1.5,
         ease: "power2.inOut",
         onComplete: onComplete,
