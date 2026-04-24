@@ -33,7 +33,8 @@ const bootLines =[
   "Starting CachyOS Display Manager...",
 ];
 
-const ASSETS_TO_PRELOAD =[
+const ASSETS_TO_PRELOAD = [
+  "/sounds/oxygen_boot.ogg",
   "/images/wallpaper.webp",
   "/images/wallpaper-2.webp",
   "/images/yousef-5.webp",
@@ -133,20 +134,20 @@ const BootSequence = ({ onComplete }) => {
   },[stage]);
 
   const handleLogin = (e) => {
-    e?.preventDefault();
-    if (password === "1234") {
-      trigger("success");
-      bootSound.current.currentTime = 0; 
-      bootSound.current.play().catch(err => console.log("Audio play blocked:", err));
-      setStage(4);
-      
-      gsap.to(containerRef.current, {
-        opacity: 0,
-        scale: 1.2,
-        duration: 1.5,
-        ease: "power2.inOut",
-        onComplete: onComplete,
-      });
+      e?.preventDefault();
+      if (password === "1234") {
+        trigger("success");
+        const audio = new Audio("/sounds/oxygen_boot.ogg");
+        audio.volume = 1;
+        audio.play().catch(err => console.log("Audio play blocked:", err));
+        setStage(4);
+        gsap.to(containerRef.current, {
+          opacity: 0,
+          scale: 1.05,
+          duration: 1.2,
+          ease: "power2.inOut",
+          onComplete: onComplete,
+        });
     } else {
       trigger("error");
       setErrorMsg("it's 1234 baka i am a creative developer for sure that's my password to my bank account !");
