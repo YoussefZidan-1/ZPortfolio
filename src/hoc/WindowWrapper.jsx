@@ -12,6 +12,7 @@ const WindowWrapper = (Component, windowKey) => {
     const launchPos = useWindowStore((s) => s.windows[windowKey].launchPos);
     const focusWindow = useWindowStore((s) => s.focusWindow);
     const closeWindow = useWindowStore((s) => s.closeWindow);
+    const [hasLaunched, setHasLaunched] = useState(isOpen);
 
     const ref = useRef(null);
     const dragInstance = useRef(null);
@@ -25,7 +26,14 @@ const WindowWrapper = (Component, windowKey) => {
       checkMobile();
       window.addEventListener("resize", checkMobile, { passive: true });
       return () => window.removeEventListener("resize", checkMobile);
-    },[]);
+    }, []);
+    
+    useEffect(() => {
+      if (isOpen && !hasLaunched) {
+        setHasLaunched(true);
+      }
+    }, [isOpen, hasLaunched]);
+
 
     useGSAP(() => {
       const el = ref.current;
@@ -188,7 +196,7 @@ const WindowWrapper = (Component, windowKey) => {
             transform: "translate3d(0,0,0)",
         }}
       >
-        <Component {...props} />
+        {hasLaunched && <Component {...props} />}
 
         {isMobile && (
           <div className="absolute bottom-0 left-0 w-full h-8 z-[2000] flex justify-center items-end pb-2 pointer-events-none">

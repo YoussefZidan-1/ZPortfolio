@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Georama:ital,wght@0,100..900;1,100..900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap");
 @font-face {
     font-family: "JetBrainsMonoNF";
     src: url("/fonts/JetBrainsMono/JetBrainsMonoNerdFont-Regular.ttf") format("truetype");
@@ -11,7 +10,7 @@
 
 @theme {
     --font-georama: "Georama", sans-serif;
-    --font-terminal: "JetBrainsMonoNF", "Roboto Mono", monospace;
+    --font-terminal: "JetBrainsMonoNF", monospace;
     --terminal-bg: #0f1720;
     --terminal-foreground: #cbd5e1;
     --terminal-accent: #00a154;

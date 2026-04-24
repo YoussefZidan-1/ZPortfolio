@@ -40,7 +40,14 @@ const Navbar = memo(() => {
         <p className="font-bold whitespace-nowrap">Yousef's Portfolio</p>
         <ul className="flex items-center gap-3">
           {navLinks.map(({ id, name, type }) => (
-            <li key={id} className="relative cursor-pointer" onClick={() => openWindow(type)}>
+            <li 
+              key={id} 
+              className="relative cursor-pointer" 
+              onClick={() => openWindow(type)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openWindow(type)}
+            >
               <p className="z-10">{name}</p>
             </li>
           ))}

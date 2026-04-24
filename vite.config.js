@@ -32,4 +32,16 @@ export default defineConfig({
       '#windows': resolve(__dirname, 'src/windows'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'zustand', 'immer'],
+          gsap: ['gsap', '@gsap/react'],
+          editor: ['@monaco-editor/react'],
+          pdf: ['react-pdf']
+        }
+      }
+    }
+  }
 })
