@@ -56,7 +56,8 @@ const IMAGE_ASSETS = [
 ];
 
 // ─── Lazy component chunks to preload ────────────────────────────────────────
-
+// These match the lazy() calls in App.jsx — importing them here forces Vite
+// to fetch & parse the JS bundles so they're in cache before login completes.
 const COMPONENT_IMPORTS = [
   () => import("../components/Navbar.jsx"),
   () => import("../components/Welcome.jsx"),
@@ -70,7 +71,7 @@ const COMPONENT_IMPORTS = [
   () => import("../windows/Image.jsx"),
   () => import("../windows/Contact.jsx"),
   () => import("../windows/Photos.jsx"),
-  () => import("../windows/CodeEditor.jsx"),
+  () => import("../windows/CodeEditor.jsx"),  // heaviest — Monaco
 ];
 
 // ─── Sound assets ─────────────────────────────────────────────────────────────
@@ -83,11 +84,11 @@ const SOUND_ASSETS = [
 
 // Total task count for progress calculation
 const TOTAL_TASKS =
-  IMAGE_ASSETS.length + COMPONENT_IMPORTS.length + SOUND_ASSETS.length + 1;
+  IMAGE_ASSETS.length + COMPONENT_IMPORTS.length + SOUND_ASSETS.length + 1; // +1 for fonts
 
 // ─── Component ────────────────────────────────────────────────────────────────
 const BootSequence = ({ onComplete }) => {
-  const [stage, setStage] = useState(0);
+  const [stage, setStage] = useState(0);       // 0=cursor 1=grub 2=arch-bar 3=login 4=fading
   const [lines, setLines] = useState([]);
   const [time, setTime] = useState(dayjs());
   const [password, setPassword] = useState("");
