@@ -5,4 +5,5 @@ import WindowControls from "#components/WindowControls.jsx";
 import Home from "#components/Home.jsx";
 import BootSequence from "#components/BootSequence.jsx";
 import ControlCenter from "#components/ControlCenter.jsx";
-export { Navbar, Welcome, Dock, WindowControls, Home, BootSequence, ControlCenter };
+import ContextMenu from "#components/ContextMenu.jsx";
+export { Navbar, Welcome, Dock, WindowControls, Home, BootSequence, ControlCenter, ContextMenu};
