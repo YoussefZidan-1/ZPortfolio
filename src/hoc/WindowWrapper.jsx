@@ -11,7 +11,6 @@ const WindowWrapper = (Component, windowKey) => {
     const dataId = useWindowStore((s) => s.windows[windowKey].data?.id);
     const launchPos = useWindowStore((s) => s.windows[windowKey].launchPos);
     const focusWindow = useWindowStore((s) => s.focusWindow);
-    const closeWindow = useWindowStore((s) => s.closeWindow);
     const [hasLaunched, setHasLaunched] = useState(isOpen);
 
     const ref = useRef(null);
@@ -70,8 +69,8 @@ const WindowWrapper = (Component, windowKey) => {
           }
         } else {
           gsap.fromTo(el,
-            { scale: 0.9, opacity: 0, y: 20, yPercent: 0 },
-            { scale: 1, opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.5)", overwrite: "auto" }
+            { scale: 0.9, opacity: 0, yPercent: 0 },
+            { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)", overwrite: "auto" }
           );
         }
       } else {
@@ -86,7 +85,7 @@ const WindowWrapper = (Component, windowKey) => {
           });
         } else {
           gsap.to(el, {
-            scale: 0.8, opacity: 0, y: 50, duration: 0.25, ease: "power2.in", overwrite: "auto",
+            scale: 0.8, opacity: 0, duration: 0.25, ease: "power2.in", overwrite: "auto",
             onComplete: () => setIsActuallyVisible(false),
           });
         }
