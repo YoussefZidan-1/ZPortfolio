@@ -7,7 +7,7 @@ import { ChevronRight } from "lucide-react";
 import { useWebHaptics } from "web-haptics/react";
 
 // ─── GRUB boot lines ──────────────────────────────────────────────────────────
-const bootLines = [
+const bootLines =[
   "Starting GRUB bootloader...",
   "Loading Linux linux-cachyos v7.0 ...",
   "Loading initial ramdisk ...",
@@ -35,8 +35,8 @@ const bootLines = [
   "Starting CachyOS Display Manager...",
 ];
 
-// ─── Images to preload ────────────────────────────────────────────────────────
-const IMAGE_ASSETS = [
+// ─── All Images and Icons to preload ──────────────────────────────────────────
+const IMAGE_ASSETS =[
   "/images/wallpaper.webp",
   "/images/wallpaper-2.webp",
   "/images/yousef-5.webp",
@@ -53,29 +53,56 @@ const IMAGE_ASSETS = [
   "/images/yousef-2.webp",
   "/images/yousef-3.webp",
   "/images/yousef-4.webp",
+  "/images/logo.svg",
+  "/images/zcinema.png",
+  "/images/project-1.webp",
+  "/images/zproximity.svg",
+  "/images/project-2.JPG",
+  "/images/txt.png",
+  "/images/image.png",
+  "/images/pdf.png",
+  "/images/blog1.png",
+  "/images/blog2.png",
+  "/images/blog3.png",
+  "/images/trash-1.webp",
+  "/images/trash-2.webp",
+  "/icons/wifi.svg",
+  "/icons/search.svg",
+  "/icons/user.svg",
+  "/icons/mode.svg",
+  "/icons/github.svg",
+  "/icons/atom.svg",
+  "/icons/twitter.svg",
+  "/icons/linkedin.svg",
+  "/icons/gicon1.svg",
+  "/icons/gicon2.svg",
+  "/icons/gicon4.svg",
+  "/icons/gicon5.svg",
+  "/icons/file.svg",
+  "/icons/info.svg",
+  "/icons/trash.svg",
+  "/icons/work.svg"
 ];
 
-// ─── Lazy component chunks to preload ────────────────────────────────────────
-// These match the lazy() calls in App.jsx — importing them here forces Vite
-// to fetch & parse the JS bundles so they're in cache before login completes.
-const COMPONENT_IMPORTS = [
-  () => import("../components/Navbar.jsx"),
-  () => import("../components/Welcome.jsx"),
-  () => import("../components/Dock.jsx"),
-  () => import("../components/Home.jsx"),
-  () => import("../windows/Terminal.jsx"),
-  () => import("../windows/ZenBrowser.jsx"),
-  () => import("../windows/Resume.jsx"),
-  () => import("../windows/Finder.jsx"),
-  () => import("../windows/Text.jsx"),
-  () => import("../windows/Image.jsx"),
-  () => import("../windows/Contact.jsx"),
-  () => import("../windows/Photos.jsx"),
-  () => import("../windows/CodeEditor.jsx"),  // heaviest — Monaco
+// ─── Lazy component chunks to preload (Using EXACT aliases from App.jsx) ──────
+const COMPONENT_IMPORTS =[
+  () => import("#components/Navbar.jsx"),
+  () => import("#components/Welcome.jsx"),
+  () => import("#components/Dock.jsx"),
+  () => import("#components/Home.jsx"),
+  () => import("#windows/Terminal.jsx"),
+  () => import("#windows/ZenBrowser.jsx"),
+  () => import("#windows/Resume.jsx"),
+  () => import("#windows/Finder.jsx"),
+  () => import("#windows/Text.jsx"),
+  () => import("#windows/Image.jsx"),
+  () => import("#windows/Contact.jsx"),
+  () => import("#windows/Photos.jsx"),
+  () => import("#windows/CodeEditor.jsx"), 
 ];
 
 // ─── Sound assets ─────────────────────────────────────────────────────────────
-const SOUND_ASSETS = [
+const SOUND_ASSETS =[
   "/sounds/oxygen_boot.ogg",
   "/sounds/oxygen_close.ogg",
   "/sounds/oxygen_maximize.ogg",
@@ -91,87 +118,92 @@ const BootSequence = ({ onComplete }) => {
   const [stage, setStage] = useState(0);       // 0=cursor 1=grub 2=arch-bar 3=login 4=fading
   const [lines, setLines] = useState([]);
   const [time, setTime] = useState(dayjs());
-  const [password, setPassword] = useState("");
+  const[password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
-  const [progress, setProgress] = useState(0);
-  const [everythingReady, setEverythingReady] = useState(false);
-  const [grubDone, setGrubDone] = useState(false);
+  
+  // Split Real vs Displayed progress
+  const [loadedProgress, setLoadedProgress] = useState(0);
+  const [displayedProgress, setDisplayedProgress] = useState(0);
+  
+  const[everythingReady, setEverythingReady] = useState(false);
 
   const containerRef = useRef(null);
   const loginRef = useRef(null);
-  const completedTasks = useRef(0);
+  const hasStartedLoading = useRef(false);
+  const[completedCount, setCompletedCount] = useState(0);
   const { trigger } = useWebHaptics();
 
   // ── clock ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     const t = setInterval(() => setTime(dayjs()), 1000);
     return () => clearInterval(t);
-  }, []);
+  },[]);
 
-  // ── GSAP + Draggable pre-register (synchronous — just making sure) ─────────
   useEffect(() => {
     gsap.registerPlugin(Draggable);
-  }, []);
+  },[]);
 
   // ── Real asset / component loading ────────────────────────────────────────
   useEffect(() => {
+    // Prevent React StrictMode from double-firing the preloader
+    if (hasStartedLoading.current) return;
+    hasStartedLoading.current = true;
+
+    let currentCount = 0;
+    
     const tick = () => {
-      completedTasks.current += 1;
-      // Reserve the last 1% for the "all done" moment
+      currentCount += 1;
+      setCompletedCount(currentCount); // Update the text in the UI
+      
       const pct = Math.min(
-        Math.floor((completedTasks.current / TOTAL_TASKS) * 99),
-        99
+        Math.floor((currentCount / TOTAL_TASKS) * 100),
+        100
       );
-      setProgress(pct);
-      if (completedTasks.current >= TOTAL_TASKS) {
-        setProgress(100);
+      setLoadedProgress(pct);
+      
+      if (currentCount >= TOTAL_TASKS) {
         setEverythingReady(true);
       }
     };
 
-    // 1. Images
+    // 1. Preload Images
     IMAGE_ASSETS.forEach((src) => {
       const img = new Image();
       img.src = src;
       img.onload = tick;
-      img.onerror = tick; // count failures too — don't stall
+      img.onerror = tick;
     });
 
-    // 2. Lazy component chunks
+    // 2. Preload Components
     COMPONENT_IMPORTS.forEach((importFn) => {
       importFn().then(tick).catch(tick);
     });
 
-    // 3. Sounds  (fetch + decode to AudioBuffer so it's truly cached)
-    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    // 3. Preload Sounds
     SOUND_ASSETS.forEach((src) => {
       fetch(src)
-        .then((r) => r.arrayBuffer())
-        .then((buf) => ac.decodeAudioData(buf))
+        .then((response) => response.blob())
         .then(tick)
-        .catch(tick);
+        .catch((err) => {
+            console.warn(`Failed to preload audio: ${src}`, err);
+            tick(); 
+        });
     });
 
-    // 4. Fonts
+    // 4. Preload Fonts
     if (document.fonts?.ready) {
       document.fonts.ready.then(tick).catch(tick);
     } else {
       tick();
     }
+  },[]);
 
-    return () => {
-      try { ac.close(); } catch (_) { /* ignore */ }
-    };
-  }, []);
-
-  // ── Stage machine ──────────────────────────────────────────────────────────
-
-  // Stage 0 → 1  (just a tick so the cursor flashes once)
+  // Stage 0 → 1
   useEffect(() => {
     if (stage !== 0) return;
     const t = setTimeout(() => setStage(1), 100);
     return () => clearTimeout(t);
-  }, [stage]);
+  },[stage]);
 
   // Stage 1: GRUB text scroll
   useEffect(() => {
@@ -182,22 +214,44 @@ const BootSequence = ({ onComplete }) => {
       i++;
       if (i >= bootLines.length) {
         clearInterval(interval);
-        setGrubDone(true);
-        setStage(2);
+        setStage(2); 
       }
-    }, 40);
+    }, 60); 
     return () => clearInterval(interval);
   }, [stage]);
 
-  // Stage 2 → 3: wait for both GRUB scroll AND real assets
+  // Stage 2: Smooth / Minimum Time Progress Bar Animation
   useEffect(() => {
     if (stage !== 2) return;
-    if (grubDone && everythingReady) {
-      // tiny pause so the bar visually hits 100% before transitioning
-      const t = setTimeout(() => setStage(3), 400);
+    
+    const interval = setInterval(() => {
+      setDisplayedProgress((prev) => {
+        if (prev >= 100) return 100;
+        
+        // Target the real loaded percentage unless we're totally done
+        const target = everythingReady ? 100 : loadedProgress;
+        
+        // Add artificial delay per tick so the bar takes a minimum of ~1.5 - 2s to complete
+        let next = prev + (Math.random() * 5 + 3); 
+        
+        if (next > target) {
+            return target;
+        }
+        return next;
+      });
+    }, 120);
+    
+    return () => clearInterval(interval);
+  }, [stage, loadedProgress, everythingReady]);
+
+  // Stage 2 → 3: Wait until the Displayed bar visually hits 100%
+  useEffect(() => {
+    if (stage === 2 && displayedProgress >= 100) {
+      // Pause for half a second at 100% before flashing to the login screen
+      const t = setTimeout(() => setStage(3), 600); 
       return () => clearTimeout(t);
     }
-  }, [stage, grubDone, everythingReady]);
+  }, [stage, displayedProgress]);
 
   // ── Login screen fade-in ───────────────────────────────────────────────────
   useGSAP(() => {
@@ -239,7 +293,6 @@ const BootSequence = ({ onComplete }) => {
     }
   };
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
   const renderLine = (text) => {
     if (!text || typeof text !== "string") return "";
     if (text.includes("[  OK  ]")) {
@@ -251,20 +304,17 @@ const BootSequence = ({ onComplete }) => {
     return text;
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div
       ref={containerRef}
       className="fixed inset-0 z-[9999] bg-[#000000] text-white flex flex-col font-terminal overflow-hidden select-none"
     >
-      {/* ── Stage 0: bare cursor ─────────────────────────────────────────── */}
       {stage === 0 && (
         <div className="p-5 text-2xl font-bold">
           <span className="cursor-blink">_</span>
         </div>
       )}
 
-      {/* ── Stage 1: GRUB scroll ─────────────────────────────────────────── */}
       {stage === 1 && (
         <div className="p-5 flex flex-col justify-start h-full overflow-hidden">
           {lines.map((line, i) => (
@@ -274,16 +324,14 @@ const BootSequence = ({ onComplete }) => {
               dangerouslySetInnerHTML={{ __html: renderLine(line) }}
             />
           ))}
-          {/* Live loading status injected at the bottom of boot lines */}
           <div className="mt-2 text-xs text-gray-600">
             {!everythingReady
-              ? `[ Loading ZPortfolio assets... ${Math.round(progress)}% ]`
+              ? `[ Loading ZPortfolio assets... ${Math.round(loadedProgress)}% ]`
               : `[ Assets loaded. Starting Display Manager... ]`}
           </div>
         </div>
       )}
 
-      {/* ── Stage 2: Arch progress bar ───────────────────────────────────── */}
       {stage === 2 && (
         <div className="flex-1 flex flex-col items-center justify-center animate-in fade-in duration-700">
           <img
@@ -293,36 +341,31 @@ const BootSequence = ({ onComplete }) => {
             className="w-32 h-32 md:w-48 md:h-48 mb-10 object-contain"
           />
 
-          {/* ── Real progress bar ── */}
           <div className="w-64 h-1 bg-gray-800 rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#1793d1] rounded-full transition-all duration-300 ease-out"
-              style={{ width: `${progress}%` }}
+              className="h-full bg-[#1793d1] transition-all duration-200 ease-out"
+              style={{ width: `${displayedProgress}%` }}
             />
           </div>
 
-          {/* ── Status label ── */}
           <p className="mt-4 text-[#1793d1] font-terminal text-xs opacity-50">
-            {progress < 100
-              ? `${Math.round(progress)}% — loading components...`
+            {displayedProgress < 100
+              ? `${Math.round(displayedProgress)}% — loading components...`
               : "Ready."}
           </p>
 
-          {/* ── Live task breakdown (small, subtle) ── */}
           <p className="mt-1 text-gray-700 font-terminal text-[10px]">
-            {completedTasks.current} / {TOTAL_TASKS} tasks
+            {completedCount} / {TOTAL_TASKS} tasks
           </p>
         </div>
       )}
 
-      {/* ── Stage 3 & 4: Login screen ────────────────────────────────────── */}
       {(stage === 3 || stage === 4) && (
         <div
           ref={loginRef}
           className="absolute inset-0 bg-[url('/images/wallpaper.webp')] max-md:bg-[url('/images/wallpaper-2.webp')] bg-cover bg-center"
         >
           <div className="absolute inset-0 bg-black/30 backdrop-blur-3xl flex flex-col items-center">
-            {/* Clock */}
             <div className="mt-[12vh] md:mt-[15vh] text-center">
               <h1 className="text-7xl md:text-9xl font-semibold tracking-tighter text-white drop-shadow-lg font-georama">
                 {time.format("h:mm")}
@@ -332,7 +375,6 @@ const BootSequence = ({ onComplete }) => {
               </p>
             </div>
 
-            {/* Login box */}
             <div className="login-box mt-auto mb-[20vh] flex flex-col items-center z-10 w-full px-5">
               <img
                 src="/images/yousef-5.webp"
