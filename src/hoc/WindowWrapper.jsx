@@ -3,6 +3,12 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Draggable } from "gsap/Draggable";
 import { useRef, useState, useEffect, memo } from "react";
+import useSound from "use-sound";
+import useSettingsStore from "#store/settings.js";
+
+let openPitchCounter = 0;
+const PITCH_LEVELS = [1.0, 1.05, 1.1, 1.15];
+
 const WindowWrapper = (Component, windowKey) => {
   const Wrapped = memo((props) => {
     const isOpen = useWindowStore((s) => s.windows[windowKey].isOpen);
@@ -12,6 +18,10 @@ const WindowWrapper = (Component, windowKey) => {
     const launchPos = useWindowStore((s) => s.windows[windowKey].launchPos);
     const focusWindow = useWindowStore((s) => s.focusWindow);
     const [hasLaunched, setHasLaunched] = useState(isOpen);
+    const { volume, isMuted } = useSettingsStore();
+        const [playOpen, { sound }] = useSound("/sounds/oxygen_open.ogg", { 
+          volume: isMuted ? 0 : volume 
+        });
 
     const ref = useRef(null);
     const dragInstance = useRef(null);
@@ -20,6 +30,20 @@ const WindowWrapper = (Component, windowKey) => {
     const preMaxState = useRef(null);
     const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
 
+    useEffect(() => {
+         if (isOpen) {
+           if (sound) {
+               
+               sound.rate(PITCH_LEVELS[openPitchCounter % PITCH_LEVELS.length]);
+               playOpen();
+               openPitchCounter++;
+           }
+           
+           if (!hasLaunched) setHasLaunched(true);
+           setIsActuallyVisible(true);
+         }
+       }, [isOpen, sound, playOpen, hasLaunched]);
+    
     useEffect(() => {
       const checkMobile = () => setIsMobile(window.innerWidth < 768);
       checkMobile();

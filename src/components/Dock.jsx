@@ -47,8 +47,9 @@ const Dock = memo(() => {
           <div key={id ?? name} className="relative flex justify-center">
             <button
               type="button"
-              className="dock-icon flex items-center justify-center will-change-transform"
+              className="dock-icon dock-item flex items-center justify-center will-change-transform"
               aria-label={name}
+              data-id={id}
               data-tooltip-id="dock-tooltip"
               data-tooltip-content={name}
               data-tooltip-delay-show={150}

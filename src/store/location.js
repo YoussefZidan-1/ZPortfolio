@@ -7,6 +7,13 @@ const DEFAULT_LOCATION = locations.work;
 const useLocationStore = create(
   immer((set) => ({
     activeLocation: DEFAULT_LOCATION,
+    emptyTrash: () =>
+       set((state) => {
+         locations.trash.children = [];
+         if (state.activeLocation.type === "trash") {
+           state.activeLocation.children = [];
+         }
+       }),
     setActiveLocation: (location) =>
       set((state) => {
         if (location === undefined) return;
