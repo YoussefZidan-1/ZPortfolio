@@ -795,6 +795,240 @@ const ZenWindow = WindowWrapper(ZenBrowser, 'safari')
 export default ZenWindow;
 </file>
 
+<file path="src/proximity-engine/ProximityContext.jsx">
+import { createContext, useContext } from "react";
+
+const ProximityContext = createContext({
+  defaultFont: "'Georama', sans-serif",
+});
+
+export const ProximityProvider = ({ children, config }) => {
+  return (
+    <ProximityContext.Provider value={{ ...config }}>
+      {children}
+    </ProximityContext.Provider>
+  );
+};
+
+export const useProximityConfig = () => useContext(ProximityContext);
+</file>
+
+<file path="src/proximity-engine/ProximityText.jsx">
+import { Fragment, useMemo } from "react";
+import { Proximity } from "./Proximity";
+import { useProximityConfig } from "./ProximityContext";
+export const ProximityText = ({
+  text,
+  splitBy = "letter",
+  className = "",
+  textClassName = "",
+  fontFamily,
+  lineHeight = 1.2,
+  letterSpacing = 0,
+  wordSpacing = 0.25,
+  clipFix = "0.2em",
+  ...proximityProps
+}) => {
+  const globalConfig = useProximityConfig();
+  const actualFontFamily = fontFamily || globalConfig.defaultFont;
+
+  const containerStyle = useMemo(() => {
+    const base = { 
+      display: "flex", 
+      fontFamily: actualFontFamily,
+      lineHeight: lineHeight,
+      letterSpacing: `${letterSpacing}em`,
+      textAlign: "center",
+      justifyContent: "center"
+    };
+    if (splitBy === "word") return { ...base, flexWrap: "wrap", columnGap: `${wordSpacing}em`, rowGap: "0.1em" };
+    if (splitBy === "line") return { ...base, display: "block" };
+    return { ...base, flexWrap: "wrap" };
+  }, [splitBy, actualFontFamily, lineHeight, letterSpacing, wordSpacing]);
+
+  const renderedContent = useMemo(() => {
+    const itemStyle = {
+      display: "inline-block",
+      userSelect: "none",
+      willChange: "transform, filter, opacity",
+      padding: clipFix,
+      margin: clipFix ? `-${clipFix}` : "0",
+    };
+
+    const formattedText = text;
+
+    if (splitBy === "word") {
+      return formattedText.split("\n").map((line, lineIdx) => (
+        <Fragment key={lineIdx}>
+          {line.split(" ").map((word, i) => (
+            <span key={i} aria-hidden="true" className={`prox-part ${textClassName}`} style={itemStyle}>{word}</span>
+          ))}
+          {lineIdx < formattedText.split("\n").length - 1 && <div style={{ width: "100%" }} />}
+        </Fragment>
+      ));
+    }
+
+    if (splitBy === "line") {
+      return formattedText.split("\n").map((line, i) => (
+        <Fragment key={i}>
+          <span aria-hidden="true" className={`prox-part ${textClassName}`} style={itemStyle}>{line}</span>
+          {i < formattedText.split("\n").length - 1 && <br />}
+        </Fragment>
+      ));
+    }
+
+    return [...formattedText].map((char, i) => {
+      if (char === "\n") {
+        return <div key={i} style={{ width: "100%", height: 0 }} />;
+      }
+      return (
+        <span aria-hidden="true" key={i} className={`prox-part ${textClassName}`} style={{ ...itemStyle, whiteSpace: char === " " ? "pre" : "normal" }}>
+          {char}
+        </span>
+      );
+    });
+
+  },[text, splitBy, textClassName, clipFix]);
+
+  return (
+    <Proximity selector=".prox-part" className={className} {...proximityProps}>
+      <div aria-label={text} role="img" style={containerStyle}>
+        {renderedContent}
+      </div>
+    </Proximity>
+  );
+};
+</file>
+
+<file path="src/store/settings.js">
+import { create } from "zustand";
+
+const useSettingsStore = create((set) => ({
+  volume: 0.5,
+  isMuted: false,
+  setVolume: (val) => set({ volume: val, isMuted: val === 0 }),
+  toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
+  isDarkMode: false,
+  toggleDarkMode: () => set((state) => {
+    const nextMode = !state.isDarkMode;
+    if (nextMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    return { isDarkMode: nextMode };
+  }),
+}));
+
+export default useSettingsStore;
+</file>
+
+<file path="src/windows/Photos.jsx">
+import { Mail, Search } from "lucide-react"
+import WindowWrapper from "#hoc/WindowWrapper"
+import WindowControls from "#components/WindowControls"
+import { gallery, photosLinks } from "#constants/index.js"
+import useWindowStore from "#store/window"
+
+const Photos = () => {
+  const { openWindow } = useWindowStore();
+  return (
+    <>
+      <div id="window-header" className="shrink-0">
+        <WindowControls target="photos" />
+        <div className="w-full flex justify-end items-center gap-3 text-indigo-500">
+          <Mail className="icon" />
+          <Search className="icon"/>
+        </div>
+      </div>
+      
+      <div className="flex flex-1 h-full overflow-hidden">
+        <div className="sidebar shrink-0 h-full overflow-y-auto">
+          <h2>Photos</h2>
+          <ul>
+            {photosLinks.map(({ id, icon, title }) => (
+              <li key={id}>
+                <img src={icon} alt={title} />
+                <p>{title}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="gallery flex-1 h-full overflow-y-auto min-h-0 p-5">
+          <ul>
+            {gallery.map(({ id, img }) => (
+              <li
+                key={id}
+                onClick={() => 
+                  openWindow("imgfile", {
+                    id,
+                    name: "Gallery image",
+                    icon: "/images/image.png",
+                    kind: "file",
+                    fileType: "img",
+                    imageUrl: img,
+                  })
+                }
+              >
+                <img src={img} alt={`Gallery Image ${id}`}   loading="lazy" 
+                decoding="async" />
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </>
+  )
+}
+
+const PhotosWindow = WindowWrapper(Photos, "photos");
+PhotosWindow.displayName = "Photos";
+
+export default PhotosWindow;
+</file>
+
+<file path="index.html">
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./macbook.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <title>ZPortfolio | Yousef Zedan</title>
+    <meta name="author" content="Yousef Zedan (ZED Studios)">
+    <meta name="description" content="A highly interactive, Arch Linux-inspired personal portfolio designed by Yousef Zedan.">
+    <link rel="preload" as="image" type="image/webp" href="/images/arch.webp" fetchpriority="high">
+    <link rel="preload" as="image" type="image/webp" href="/images/wallpaper.webp" fetchpriority="high">
+    <link rel="preload" as="image" type="image/webp" href="/images/yousef-5.webp" fetchpriority="high">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Georama:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <meta property="og:title" content="ZPortfolio — Arch Linux Experience">
+    <meta property="og:description" content="Check out my interactive Arch Linux-style portfolio built with React and GSAP.">
+    <meta property="og:image" content="./macbook.png">
+
+    <style>
+      body { background-color: #000000; margin: 0; }
+      @keyframes grub-blink-init {
+        0%, 49% { opacity: 1; }
+        50%, 100% { opacity: 0; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div style="position: fixed; inset: 0; background-color: #000000; color: white; display: flex; flex-direction: column; font-family: monospace; z-index: 99999;">
+        <div style="padding: 1.25rem; font-size: 1.5rem; font-weight: bold;">
+          <span style="animation: grub-blink-init 0.8s step-end infinite;">_</span>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+</file>
+
 <file path="src/components/ContextMenu.jsx">
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
@@ -1025,296 +1259,6 @@ const ContextMenu = () => {
 export default ContextMenu;
 </file>
 
-<file path="src/proximity-engine/ProximityContext.jsx">
-import { createContext, useContext } from "react";
-
-const ProximityContext = createContext({
-  defaultFont: "'Georama', sans-serif",
-});
-
-export const ProximityProvider = ({ children, config }) => {
-  return (
-    <ProximityContext.Provider value={{ ...config }}>
-      {children}
-    </ProximityContext.Provider>
-  );
-};
-
-export const useProximityConfig = () => useContext(ProximityContext);
-</file>
-
-<file path="src/proximity-engine/ProximityText.jsx">
-import { Fragment, useMemo } from "react";
-import { Proximity } from "./Proximity";
-import { useProximityConfig } from "./ProximityContext";
-export const ProximityText = ({
-  text,
-  splitBy = "letter",
-  className = "",
-  textClassName = "",
-  fontFamily,
-  lineHeight = 1.2,
-  letterSpacing = 0,
-  wordSpacing = 0.25,
-  clipFix = "0.2em",
-  ...proximityProps
-}) => {
-  const globalConfig = useProximityConfig();
-  const actualFontFamily = fontFamily || globalConfig.defaultFont;
-
-  const containerStyle = useMemo(() => {
-    const base = { 
-      display: "flex", 
-      fontFamily: actualFontFamily,
-      lineHeight: lineHeight,
-      letterSpacing: `${letterSpacing}em`,
-      textAlign: "center",
-      justifyContent: "center"
-    };
-    if (splitBy === "word") return { ...base, flexWrap: "wrap", columnGap: `${wordSpacing}em`, rowGap: "0.1em" };
-    if (splitBy === "line") return { ...base, display: "block" };
-    return { ...base, flexWrap: "wrap" };
-  }, [splitBy, actualFontFamily, lineHeight, letterSpacing, wordSpacing]);
-
-  const renderedContent = useMemo(() => {
-    const itemStyle = {
-      display: "inline-block",
-      userSelect: "none",
-      willChange: "transform, filter, opacity",
-      padding: clipFix,
-      margin: clipFix ? `-${clipFix}` : "0",
-    };
-
-    const formattedText = text;
-
-    if (splitBy === "word") {
-      return formattedText.split("\n").map((line, lineIdx) => (
-        <Fragment key={lineIdx}>
-          {line.split(" ").map((word, i) => (
-            <span key={i} aria-hidden="true" className={`prox-part ${textClassName}`} style={itemStyle}>{word}</span>
-          ))}
-          {lineIdx < formattedText.split("\n").length - 1 && <div style={{ width: "100%" }} />}
-        </Fragment>
-      ));
-    }
-
-    if (splitBy === "line") {
-      return formattedText.split("\n").map((line, i) => (
-        <Fragment key={i}>
-          <span aria-hidden="true" className={`prox-part ${textClassName}`} style={itemStyle}>{line}</span>
-          {i < formattedText.split("\n").length - 1 && <br />}
-        </Fragment>
-      ));
-    }
-
-    return [...formattedText].map((char, i) => {
-      if (char === "\n") {
-        return <div key={i} style={{ width: "100%", height: 0 }} />;
-      }
-      return (
-        <span aria-hidden="true" key={i} className={`prox-part ${textClassName}`} style={{ ...itemStyle, whiteSpace: char === " " ? "pre" : "normal" }}>
-          {char}
-        </span>
-      );
-    });
-
-  },[text, splitBy, textClassName, clipFix]);
-
-  return (
-    <Proximity selector=".prox-part" className={className} {...proximityProps}>
-      <div aria-label={text} role="img" style={containerStyle}>
-        {renderedContent}
-      </div>
-    </Proximity>
-  );
-};
-</file>
-
-<file path="src/store/settings.js">
-import { create } from "zustand";
-
-const useSettingsStore = create((set) => ({
-  volume: 0.5,
-  isMuted: false,
-  setVolume: (val) => set({ volume: val, isMuted: val === 0 }),
-  toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
-  isDarkMode: false,
-  toggleDarkMode: () => set((state) => {
-    const nextMode = !state.isDarkMode;
-    if (nextMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-    return { isDarkMode: nextMode };
-  }),
-}));
-
-export default useSettingsStore;
-</file>
-
-<file path="src/store/window.js">
-import { INITIAL_Z_INDEX, WINDOW_CONFIG, dockApps } from "#constants";
-import { create } from "zustand";
-import { immer } from "zustand/middleware/immer";
-
-const useWindowStore = create(
-  immer((set) => ({
-    windows: WINDOW_CONFIG,
-    dockItems: dockApps,
-    nextZIndex: INITIAL_Z_INDEX + 1,
-    removeDockItem: (id) => set((state) => {
-      if (id === 'finder' || id === 'trash') return;
-      state.dockItems = state.dockItems.filter(item => item.id !== id);
-    }),
-    moveDockItem: (id1, id2) => set((state) => {
-      const idx1 = state.dockItems.findIndex(i => i.id === id1);
-      const idx2 = state.dockItems.findIndex(i => i.id === id2);
-      if (idx1 === -1 || idx2 === -1 || idx1 === idx2) return;
-      
-      const temp = state.dockItems[idx1];
-      state.dockItems[idx1] = state.dockItems[idx2];
-      state.dockItems[idx2] = temp;
-    }),
-    openWindow: (windowKey, data = null, launchPos = null) =>
-      set((state) => {
-        const win = state.windows[windowKey];
-        if (!win) return;
-        win.isOpen = true;
-        win.zIndex = state.nextZIndex;
-        win.data = data ?? win.data;
-        win.launchPos = launchPos;
-        state.nextZIndex++;
-      }),
-    closeWindow: (windowKey) => set((state) => {
-      const win = state.windows[windowKey];
-      if (!win) return;
-      win.isOpen = false;
-      win.zIndex = INITIAL_Z_INDEX;
-      win.data = null;
-      win.launchPos = null;
-    }),
-    toggleMaximize: (windowKey) => set((state) => {
-      const win = state.windows[windowKey];
-      if (win) win.isMaximized = !win.isMaximized;
-    }),
-    focusWindow: (windowKey) => set((state) => {
-      const win = state.windows[windowKey];
-      if (!win) return;
-      win.zIndex = state.nextZIndex++;
-    }),
-  })),
-);
-
-export default useWindowStore;
-</file>
-
-<file path="src/windows/Photos.jsx">
-import { Mail, Search } from "lucide-react"
-import WindowWrapper from "#hoc/WindowWrapper"
-import WindowControls from "#components/WindowControls"
-import { gallery, photosLinks } from "#constants/index.js"
-import useWindowStore from "#store/window"
-
-const Photos = () => {
-  const { openWindow } = useWindowStore();
-  return (
-    <>
-      <div id="window-header" className="shrink-0">
-        <WindowControls target="photos" />
-        <div className="w-full flex justify-end items-center gap-3 text-indigo-500">
-          <Mail className="icon" />
-          <Search className="icon"/>
-        </div>
-      </div>
-      
-      <div className="flex flex-1 h-full overflow-hidden">
-        <div className="sidebar shrink-0 h-full overflow-y-auto">
-          <h2>Photos</h2>
-          <ul>
-            {photosLinks.map(({ id, icon, title }) => (
-              <li key={id}>
-                <img src={icon} alt={title} />
-                <p>{title}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="gallery flex-1 h-full overflow-y-auto min-h-0 p-5">
-          <ul>
-            {gallery.map(({ id, img }) => (
-              <li
-                key={id}
-                onClick={() => 
-                  openWindow("imgfile", {
-                    id,
-                    name: "Gallery image",
-                    icon: "/images/image.png",
-                    kind: "file",
-                    fileType: "img",
-                    imageUrl: img,
-                  })
-                }
-              >
-                <img src={img} alt={`Gallery Image ${id}`}   loading="lazy" 
-                decoding="async" />
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </>
-  )
-}
-
-const PhotosWindow = WindowWrapper(Photos, "photos");
-PhotosWindow.displayName = "Photos";
-
-export default PhotosWindow;
-</file>
-
-<file path="index.html">
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="./macbook.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
-    <title>ZPortfolio | Yousef Zedan</title>
-    <meta name="author" content="Yousef Zedan (ZED Studios)">
-    <meta name="description" content="A highly interactive, Arch Linux-inspired personal portfolio designed by Yousef Zedan.">
-    <link rel="preload" as="image" type="image/webp" href="/images/arch.webp" fetchpriority="high">
-    <link rel="preload" as="image" type="image/webp" href="/images/wallpaper.webp" fetchpriority="high">
-    <link rel="preload" as="image" type="image/webp" href="/images/yousef-5.webp" fetchpriority="high">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Georama:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-    <meta property="og:title" content="ZPortfolio — Arch Linux Experience">
-    <meta property="og:description" content="Check out my interactive Arch Linux-style portfolio built with React and GSAP.">
-    <meta property="og:image" content="./macbook.png">
-
-    <style>
-      body { background-color: #000000; margin: 0; }
-      @keyframes grub-blink-init {
-        0%, 49% { opacity: 1; }
-        50%, 100% { opacity: 0; }
-      }
-    </style>
-  </head>
-  <body>
-    <div id="root">
-      <div style="position: fixed; inset: 0; background-color: #000000; color: white; display: flex; flex-direction: column; font-family: monospace; z-index: 99999;">
-        <div style="padding: 1.25rem; font-size: 1.5rem; font-weight: bold;">
-          <span style="animation: grub-blink-init 0.8s step-end infinite;">_</span>
-        </div>
-      </div>
-    </div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>
-</file>
-
 <file path="src/components/index.js">
 import Navbar from "#components/Navbar.jsx";
 import Welcome from "#components/Welcome.jsx";
@@ -1374,6 +1318,62 @@ const SpotifyWidget = memo(() => {
 });
 
 export default SpotifyWidget;
+</file>
+
+<file path="src/store/window.js">
+import { INITIAL_Z_INDEX, WINDOW_CONFIG, dockApps } from "#constants";
+import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
+
+const useWindowStore = create(
+  immer((set) => ({
+    windows: WINDOW_CONFIG,
+    dockItems: dockApps,
+    nextZIndex: INITIAL_Z_INDEX + 1,
+    removeDockItem: (id) => set((state) => {
+      if (id === 'finder' || id === 'trash') return;
+      state.dockItems = state.dockItems.filter(item => item.id !== id);
+    }),
+    moveDockItem: (id1, id2) => set((state) => {
+      const idx1 = state.dockItems.findIndex(i => i.id === id1);
+      const idx2 = state.dockItems.findIndex(i => i.id === id2);
+      if (idx1 === -1 || idx2 === -1 || idx1 === idx2) return;
+      
+      const temp = state.dockItems[idx1];
+      state.dockItems[idx1] = state.dockItems[idx2];
+      state.dockItems[idx2] = temp;
+    }),
+    openWindow: (windowKey, data = null, launchPos = null) =>
+      set((state) => {
+        const win = state.windows[windowKey];
+        if (!win) return;
+        win.isOpen = true;
+        win.zIndex = state.nextZIndex;
+        win.data = data ?? win.data;
+        win.launchPos = launchPos;
+        state.nextZIndex++;
+      }),
+    closeWindow: (windowKey) => set((state) => {
+      const win = state.windows[windowKey];
+      if (!win) return;
+      win.isOpen = false;
+      win.zIndex = INITIAL_Z_INDEX;
+      win.data = null;
+      win.launchPos = null;
+    }),
+    toggleMaximize: (windowKey) => set((state) => {
+      const win = state.windows[windowKey];
+      if (win) win.isMaximized = !win.isMaximized;
+    }),
+    focusWindow: (windowKey) => set((state) => {
+      const win = state.windows[windowKey];
+      if (!win) return;
+      win.zIndex = state.nextZIndex++;
+    }),
+  })),
+);
+
+export default useWindowStore;
 </file>
 
 <file path="src/windows/Finder.jsx">
@@ -2126,74 +2126,6 @@ export {
 };
 </file>
 
-<file path="src/App.jsx">
-import React, { Suspense, lazy, useState } from "react";
-import gsap from "gsap";
-import { Draggable } from "gsap/Draggable";
-import BootSequence from "#components/BootSequence.jsx";
-const Navbar = lazy(() => import("#components/Navbar.jsx"));
-const Welcome = lazy(() => import("#components/Welcome.jsx"));
-const Dock = lazy(() => import("#components/Dock.jsx"));
-const Home = lazy(() => import("#components/Home.jsx"));
-const Terminal = lazy(() => import("#windows/Terminal.jsx"));
-const ZenBrowser = lazy(() => import("#windows/ZenBrowser.jsx"));
-const Resume = lazy(() => import("#windows/Resume.jsx"));
-const Finder = lazy(() => import("#windows/Finder.jsx"));
-const Text = lazy(() => import("#windows/Text.jsx"));
-const Image = lazy(() => import("#windows/Image.jsx"));
-const Contact = lazy(() => import("#windows/Contact.jsx"));
-const Photos = lazy(() => import("#windows/Photos.jsx"));
-const CodeEditor = lazy(() => import("#windows/CodeEditor.jsx"));
-const ContextMenu = lazy(() => import("#components/ContextMenu.jsx"));
-
-gsap.registerPlugin(Draggable);
-
-if (typeof window !== "undefined") {
-  console.log(
-    "%c 💻 ZPortfolio by ZED Studios %c Developed by Yousef Zedan %c https://github.com/YoussefZidan-1/zportfolio ",
-    "color: white; background: #000; padding: 5px 10px; border-radius: 5px 0 0 5px; font-weight: bold;",
-    "color: #fff; background: #007aff; padding: 5px 10px; font-weight: bold;",
-    "color: #000; background: #fff; padding: 5px 10px; border-radius: 0 5px 5px 0; border: 1px solid #000;"
-  );
-}
-
-const App = () => {
-  const [isBooted, setIsBooted] = useState(false);
-  return (
-    <>
-      {!isBooted && <BootSequence onComplete={() => setIsBooted(true)} />}
-      <div 
-        className={`fixed inset-0 w-full h-full transition-opacity duration-1000 ease-in-out z-0 ${
-          isBooted ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-        }`}
-      >
-        <Suspense fallback={null}>
-          <main className="w-full h-full">
-            <div className="ios-home-indicator" />
-            <Navbar />
-            <Welcome />
-            <Home />
-            <ContextMenu />
-            <Dock />
-            <Terminal />
-            <ZenBrowser />
-            <Resume />
-            <Finder />
-            <Text />
-            <Image />
-            <Contact />
-            <Photos />
-            <CodeEditor /> 
-          </main>
-        </Suspense>
-      </div>
-    </>
-  );
-};
-
-export default App;
-</file>
-
 <file path="src/components/Navbar.jsx">
 import React, { memo, useState, useEffect, useRef } from "react";
 import { navIcons, navLinks } from "#constants";
@@ -2364,6 +2296,121 @@ const WindowControls = ({ target }) => {
 }
 
 export default WindowControls;
+</file>
+
+<file path="src/App.jsx">
+import React, { Suspense, lazy, useState } from "react";
+import gsap from "gsap";
+import { Draggable } from "gsap/Draggable";
+import BootSequence from "#components/BootSequence.jsx";
+const Navbar = lazy(() => import("#components/Navbar.jsx"));
+const Welcome = lazy(() => import("#components/Welcome.jsx"));
+const Dock = lazy(() => import("#components/Dock.jsx"));
+const Home = lazy(() => import("#components/Home.jsx"));
+const Terminal = lazy(() => import("#windows/Terminal.jsx"));
+const ZenBrowser = lazy(() => import("#windows/ZenBrowser.jsx"));
+const Resume = lazy(() => import("#windows/Resume.jsx"));
+const Finder = lazy(() => import("#windows/Finder.jsx"));
+const Text = lazy(() => import("#windows/Text.jsx"));
+const Image = lazy(() => import("#windows/Image.jsx"));
+const Contact = lazy(() => import("#windows/Contact.jsx"));
+const Photos = lazy(() => import("#windows/Photos.jsx"));
+const CodeEditor = lazy(() => import("#windows/CodeEditor.jsx"));
+const ContextMenu = lazy(() => import("#components/ContextMenu.jsx"));
+
+gsap.registerPlugin(Draggable);
+
+if (typeof window !== "undefined") {
+  console.log(
+    "%c 💻 ZPortfolio by ZED Studios %c Developed by Yousef Zedan %c https://github.com/YoussefZidan-1/zportfolio ",
+    "color: white; background: #000; padding: 5px 10px; border-radius: 5px 0 0 5px; font-weight: bold;",
+    "color: #fff; background: #007aff; padding: 5px 10px; font-weight: bold;",
+    "color: #000; background: #fff; padding: 5px 10px; border-radius: 0 5px 5px 0; border: 1px solid #000;"
+  );
+}
+
+const App = () => {
+  const [isBooted, setIsBooted] = useState(false);
+  return (
+    <>
+      {!isBooted && <BootSequence onComplete={() => setIsBooted(true)} />}
+      <div 
+        className={`fixed inset-0 w-full h-full transition-opacity duration-1000 ease-in-out z-0 ${
+          isBooted ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        <Suspense fallback={null}>
+          <main className="w-full h-full">
+            <div className="ios-home-indicator" />
+            <Navbar />
+            <Welcome />
+            <Home />
+            <ContextMenu />
+            <Dock />
+            <Terminal />
+            <ZenBrowser />
+            <Resume />
+            <Finder />
+            <Text />
+            <Image />
+            <Contact />
+            <Photos />
+            <CodeEditor /> 
+          </main>
+        </Suspense>
+      </div>
+    </>
+  );
+};
+
+export default App;
+</file>
+
+<file path="src/components/Welcome.jsx">
+import { ProximityText } from "../proximity-engine/ProximityText.jsx";
+
+const Welcome = () => {
+  return (
+    <section id="welcome" className="max-md:hidden pointer-events-none w-full">
+      <ProximityText
+        text="Hey, I'm Yousef Zedan! Welcome to my"
+        preset="opacity-y"
+        splitBy="letter"
+        global={true}
+        ignoreSelectors={[".os-window"]}
+        config={{
+          duration: 1.5,
+          resetDuration: 1.5,
+          ease: "elastic",
+          resetEase: "elastic"
+        }}
+        reach={0.6}
+        falloff={2}
+        className="cursor-default text-center px-4"
+        textClassName="text-[5vw] sm:text-2xl md:text-3xl font-georama font-[150]"
+      />
+      <ProximityText
+        text="ZPortfolio"
+        preset="weight"
+        global={true}
+        ignoreSelectors={[".os-window"]}
+        config={{
+          duration: 1,
+          resetDuration: 1,
+          weight: [400, 900],
+          ease: "elastic",
+          resetEase: "elastic"
+        }}
+        reach={0.5}
+        falloff={2}
+        className="mt-4 md:mt-7 cursor-default text-center"
+        textClassName="text-[10.5vw] sm:text-7xl md:text-9xl italic font-georama"
+      />
+    </section>
+  );
+};
+
+export default Welcome;
 </file>
 
 <file path="src/proximity-engine/Proximity.jsx">
@@ -2706,53 +2753,6 @@ export const Proximity = ({
     </div>
   );
 };
-</file>
-
-<file path="src/components/Welcome.jsx">
-import { ProximityText } from "../proximity-engine/ProximityText.jsx";
-
-const Welcome = () => {
-  return (
-    <section id="welcome" className="max-md:hidden pointer-events-none w-full">
-      <ProximityText
-        text="Hey, I'm Yousef Zedan! Welcome to my"
-        preset="opacity-y"
-        splitBy="letter"
-        global={true}
-        ignoreSelectors={[".os-window"]}
-        config={{
-          duration: 1.5,
-          resetDuration: 1.5,
-          ease: "elastic",
-          resetEase: "elastic"
-        }}
-        reach={0.6}
-        falloff={2}
-        className="cursor-default text-center px-4"
-        textClassName="text-[5vw] sm:text-2xl md:text-3xl font-georama font-[150]"
-      />
-      <ProximityText
-        text="ZPortfolio"
-        preset="weight"
-        global={true}
-        ignoreSelectors={[".os-window"]}
-        config={{
-          duration: 1,
-          resetDuration: 1,
-          weight: [400, 900],
-          ease: "elastic",
-          resetEase: "elastic"
-        }}
-        reach={0.5}
-        falloff={2}
-        className="mt-4 md:mt-7 cursor-default text-center"
-        textClassName="text-[10.5vw] sm:text-7xl md:text-9xl italic font-georama"
-      />
-    </section>
-  );
-};
-
-export default Welcome;
 </file>
 
 <file path="src/windows/CodeEditor.jsx">
@@ -4839,10 +4839,10 @@ import useSound from "use-sound";
 import useSettingsStore from "#store/settings.js";
 import { useWebHaptics } from "web-haptics/react";
 import { memo, useRef, useLayoutEffect } from "react";
+import { flushSync } from "react-dom";
 import { Tooltip } from "react-tooltip";
 import { Proximity } from "../proximity-engine/Proximity.jsx";
 
-// Register the FLIP plugin alongside Draggable
 gsap.registerPlugin(Draggable, Flip);
 
 const Dock = memo(() => {
@@ -4858,7 +4858,6 @@ const Dock = memo(() => {
   const { volume, isMuted } = useSettingsStore();
   const [playTrash] = useSound("/sounds/oxygen_trash.ogg", { volume: isMuted ? 0 : volume });
 
-  // Store the Flip state to animate after React re-renders
   const flipStateRef = useRef(null);
 
   const toggleApp = (app) => {
@@ -4876,42 +4875,71 @@ const Dock = memo(() => {
     }
   };
 
-  // FLIP Animation: Runs immediately after React updates the DOM order
   useLayoutEffect(() => {
     if (flipStateRef.current) {
       Flip.from(flipStateRef.current, {
-        targets: ".dock-container, .dock-wrapper, .dock-icon",
-        duration: 0.5,
-        ease: "elastic.out(1, 0.75)",
+        targets: ".dock-container, .dock-wrapper:not(.is-dragging)",
+        duration: 0.4,
+        ease: "back.out(1.2)",
         absolute: true,
-        nested: true,
         zIndex: 9999,
       });
       flipStateRef.current = null;
     }
   }, [dockItems]);
 
-  // Drag and Drop Logic
   useGSAP(() => {
     Draggable.create(".dock-draggable", {
       type: "x,y",
       dragClickables: true,
       allowContextMenu: true,
       onDragStart: function() {
-        gsap.to(this.target, { opacity: 0.8, scale: 1.1, duration: 0.2 });
+        this.target.classList.add("is-dragging");
+        gsap.to(this.target, { opacity: 0.9, scale: 1.15, duration: 0.2 });
+      },
+      onDrag: function() {
+        const el = this.target;
+        const id = el.getAttribute("data-id");
+        
+        if (id === 'finder' || id === 'trash') return;
+
+        const items = Array.from(document.querySelectorAll(".dock-draggable:not(.is-dragging)"));
+        for (const item of items) {
+          const targetId = item.getAttribute("data-id");
+          if (targetId === 'finder' || targetId === 'trash') continue;
+
+          if (this.hitTest(item, "50%")) {
+            const rectBefore = el.getBoundingClientRect();
+            
+            flipStateRef.current = Flip.getState(".dock-container, .dock-wrapper:not(.is-dragging)");
+            
+            flushSync(() => {
+              moveDockItem(id, targetId);
+            });
+            
+            const rectAfter = el.getBoundingClientRect();
+            const dx = rectAfter.left - rectBefore.left;
+            const dy = rectAfter.top - rectBefore.top;
+            
+            const currentX = gsap.getProperty(el, "x");
+            const currentY = gsap.getProperty(el, "y");
+            
+            gsap.set(el, { x: currentX - dx, y: currentY - dy });
+            this.update();
+            break;
+          }
+        }
       },
       onDragEnd: function() {
         const el = this.target;
         const id = el.getAttribute("data-id");
-        
-        gsap.to(el, { opacity: 1, scale: 1, duration: 0.2 });
+        el.classList.remove("is-dragging");
 
         if (id === 'finder' || id === 'trash') {
-           gsap.to(el, { x: 0, y: 0, duration: 0.3, ease: "back.out(1.5)" });
+           gsap.to(el, { x: 0, y: 0, scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)" });
            return;
         }
 
-        // 1. Trash Interaction
         const trashEl = document.querySelector(".dock-draggable[data-id='trash']");
         if (trashEl && this.hitTest(trashEl, "30%")) {
            trigger("success");
@@ -4919,58 +4947,39 @@ const Dock = memo(() => {
            gsap.to(el, { 
              scale: 0, opacity: 0, rotation: -90, duration: 0.3, ease: "back.in(1.5)",
              onComplete: () => {
-                 // Capture FLIP state BEFORE removing
-                 flipStateRef.current = Flip.getState(".dock-container, .dock-wrapper, .dock-icon");
+                 flipStateRef.current = Flip.getState(".dock-container, .dock-wrapper:not(.is-dragging)");
                  removeDockItem(id);
              } 
            });
            return;
         }
 
-        // 2. Rearrange / Swap Interaction
-        let swapped = false;
-        const items = Array.from(document.querySelectorAll(".dock-draggable"));
-        for (const item of items) {
-          if (item !== el && this.hitTest(item, "50%")) {
-            const targetId = item.getAttribute("data-id");
-            
-            // Capture FLIP state BEFORE resetting x/y so the animation starts from the dropped position
-            flipStateRef.current = Flip.getState(".dock-container, .dock-wrapper, .dock-icon");
-            
-            // Reset the inline transform so React and FLIP can calculate pure layout positions
-            gsap.set(el, { x: 0, y: 0 }); 
-            
-            moveDockItem(id, targetId);
-            swapped = true;
-            break;
-          }
-        }
-
-        if (swapped) {
-           trigger("selection");
-           return;
-        }
-
-        // 3. Drag Outside (Unpin / Poof)
         const dockContainer = document.querySelector(".dock-container");
-        if (!this.hitTest(dockContainer, "50%")) {
+        const dockRect = dockContainer.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        const isOutside = (
+          elRect.bottom < dockRect.top - 50 ||
+          elRect.top > dockRect.bottom + 50 ||
+          elRect.right < dockRect.left - 50 ||
+          elRect.left > dockRect.right + 50
+        );
+
+        if (isOutside) {
            trigger("success");
            gsap.to(el, { 
              scale: 1.5, opacity: 0, filter: "blur(10px)", duration: 0.3, ease: "power2.out",
              onComplete: () => {
-                 // Capture FLIP state BEFORE removing so the container shrinks organically
-                 flipStateRef.current = Flip.getState(".dock-container, .dock-wrapper, .dock-icon");
+                 flipStateRef.current = Flip.getState(".dock-container, .dock-wrapper:not(.is-dragging)");
                  removeDockItem(id);
              } 
            });
            return;
         }
 
-        // 4. Snap Back
-        gsap.to(el, { x: 0, y: 0, duration: 0.4, ease: "elastic.out(1, 0.7)" });
+        gsap.to(el, { x: 0, y: 0, scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)" });
       }
     });
-  }, [dockItems]);
+  }, [dockItems.length]);
 
   return (
     <section id="dock" className="max-md:hidden">
@@ -4991,20 +5000,18 @@ const Dock = memo(() => {
         {dockItems.map(({ id, name, icon, canOpen }) => (
           <div 
             key={id ?? name} 
-            data-flip-id={`wrapper-${id}`} // Helps GSAP track the elements during React re-renders
-            className="relative flex justify-center dock-wrapper"
+            data-flip-id={`wrapper-${id}`}
+            className="relative flex justify-center dock-wrapper dock-item dock-draggable"
+            data-id={id}
           >
             <button
               type="button"
-              className="dock-icon dock-item dock-draggable flex items-center justify-center will-change-transform z-10"
-              data-id={id}
-              data-flip-id={`icon-${id}`} // Helps GSAP track the elements during React re-renders
+              className="dock-icon flex items-center justify-center will-change-transform z-10"
               aria-label={name}
               data-tooltip-id="dock-tooltip"
               data-tooltip-content={name}
               data-tooltip-delay-show={150}
               onClick={(e) => {
-                // Prevent click firing when finishing a drag
                 if (e.button !== 0) return;
                 toggleApp({ id, canOpen });
               }}
@@ -5352,8 +5359,7 @@ export default Dock;
                 @apply max-md:flex max-md:flex-col max-md:overflow-hidden;
             }
             li {
-                            @apply absolute flex items-center flex-col gap-2 p-3 -m-3 cursor-pointer z-10 max-md:relative max-md:top-0 max-md:left-0 max-md:m-0 max-md:flex-row max-md:justify-start max-md:p-3 max-md:gap-4;
-                             position: absolute; 
+                            @apply absolute flex items-center flex-col gap-2 p-3 -m-3 cursor-pointer z-10 max-md:relative max-md:top-0 max-md:left-0 max-md:m-0 max-md:flex-row max-md:justify-start max-md:p-3 max-md:gap-4; 
                             
                             &::before {
                                 content: '';
