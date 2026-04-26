@@ -319,8 +319,7 @@
                 @apply max-md:flex max-md:flex-col max-md:overflow-hidden;
             }
             li {
-                            @apply absolute flex items-center flex-col gap-2 p-3 -m-3 cursor-pointer z-10 max-md:relative max-md:top-0 max-md:left-0 max-md:m-0 max-md:flex-row max-md:justify-start max-md:p-3 max-md:gap-4;
-                             position: absolute; 
+                            @apply absolute flex items-center flex-col gap-2 p-3 -m-3 cursor-pointer z-10 max-md:relative max-md:top-0 max-md:left-0 max-md:m-0 max-md:flex-row max-md:justify-start max-md:p-3 max-md:gap-4; 
                             
                             &::before {
                                 content: '';

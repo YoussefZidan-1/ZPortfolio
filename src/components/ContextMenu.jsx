@@ -1,9 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
-import { 
-  FolderPlus, Terminal, Code, RefreshCw, Moon, Sun, 
-  Info, Trash2, ExternalLink, XCircle, PinOff 
-} from "lucide-react";
+import { FolderPlus, Terminal, Code, RefreshCw, Moon, Sun, Info, Trash2, ExternalLink, XCircle, PinOff } from "lucide-react";
 import useWindowStore from "#store/window.js";
 import useSettingsStore from "#store/settings.js";
 import useLocationStore from "#store/location.js";
@@ -37,21 +34,20 @@ const ContextMenu = () => {
     exiting: false, 
     x: 0, 
     y: 0,
-    targetType: 'desktop', // 'desktop' | 'app' | 'trash'
+    targetType: 'desktop',
     targetId: null 
   });
 
   const openWindow = useWindowStore((s) => s.openWindow);
   const closeWindow = useWindowStore((s) => s.closeWindow);
+  const removeDockItem = useWindowStore((s) => s.removeDockItem);
   const { isDarkMode, toggleDarkMode, volume, isMuted } = useSettingsStore();
-  const { emptyTrash } = useLocationStore();
+  const emptyTrash = useLocationStore((s) => s.emptyTrash);
   const { trigger } = useWebHaptics();
 
-  // 🔊 Sounds
   const [playTrash] = useSound("/sounds/oxygen_trash.ogg", { volume: isMuted ? 0 : volume });
   
   const menuRef = useRef(null);
-  const wasVisible = useRef(false);
 
   const closeMenu = useCallback(() => {
     setContextData((prev) => {
@@ -61,16 +57,14 @@ const ContextMenu = () => {
       }, 200);
       return { ...prev, exiting: true };
     });
-  }, []);
+  },[]);
 
   const handleContextMenu = useCallback((e) => {
     const target = e.target;
-    // Don't show custom menu on inputs or editors
     if (target.tagName === 'INPUT' || target.closest('.monaco-editor')) return;
 
     e.preventDefault();
     
-    // 🔍 Detect Target
     const dockItem = target.closest('.dock-item');
     const isTrash = dockItem?.getAttribute('data-id') === 'trash';
     
@@ -84,7 +78,6 @@ const ContextMenu = () => {
       id = dockItem.getAttribute('data-id');
     }
 
-    // Position constraints
     const menuWidth = 220;
     const menuHeight = type === 'app' ? 120 : 260;
     let x = e.clientX;
@@ -98,13 +91,16 @@ const ContextMenu = () => {
 
   useEffect(() => {
     window.addEventListener("contextmenu", handleContextMenu);
-    window.addEventListener("pointerdown", (e) => {
-        if (menuRef.current && !menuRef.current.contains(e.target)) closeMenu();
-    });
-    return () => window.removeEventListener("contextmenu", handleContextMenu);
+    const handlePointerDown = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) closeMenu();
+    };
+    window.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      window.removeEventListener("contextmenu", handleContextMenu);
+      window.removeEventListener("pointerdown", handlePointerDown);
+    };
   }, [handleContextMenu, closeMenu]);
 
-  // ─── Animations ───────────────────────────────────────
   useGSAP(() => {
     if (!menuRef.current) return;
     if (contextData.visible && !contextData.exiting) {
@@ -115,7 +111,7 @@ const ContextMenu = () => {
     } else if (contextData.exiting) {
       gsap.to(menuRef.current, { scale: 0.95, opacity: 0, duration: 0.15, ease: "power2.in" });
     }
-  }, [contextData.visible, contextData.exiting]);
+  },[contextData.visible, contextData.exiting]);
 
   if (!contextData.visible) return null;
 
@@ -130,8 +126,11 @@ const ContextMenu = () => {
       ref={menuRef}
       className="fixed z-[999999] min-w-[200px] bg-white/60 dark:bg-[#1c1c1e]/70 backdrop-blur-3xl border border-white/40 dark:border-white/10 rounded-xl shadow-2xl p-1.5 select-none"
       style={{ top: contextData.y, left: contextData.x }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
     >
-      {/* 🗑️ TRASH CONTEXT */}
       {contextData.targetType === 'trash' && (
         <>
           <ActionItem 
@@ -151,7 +150,6 @@ const ContextMenu = () => {
         </>
       )}
 
-      {/* 🚀 APP ICON CONTEXT */}
       {contextData.targetType === 'app' && (
         <>
           <ActionItem 
@@ -159,12 +157,14 @@ const ContextMenu = () => {
             label="Open App" 
             onClick={() => handleAction(() => openWindow(contextData.targetId))} 
           />
-          <ActionItem 
-            icon={PinOff} 
-            label="Unpin from Dock" 
-            onClick={() => handleAction(() => trigger("error"))} 
-            divider
-          />
+          {contextData.targetId !== 'finder' && contextData.targetId !== 'trash' && (
+            <ActionItem 
+              icon={PinOff} 
+              label="Unpin from Dock" 
+              onClick={() => handleAction(() => removeDockItem(contextData.targetId))} 
+              divider
+            />
+          )}
           <ActionItem 
             icon={XCircle} 
             label="Force Quit" 
@@ -174,7 +174,6 @@ const ContextMenu = () => {
         </>
       )}
 
-      {/* 🖥️ DESKTOP CONTEXT */}
       {contextData.targetType === 'desktop' && (
         <>
           <ActionItem 
@@ -205,7 +204,11 @@ const ContextMenu = () => {
             onClick={() => handleAction(() => openWindow("txtfile", {
               id: "about-os",
               name: "About ZED OS",
-              description: ["ZED OS v1.0", "A high-performance web portfolio."]
+              subtitle: "ZED OS v1.0",
+              description:[
+                "A modern, web-based operating system portfolio built with React, Tailwind CSS, and GSAP.", 
+                "Designed and developed by Yousef Zedan."
+              ]
             }))}
             divider
           />

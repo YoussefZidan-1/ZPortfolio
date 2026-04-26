@@ -84,6 +84,8 @@ public/sounds/oxygen_boot.ogg
 public/sounds/oxygen_close.ogg
 public/sounds/oxygen_maximize.ogg
 public/sounds/oxygen_minimize.ogg
+public/sounds/oxygen_open.ogg
+public/sounds/oxygen_trash.ogg
 README.md
 src/App.jsx
 src/components/BootSequence.jsx
@@ -301,32 +303,6 @@ createRoot(document.getElementById('root')).render(
 )
 </file>
 
-<file path="src/store/location.js">
-import { locations } from "#constants";
-import { create } from "zustand";
-import { immer } from "zustand/middleware/immer";
-
-const DEFAULT_LOCATION = locations.work;
-
-const useLocationStore = create(
-  immer((set) => ({
-    activeLocation: DEFAULT_LOCATION,
-    setActiveLocation: (location) =>
-      set((state) => {
-        if (location === undefined) return;
-        state.activeLocation = location;
-      }),
-
-    resetActiveLocation: () =>
-      set((state) => {
-        state.activeLocation = DEFAULT_LOCATION;
-      }),
-  })),
-);
-
-export default useLocationStore;
-</file>
-
 <file path="src/windows/Image.jsx">
 import WindowWrapper from "#hoc/WindowWrapper.jsx";
 import { WindowControls } from "#components";
@@ -453,220 +429,6 @@ dist-ssr
 *.sw?
 .vercel
 .env*.local
-</file>
-
-<file path="src/components/ContextMenu.jsx">
-import { useState, useEffect, useCallback, useRef } from "react";
-import { createPortal } from "react-dom";
-import { FolderPlus, Terminal, Code, RefreshCw, Moon, Sun, Info } from "lucide-react";
-import useWindowStore from "#store/window.js";
-import useSettingsStore from "#store/settings.js";
-import { useWebHaptics } from "web-haptics/react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
-import clsx from "clsx";
-
-const ActionItem = ({ icon: Icon, label, onClick, divider }) => (
-  <>
-    <div 
-      className="flex items-center gap-2.5 w-full px-3 py-[4px] text-[13px] font-medium rounded-[6px] text-gray-800 hover:bg-blue-500 hover:text-white transition-all duration-150 ease-out cursor-pointer group"
-      onClick={onClick}
-    >
-      {Icon && <Icon size={15} className="text-gray-600 group-hover:text-white drop-shadow-sm transition-colors duration-150" />}
-      <span className="tracking-wide drop-shadow-sm">{label}</span>
-    </div>
-    {divider && <div className="h-[1px] w-full bg-gray-400/20 my-[2px]" />}
-  </>
-);
-
-const ContextMenu = () => {
-  const [contextData, setContextData] = useState({ visible: false, exiting: false, x: 0, y: 0 });
-  const openWindow = useWindowStore((s) => s.openWindow);
-  const { isDarkMode, toggleDarkMode } = useSettingsStore();
-  const { trigger } = useWebHaptics();
-  
-  const closeTimeoutRef = useRef(null);
-  const menuRef = useRef(null);
-  
-  // Track if the menu was already visible so we know whether to animate IN or MOVE
-  const wasVisible = useRef(false);
-
-  const closeMenu = useCallback(() => {
-    setContextData((prev) => {
-      if (!prev.visible || prev.exiting) return prev;
-      
-      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
-      
-      // Trigger exit animation, then unmount after GSAP finishes
-      closeTimeoutRef.current = setTimeout(() => {
-        setContextData((p) => ({ ...p, visible: false, exiting: false }));
-      }, 200);
-      
-      return { ...prev, exiting: true };
-    });
-  }, []);
-
-  const handleContextMenu = useCallback((e) => {
-    const target = e.target;
-    if (
-      target.tagName === 'INPUT' || 
-      target.tagName === 'TEXTAREA' || 
-      target.closest('.monaco-editor') ||
-      target.closest('.react-pdf__Page')
-    ) return;
-
-    e.preventDefault();
-    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
-    
-    const menuWidth = 220;
-    const menuHeight = 240;
-    let x = e.clientX;
-    let y = e.clientY;
-    
-    if (x + menuWidth > window.innerWidth) x = window.innerWidth - menuWidth - 5;
-    if (y + menuHeight > window.innerHeight) y = window.innerHeight - menuHeight - 5;
-    
-    setContextData({ visible: true, exiting: false, x, y });
-    trigger("selection");
-  }, [trigger]);
-
-  const handlePointerDown = useCallback((e) => {
-    if (e.button === 2) return;
-    if (menuRef.current && menuRef.current.contains(e.target)) return;
-    closeMenu();
-  }, [closeMenu]);
-
-  useEffect(() => {
-    window.addEventListener("contextmenu", handleContextMenu);
-    window.addEventListener("pointerdown", handlePointerDown, { capture: true });
-    window.addEventListener("scroll", closeMenu, { passive: true, capture: true });
-    window.addEventListener("resize", closeMenu, { passive: true });
-    
-    return () => {
-      window.removeEventListener("contextmenu", handleContextMenu);
-      window.removeEventListener("pointerdown", handlePointerDown, { capture: true });
-      window.removeEventListener("scroll", closeMenu, { capture: true });
-      window.removeEventListener("resize", closeMenu);
-      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
-    };
-  }, [handleContextMenu, handlePointerDown, closeMenu]);
-
-  // ─── Organic Apple Animations ──────────────────────────────────────────
-  useGSAP(() => {
-    if (!menuRef.current) return;
-
-    if (contextData.visible && !contextData.exiting) {
-      
-      if (!wasVisible.current) {
-        gsap.set(menuRef.current, { top: contextData.y, left: contextData.x });
-        gsap.fromTo(menuRef.current, 
-          { scale: 0.8, opacity: 0 }, 
-          { 
-            scale: 1, 
-            opacity: 1, 
-            duration: 0.3, 
-            ease: "back.out(1.7)", 
-            overwrite: true 
-          }
-        );
-        wasVisible.current = true;
-      } else {
-        gsap.to(menuRef.current, {
-          top: contextData.y,
-          left: contextData.x,
-          duration: 0.35,
-          ease: "back.out(1.2)",
-          overwrite: "auto" 
-        });
-
-        gsap.fromTo(menuRef.current,
-          { scale: 0.94 },
-          { scale: 1, duration: 0.35, ease: "back.out(1.5)" }
-        );
-      }
-      
-    } else if (contextData.exiting) {
-      // 3️⃣ EXIT ANIMATION
-      gsap.to(menuRef.current, { 
-        scale: 0.95, 
-        opacity: 0, 
-        duration: 0.15, 
-        ease: "power2.in", 
-        overwrite: true,
-        onComplete: () => {
-          wasVisible.current = false;
-        }
-      });
-    }
-  }, { dependencies: [contextData.visible, contextData.exiting, contextData.x, contextData.y], scope: menuRef });
-
-  if (!contextData.visible) return null;
-
-  const handleActionClick = (e, actionCallback) => {
-    e.stopPropagation();
-    trigger("nudge");
-    actionCallback();
-    closeMenu();
-  };
-
-  return createPortal(
-    <div 
-      ref={menuRef}
-      className={clsx(
-        "fixed z-[999999] min-w-[220px] bg-white/50 backdrop-blur-[40px] backdrop-saturate-[150%] border border-white/40 rounded-xl shadow-[0_15px_40px_-10px_rgba(0,0,0,0.3)] p-1.5 select-none origin-top-left",
-      )}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }}
-    >
-      <ActionItem 
-        icon={FolderPlus} 
-        label="New Folder" 
-        onClick={(e) => handleActionClick(e, () => openWindow("finder"))} 
-        divider 
-      />
-      <ActionItem 
-        icon={Terminal} 
-        label="Open in Terminal" 
-        onClick={(e) => handleActionClick(e, () => openWindow("terminal"))} 
-      />
-      <ActionItem 
-        icon={Code} 
-        label="Open in ZED Code" 
-        onClick={(e) => handleActionClick(e, () => openWindow("vscode"))} 
-        divider
-      />
-      <ActionItem 
-        icon={isDarkMode ? Sun : Moon} 
-        label={isDarkMode ? "Light Mode" : "Dark Mode"} 
-        onClick={(e) => handleActionClick(e, toggleDarkMode)} 
-      />
-      <ActionItem 
-        icon={Info} 
-        label="About ZED OS" 
-        onClick={(e) => handleActionClick(e, () => openWindow("txtfile", {
-          id: "about-os",
-          name: "About ZED OS",
-          subtitle: "ZED OS v1.0",
-          description:[
-            "A modern, web-based operating system portfolio built with React, Tailwind CSS, and GSAP.", 
-            "Designed and developed by Yousef Zedan."
-          ]
-        }))}
-        divider
-      />
-      <ActionItem 
-        icon={RefreshCw} 
-        label="Reload OS" 
-        onClick={(e) => handleActionClick(e, () => window.location.reload())} 
-      />
-    </div>, 
-    document.body
-  );
-};
-
-export default ContextMenu;
 </file>
 
 <file path="src/components/ControlCenter.jsx">
@@ -808,6 +570,78 @@ const ControlCenter = memo(({ isOpen }) => {
 export default ControlCenter;
 </file>
 
+<file path="src/store/location.js">
+import { locations } from "#constants";
+import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
+
+const DEFAULT_LOCATION = locations.work;
+
+const useLocationStore = create(
+  immer((set) => ({
+    activeLocation: DEFAULT_LOCATION,
+    emptyTrash: () =>
+       set((state) => {
+         locations.trash.children = [];
+         if (state.activeLocation.type === "trash") {
+           state.activeLocation.children = [];
+         }
+       }),
+    setActiveLocation: (location) =>
+      set((state) => {
+        if (location === undefined) return;
+        state.activeLocation = location;
+      }),
+
+    resetActiveLocation: () =>
+      set((state) => {
+        state.activeLocation = DEFAULT_LOCATION;
+      }),
+  })),
+);
+
+export default useLocationStore;
+</file>
+
+<file path="src/windows/Contact.jsx">
+import { WindowControls } from "#components";
+import { socials } from "#constants";
+import WindowWrapper from "#hoc/WindowWrapper"
+
+const Contact = () => {
+  return (
+    <>
+      <div id="window-header" className="shrink-0">
+        <WindowControls target="contact"/>
+        <h2>Contact Me!</h2>
+      </div>
+      <div className="p-5 space-y-5 flex-1 overflow-y-auto min-h-0">
+        <img src="/images/yousef-5.webp" alt="Yousef" className="w-20 rounded-full" />
+        <h3>Let's Connect</h3>
+        <p>Got an idea? A bug to squash? Or just wanna talk tech? I'm in.</p>
+        <p><a href="mailto:zedstudios.devs@gmail.com" target="_blank" className="text-indigo-600 hover:text-indigo-700 hover:font-bold transition-all duration-300 ease-in-out">
+          zedstudios.devs@gmail.com
+        </a></p>
+        <ul>
+          {socials.map(({ id, bg, link, icon, text }) => (
+            <li key={id} style={{ backgroundColor: bg}}>
+              <a href={link} target="_blank" rel="noopener noreferrer" title={text}>
+                <img src={icon} alt={text} className="size-5" />
+                <p>{text}</p>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
+  )
+}
+
+const ContactWindow = WindowWrapper(Contact, 'contact');
+
+export default ContactWindow;
+</file>
+
 <file path="src/windows/index.js">
 import Terminal from "#windows/Terminal.jsx";
 import ZenBrowser from "#windows/ZenBrowser.jsx";
@@ -819,6 +653,88 @@ import Contact from "#windows/Contact.jsx";
 import Photos from "#windows/Photos.jsx"
 import CodeEditor from "#windows/CodeEditor.jsx";
 export { Terminal, ZenBrowser, Resume, Finder, Text, Image, Contact, Photos, CodeEditor };
+</file>
+
+<file path="src/windows/Resume.jsx">
+import React, { useState, useMemo, memo, useEffect } from 'react';
+import { pdfjs, Document, Page } from 'react-pdf';
+import { WindowControls } from "#components/index.js";
+import WindowWrapper from "#hoc/WindowWrapper.jsx";
+import { Download } from "lucide-react";
+
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+
+const Resume = memo(() => {
+  const [numPages, setNumPages] = useState(null);
+  const [pdfWidth, setPdfWidth] = useState(
+    typeof window !== 'undefined' && window.innerWidth < 768 ? window.innerWidth - 32 : null
+  );
+
+  // Automatically adjust the PDF width when resizing the window
+  useEffect(() => {
+    const handleResize = () => {
+      setPdfWidth(window.innerWidth < 768 ? window.innerWidth - 32 : null);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  },[]);
+
+  const options = useMemo(() => ({
+    cMapUrl: '/cmaps/',
+    cMapPacked: true,
+    standardFontDataUrl: '/standard_fonts/',
+  }),[]);
+
+  function onDocumentLoadSuccess({ numPages }) {
+    setNumPages(numPages);
+  }
+
+  return (
+    <>
+      <div id="window-header">
+        <WindowControls target={"resume"} />
+        <h2>Resume.pdf</h2>
+        <a
+          href="files/resume.pdf"
+          download
+          className="cursor-pointer"
+          title="Download resume"
+        >
+          <Download className="icon"/>
+        </a>
+      </div>
+      
+      <div className="flex justify-center overflow-auto h-[calc(100%-40px)] p-4 bg-gray-100">
+        <Document 
+          file="files/resume.pdf" 
+          onLoadSuccess={onDocumentLoadSuccess}
+          options={options}
+          className="flex flex-col items-center"
+          loading={<p className="py-10 text-gray-400 font-medium">Loading PDF...</p>}
+        >
+          {Array.from(new Array(numPages), (el, index) => (
+            <Page 
+              key={`page_${index + 1}`} 
+              pageNumber={index + 1} 
+              renderTextLayer={true}
+              renderAnnotationLayer={true}
+              scale={pdfWidth ? 1 : 1}
+              width={pdfWidth || undefined}
+              className="mb-4 shadow-md max-md:mb-2"
+              loading=""
+            />
+          ))}
+        </Document>
+      </div>
+    </>
+  );
+});
+
+const ResumeWindow = WindowWrapper(Resume, "resume");
+export default ResumeWindow;
 </file>
 
 <file path="src/windows/ZenBrowser.jsx">
@@ -877,6 +793,236 @@ const ZenBrowser = () => {
 
 const ZenWindow = WindowWrapper(ZenBrowser, 'safari')
 export default ZenWindow;
+</file>
+
+<file path="src/components/ContextMenu.jsx">
+import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
+import { FolderPlus, Terminal, Code, RefreshCw, Moon, Sun, Info, Trash2, ExternalLink, XCircle, PinOff } from "lucide-react";
+import useWindowStore from "#store/window.js";
+import useSettingsStore from "#store/settings.js";
+import useLocationStore from "#store/location.js";
+import { useWebHaptics } from "web-haptics/react";
+import useSound from "use-sound";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+import clsx from "clsx";
+
+const ActionItem = ({ icon: Icon, label, onClick, divider, variant = "default" }) => (
+  <>
+    <div 
+      className={clsx(
+        "flex items-center gap-2.5 w-full px-3 py-[6px] text-[13px] font-medium rounded-[6px] transition-all duration-150 ease-out cursor-pointer group select-none",
+        variant === "danger" 
+          ? "text-red-500 hover:bg-red-500 hover:text-white" 
+          : "text-gray-800 dark:text-gray-200 hover:bg-blue-500 hover:text-white"
+      )}
+      onClick={onClick}
+    >
+      {Icon && <Icon size={15} className={clsx("transition-colors duration-150", variant !== "danger" && "text-gray-600 dark:text-gray-400 group-hover:text-white")} />}
+      <span className="tracking-wide">{label}</span>
+    </div>
+    {divider && <div className="h-[1px] w-full bg-gray-400/20 my-[2px]" />}
+  </>
+);
+
+const ContextMenu = () => {
+  const [contextData, setContextData] = useState({ 
+    visible: false, 
+    exiting: false, 
+    x: 0, 
+    y: 0,
+    targetType: 'desktop',
+    targetId: null 
+  });
+
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const closeWindow = useWindowStore((s) => s.closeWindow);
+  const removeDockItem = useWindowStore((s) => s.removeDockItem);
+  const { isDarkMode, toggleDarkMode, volume, isMuted } = useSettingsStore();
+  const emptyTrash = useLocationStore((s) => s.emptyTrash);
+  const { trigger } = useWebHaptics();
+
+  const [playTrash] = useSound("/sounds/oxygen_trash.ogg", { volume: isMuted ? 0 : volume });
+  
+  const menuRef = useRef(null);
+
+  const closeMenu = useCallback(() => {
+    setContextData((prev) => {
+      if (!prev.visible || prev.exiting) return prev;
+      setTimeout(() => {
+        setContextData((p) => ({ ...p, visible: false, exiting: false }));
+      }, 200);
+      return { ...prev, exiting: true };
+    });
+  },[]);
+
+  const handleContextMenu = useCallback((e) => {
+    const target = e.target;
+    if (target.tagName === 'INPUT' || target.closest('.monaco-editor')) return;
+
+    e.preventDefault();
+    
+    const dockItem = target.closest('.dock-item');
+    const isTrash = dockItem?.getAttribute('data-id') === 'trash';
+    
+    let type = 'desktop';
+    let id = null;
+
+    if (isTrash) {
+      type = 'trash';
+    } else if (dockItem) {
+      type = 'app';
+      id = dockItem.getAttribute('data-id');
+    }
+
+    const menuWidth = 220;
+    const menuHeight = type === 'app' ? 120 : 260;
+    let x = e.clientX;
+    let y = e.clientY;
+    if (x + menuWidth > window.innerWidth) x = window.innerWidth - menuWidth - 10;
+    if (y + menuHeight > window.innerHeight) y = window.innerHeight - menuHeight - 10;
+    
+    setContextData({ visible: true, exiting: false, x, y, targetType: type, targetId: id });
+    trigger("selection");
+  }, [trigger]);
+
+  useEffect(() => {
+    window.addEventListener("contextmenu", handleContextMenu);
+    const handlePointerDown = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) closeMenu();
+    };
+    window.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      window.removeEventListener("contextmenu", handleContextMenu);
+      window.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [handleContextMenu, closeMenu]);
+
+  useGSAP(() => {
+    if (!menuRef.current) return;
+    if (contextData.visible && !contextData.exiting) {
+      gsap.fromTo(menuRef.current, 
+        { scale: 0.8, opacity: 0 }, 
+        { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(1.7)", overwrite: true }
+      );
+    } else if (contextData.exiting) {
+      gsap.to(menuRef.current, { scale: 0.95, opacity: 0, duration: 0.15, ease: "power2.in" });
+    }
+  },[contextData.visible, contextData.exiting]);
+
+  if (!contextData.visible) return null;
+
+  const handleAction = (cb) => {
+    trigger("nudge");
+    cb();
+    closeMenu();
+  };
+
+  return createPortal(
+    <div 
+      ref={menuRef}
+      className="fixed z-[999999] min-w-[200px] bg-white/60 dark:bg-[#1c1c1e]/70 backdrop-blur-3xl border border-white/40 dark:border-white/10 rounded-xl shadow-2xl p-1.5 select-none"
+      style={{ top: contextData.y, left: contextData.x }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+    >
+      {contextData.targetType === 'trash' && (
+        <>
+          <ActionItem 
+            icon={ExternalLink} 
+            label="Open Trash" 
+            onClick={() => handleAction(() => openWindow('finder'))} 
+          />
+          <ActionItem 
+            icon={Trash2} 
+            label="Empty Trash" 
+            variant="danger"
+            onClick={() => handleAction(() => {
+                emptyTrash();
+                playTrash();
+            })} 
+          />
+        </>
+      )}
+
+      {contextData.targetType === 'app' && (
+        <>
+          <ActionItem 
+            icon={ExternalLink} 
+            label="Open App" 
+            onClick={() => handleAction(() => openWindow(contextData.targetId))} 
+          />
+          {contextData.targetId !== 'finder' && contextData.targetId !== 'trash' && (
+            <ActionItem 
+              icon={PinOff} 
+              label="Unpin from Dock" 
+              onClick={() => handleAction(() => removeDockItem(contextData.targetId))} 
+              divider
+            />
+          )}
+          <ActionItem 
+            icon={XCircle} 
+            label="Force Quit" 
+            variant="danger"
+            onClick={() => handleAction(() => closeWindow(contextData.targetId))} 
+          />
+        </>
+      )}
+
+      {contextData.targetType === 'desktop' && (
+        <>
+          <ActionItem 
+            icon={FolderPlus} 
+            label="New Folder" 
+            onClick={() => handleAction(() => openWindow("finder"))} 
+            divider 
+          />
+          <ActionItem 
+            icon={Terminal} 
+            label="Open in Terminal" 
+            onClick={() => handleAction(() => openWindow("terminal"))} 
+          />
+          <ActionItem 
+            icon={Code} 
+            label="Open in ZED Code" 
+            onClick={() => handleAction(() => openWindow("vscode"))} 
+            divider
+          />
+          <ActionItem 
+            icon={isDarkMode ? Sun : Moon} 
+            label={isDarkMode ? "Light Mode" : "Dark Mode"} 
+            onClick={() => handleAction(toggleDarkMode)} 
+          />
+          <ActionItem 
+            icon={Info} 
+            label="About ZED OS" 
+            onClick={() => handleAction(() => openWindow("txtfile", {
+              id: "about-os",
+              name: "About ZED OS",
+              subtitle: "ZED OS v1.0",
+              description:[
+                "A modern, web-based operating system portfolio built with React, Tailwind CSS, and GSAP.", 
+                "Designed and developed by Yousef Zedan."
+              ]
+            }))}
+            divider
+          />
+          <ActionItem 
+            icon={RefreshCw} 
+            label="Reload OS" 
+            onClick={() => handleAction(() => window.location.reload())} 
+          />
+        </>
+      )}
+    </div>, 
+    document.body
+  );
+};
+
+export default ContextMenu;
 </file>
 
 <file path="src/proximity-engine/ProximityContext.jsx">
@@ -1008,14 +1154,28 @@ export default useSettingsStore;
 </file>
 
 <file path="src/store/window.js">
-import { INITIAL_Z_INDEX, WINDOW_CONFIG } from "#constants";
+import { INITIAL_Z_INDEX, WINDOW_CONFIG, dockApps } from "#constants";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
 const useWindowStore = create(
   immer((set) => ({
     windows: WINDOW_CONFIG,
+    dockItems: dockApps,
     nextZIndex: INITIAL_Z_INDEX + 1,
+    removeDockItem: (id) => set((state) => {
+      if (id === 'finder' || id === 'trash') return;
+      state.dockItems = state.dockItems.filter(item => item.id !== id);
+    }),
+    moveDockItem: (id1, id2) => set((state) => {
+      const idx1 = state.dockItems.findIndex(i => i.id === id1);
+      const idx2 = state.dockItems.findIndex(i => i.id === id2);
+      if (idx1 === -1 || idx2 === -1 || idx1 === idx2) return;
+      
+      const temp = state.dockItems[idx1];
+      state.dockItems[idx1] = state.dockItems[idx2];
+      state.dockItems[idx2] = temp;
+    }),
     openWindow: (windowKey, data = null, launchPos = null) =>
       set((state) => {
         const win = state.windows[windowKey];
@@ -1045,46 +1205,8 @@ const useWindowStore = create(
     }),
   })),
 );
+
 export default useWindowStore;
-</file>
-
-<file path="src/windows/Contact.jsx">
-import { WindowControls } from "#components";
-import { socials } from "#constants";
-import WindowWrapper from "#hoc/WindowWrapper"
-
-const Contact = () => {
-  return (
-    <>
-      <div id="window-header" className="shrink-0">
-        <WindowControls target="contact"/>
-        <h2>Contact Me!</h2>
-      </div>
-      <div className="p-5 space-y-5 flex-1 overflow-y-auto min-h-0">
-        <img src="/images/yousef-5.webp" alt="Yousef" className="w-20 rounded-full" />
-        <h3>Let's Connect</h3>
-        <p>Got an idea? A bug to squash? Or just wanna talk tech? I'm in.</p>
-        <p><a href="mailto:zedstudios.devs@gmail.com" target="_blank" className="text-indigo-600 hover:text-indigo-700 hover:font-bold transition-all duration-300 ease-in-out">
-          zedstudios.devs@gmail.com
-        </a></p>
-        <ul>
-          {socials.map(({ id, bg, link, icon, text }) => (
-            <li key={id} style={{ backgroundColor: bg}}>
-              <a href={link} target="_blank" rel="noopener noreferrer" title={text}>
-                <img src={icon} alt={text} className="size-5" />
-                <p>{text}</p>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </>
-  )
-}
-
-const ContactWindow = WindowWrapper(Contact, 'contact');
-
-export default ContactWindow;
 </file>
 
 <file path="src/windows/Photos.jsx">
@@ -1149,88 +1271,6 @@ const PhotosWindow = WindowWrapper(Photos, "photos");
 PhotosWindow.displayName = "Photos";
 
 export default PhotosWindow;
-</file>
-
-<file path="src/windows/Resume.jsx">
-import React, { useState, useMemo, memo, useEffect } from 'react';
-import { pdfjs, Document, Page } from 'react-pdf';
-import { WindowControls } from "#components/index.js";
-import WindowWrapper from "#hoc/WindowWrapper.jsx";
-import { Download } from "lucide-react";
-
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
-
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-
-const Resume = memo(() => {
-  const [numPages, setNumPages] = useState(null);
-  const [pdfWidth, setPdfWidth] = useState(
-    typeof window !== 'undefined' && window.innerWidth < 768 ? window.innerWidth - 32 : null
-  );
-
-  // Automatically adjust the PDF width when resizing the window
-  useEffect(() => {
-    const handleResize = () => {
-      setPdfWidth(window.innerWidth < 768 ? window.innerWidth - 32 : null);
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  },[]);
-
-  const options = useMemo(() => ({
-    cMapUrl: '/cmaps/',
-    cMapPacked: true,
-    standardFontDataUrl: '/standard_fonts/',
-  }),[]);
-
-  function onDocumentLoadSuccess({ numPages }) {
-    setNumPages(numPages);
-  }
-
-  return (
-    <>
-      <div id="window-header">
-        <WindowControls target={"resume"} />
-        <h2>Resume.pdf</h2>
-        <a
-          href="files/resume.pdf"
-          download
-          className="cursor-pointer"
-          title="Download resume"
-        >
-          <Download className="icon"/>
-        </a>
-      </div>
-      
-      <div className="flex justify-center overflow-auto h-[calc(100%-40px)] p-4 bg-gray-100">
-        <Document 
-          file="files/resume.pdf" 
-          onLoadSuccess={onDocumentLoadSuccess}
-          options={options}
-          className="flex flex-col items-center"
-          loading={<p className="py-10 text-gray-400 font-medium">Loading PDF...</p>}
-        >
-          {Array.from(new Array(numPages), (el, index) => (
-            <Page 
-              key={`page_${index + 1}`} 
-              pageNumber={index + 1} 
-              renderTextLayer={true}
-              renderAnnotationLayer={true}
-              scale={pdfWidth ? 1 : 1}
-              width={pdfWidth || undefined}
-              className="mb-4 shadow-md max-md:mb-2"
-              loading=""
-            />
-          ))}
-        </Document>
-      </div>
-    </>
-  );
-});
-
-const ResumeWindow = WindowWrapper(Resume, "resume");
-export default ResumeWindow;
 </file>
 
 <file path="index.html">
@@ -1752,9 +1792,9 @@ const dockApps = [
   },
   {
     id: "trash",
-    name: "Archive",
+    name: "Trash",
     icon: "trash.webp",
-    canOpen: false,
+    canOpen: true,
   },
 ];
 
@@ -2086,6 +2126,74 @@ export {
 };
 </file>
 
+<file path="src/App.jsx">
+import React, { Suspense, lazy, useState } from "react";
+import gsap from "gsap";
+import { Draggable } from "gsap/Draggable";
+import BootSequence from "#components/BootSequence.jsx";
+const Navbar = lazy(() => import("#components/Navbar.jsx"));
+const Welcome = lazy(() => import("#components/Welcome.jsx"));
+const Dock = lazy(() => import("#components/Dock.jsx"));
+const Home = lazy(() => import("#components/Home.jsx"));
+const Terminal = lazy(() => import("#windows/Terminal.jsx"));
+const ZenBrowser = lazy(() => import("#windows/ZenBrowser.jsx"));
+const Resume = lazy(() => import("#windows/Resume.jsx"));
+const Finder = lazy(() => import("#windows/Finder.jsx"));
+const Text = lazy(() => import("#windows/Text.jsx"));
+const Image = lazy(() => import("#windows/Image.jsx"));
+const Contact = lazy(() => import("#windows/Contact.jsx"));
+const Photos = lazy(() => import("#windows/Photos.jsx"));
+const CodeEditor = lazy(() => import("#windows/CodeEditor.jsx"));
+const ContextMenu = lazy(() => import("#components/ContextMenu.jsx"));
+
+gsap.registerPlugin(Draggable);
+
+if (typeof window !== "undefined") {
+  console.log(
+    "%c 💻 ZPortfolio by ZED Studios %c Developed by Yousef Zedan %c https://github.com/YoussefZidan-1/zportfolio ",
+    "color: white; background: #000; padding: 5px 10px; border-radius: 5px 0 0 5px; font-weight: bold;",
+    "color: #fff; background: #007aff; padding: 5px 10px; font-weight: bold;",
+    "color: #000; background: #fff; padding: 5px 10px; border-radius: 0 5px 5px 0; border: 1px solid #000;"
+  );
+}
+
+const App = () => {
+  const [isBooted, setIsBooted] = useState(false);
+  return (
+    <>
+      {!isBooted && <BootSequence onComplete={() => setIsBooted(true)} />}
+      <div 
+        className={`fixed inset-0 w-full h-full transition-opacity duration-1000 ease-in-out z-0 ${
+          isBooted ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        <Suspense fallback={null}>
+          <main className="w-full h-full">
+            <div className="ios-home-indicator" />
+            <Navbar />
+            <Welcome />
+            <Home />
+            <ContextMenu />
+            <Dock />
+            <Terminal />
+            <ZenBrowser />
+            <Resume />
+            <Finder />
+            <Text />
+            <Image />
+            <Contact />
+            <Photos />
+            <CodeEditor /> 
+          </main>
+        </Suspense>
+      </div>
+    </>
+  );
+};
+
+export default App;
+</file>
+
 <file path="src/components/Navbar.jsx">
 import React, { memo, useState, useEffect, useRef } from "react";
 import { navIcons, navLinks } from "#constants";
@@ -2187,74 +2295,6 @@ const Navbar = memo(() => {
 });
 
 export default Navbar;
-</file>
-
-<file path="src/App.jsx">
-import React, { Suspense, lazy, useState } from "react";
-import gsap from "gsap";
-import { Draggable } from "gsap/Draggable";
-import BootSequence from "#components/BootSequence.jsx";
-const Navbar = lazy(() => import("#components/Navbar.jsx"));
-const Welcome = lazy(() => import("#components/Welcome.jsx"));
-const Dock = lazy(() => import("#components/Dock.jsx"));
-const Home = lazy(() => import("#components/Home.jsx"));
-const Terminal = lazy(() => import("#windows/Terminal.jsx"));
-const ZenBrowser = lazy(() => import("#windows/ZenBrowser.jsx"));
-const Resume = lazy(() => import("#windows/Resume.jsx"));
-const Finder = lazy(() => import("#windows/Finder.jsx"));
-const Text = lazy(() => import("#windows/Text.jsx"));
-const Image = lazy(() => import("#windows/Image.jsx"));
-const Contact = lazy(() => import("#windows/Contact.jsx"));
-const Photos = lazy(() => import("#windows/Photos.jsx"));
-const CodeEditor = lazy(() => import("#windows/CodeEditor.jsx"));
-const ContextMenu = lazy(() => import("#components/ContextMenu.jsx"));
-
-gsap.registerPlugin(Draggable);
-
-if (typeof window !== "undefined") {
-  console.log(
-    "%c 💻 ZPortfolio by ZED Studios %c Developed by Yousef Zedan %c https://github.com/YoussefZidan-1/zportfolio ",
-    "color: white; background: #000; padding: 5px 10px; border-radius: 5px 0 0 5px; font-weight: bold;",
-    "color: #fff; background: #007aff; padding: 5px 10px; font-weight: bold;",
-    "color: #000; background: #fff; padding: 5px 10px; border-radius: 0 5px 5px 0; border: 1px solid #000;"
-  );
-}
-
-const App = () => {
-  const [isBooted, setIsBooted] = useState(false);
-  return (
-    <>
-      {!isBooted && <BootSequence onComplete={() => setIsBooted(true)} />}
-      <div 
-        className={`fixed inset-0 w-full h-full transition-opacity duration-1000 ease-in-out z-0 ${
-          isBooted ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-        }`}
-      >
-        <Suspense fallback={null}>
-          <main className="w-full h-full">
-            <div className="ios-home-indicator" />
-            <Navbar />
-            <Welcome />
-            <Home />
-            <ContextMenu />
-            <Dock />
-            <Terminal />
-            <ZenBrowser />
-            <Resume />
-            <Finder />
-            <Text />
-            <Image />
-            <Contact />
-            <Photos />
-            <CodeEditor /> 
-          </main>
-        </Suspense>
-      </div>
-    </>
-  );
-};
-
-export default App;
 </file>
 
 <file path="src/components/WindowControls.jsx">
@@ -3107,12 +3147,215 @@ const CodeEditorWindow = WindowWrapper(CodeEditor, "vscode");
 export default CodeEditorWindow;
 </file>
 
+<file path="src/components/Home.jsx">
+import { locations, dockApps } from "#constants";
+import clsx from "clsx";
+import { useGSAP } from "@gsap/react";
+import Draggable from "gsap/Draggable";
+import gsap from "gsap";
+import SpotifyWidget from "./SpotifyWidget.jsx";
+import { useWebHaptics } from "web-haptics/react";
+import useWindowStore from "#store/window.js";
+import useLocationStore from "#store/location.js";
+import { useState, useEffect, useRef } from "react";
+import dayjs from "dayjs";
+
+const projects = locations.work?.children ??[];
+
+const Home = () => {
+  const { trigger } = useWebHaptics();
+  const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const [time, setTime] = useState(dayjs());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(dayjs()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  
+  const pointerPos = useRef({ x: 0, y: 0 });
+  
+    const handlePointerDown = (e) => {
+      pointerPos.current = { x: e.clientX, y: e.clientY };
+    };
+
+  const handleOpenProjectFinder = (e, project) => {
+    const dx = Math.abs(e.clientX - pointerPos.current.x);
+        const dy = Math.abs(e.clientY - pointerPos.current.y);
+        if (dx > 5 || dy > 5) return;
+    trigger("nudge");
+    const rect = e.currentTarget.getBoundingClientRect();
+    const launchPos = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+      width: rect.width,
+      height: rect.height,
+    };
+    setActiveLocation(project);
+    openWindow("finder", null, launchPos);
+  };
+
+  const handleOpenApp = (e, app) => {
+    const dx = Math.abs(e.clientX - pointerPos.current.x);
+        const dy = Math.abs(e.clientY - pointerPos.current.y);
+        if (dx > 5 || dy > 5) return;
+    if (!app.canOpen) { 
+      trigger("error");
+      return;
+    }
+    trigger("nudge", { intensity: 0.8 }); 
+    const rect = e.currentTarget.getBoundingClientRect();
+    const launchPos = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+      width: rect.width,
+      height: rect.height,
+    };
+    openWindow(app.id, null, launchPos);
+  };
+
+  useGSAP(() => {
+    let draggables =[];
+    const initDrag = () => {
+      if (window.innerWidth > 768) {
+        if (draggables.length === 0) {
+          draggables = Draggable.create(".folder", {
+            type: "x,y",
+            bounds: "body",
+            dragClickables: true,
+            
+                      onDragEnd: function () {
+                          const gridW = 100; 
+                          const gridH = 85; 
+                          const offsetX = 80; 
+                          const offsetY = 80; 
+                          const rect = this.target.getBoundingClientRect();
+                          const centerX = rect.left + rect.width / 2;
+                          const centerY = rect.top + rect.height / 2;
+                          const targetCenterX = Math.round((centerX - offsetX) / gridW) * gridW + offsetX;
+                          const targetCenterY = Math.round((centerY - offsetY) / gridH) * gridH + offsetY;
+                          const deltaX = targetCenterX - centerX;
+                          const deltaY = targetCenterY - centerY;
+                          gsap.to(this.target, {
+                            x: this.x + deltaX,
+                            y: this.y + deltaY,
+                            duration: 0.3,
+                            ease: "back.out(1.5)",
+                            overwrite: "auto"
+                          });
+                        }
+          });
+        } else {
+          draggables.forEach(d => d.enable());
+        }
+      } else {
+        if (draggables.length > 0) {
+          draggables.forEach(d => d.disable());
+          gsap.set(".folder", { clearProps: "x,y,transform" });
+        }
+      }
+    };
+    initDrag();
+    window.addEventListener("resize", initDrag);
+    return () => window.removeEventListener("resize", initDrag);
+  },[]);
+
+  // Intercept the apps array to replace Trash with Resume ONLY on mobile
+  const mobileApps = dockApps.map(app => 
+    app.id === "trash" ? { id: "resume", name: "Resume", icon: "pdf.png", canOpen: true } : app
+  );
+
+  return (
+    <section id="home" className="absolute inset-0 w-full h-full z-0 overflow-hidden">
+      <SpotifyWidget /> 
+      <div className="absolute top-[12vh] left-0 w-full flex flex-col items-center justify-center md:hidden text-white drop-shadow-xl z-20 pointer-events-none select-none">
+        <h1 className="text-[5.5rem] font-light tracking-tight leading-none text-center">
+          {time.format("h:mm")}
+        </h1>
+        <p className="text-[1.2rem] font-medium mt-2 tracking-wide text-center">
+          {time.format("dddd, MMMM D")}
+        </p>
+      </div>
+      
+      <ul className="desktop-projects w-full h-full max-md:hidden">
+        {projects.map((project) => (
+          <li
+            key={project.id}
+            className={clsx("group folder", project.windowPosition)}
+            onPointerDown={handlePointerDown}
+            onPointerUp={(e) => handleOpenProjectFinder(e, project)}
+          >
+            <img 
+              src="/images/folder.png" 
+              alt={project.name}
+              width={64}
+              height={60}
+              loading="eager"
+              className="pointer-events-none" 
+            />
+            <p>{project.name}</p>
+          </li>
+        ))}
+      </ul>
+
+      <ul className="hidden max-md:grid grid-cols-4 gap-x-2 gap-y-6 px-5 relative z-30 w-full box-border mt-[38vh]">
+        {mobileApps.map((app) => (
+          <li 
+            key={app.id || app.name}
+            onPointerDown={handlePointerDown}
+            onPointerUp={(e) => handleOpenApp(e, app)}
+            className="flex flex-col items-center gap-[6px] cursor-pointer"
+          >
+            <img 
+              src={`/images/${app.icon}`} 
+              alt={app.name} 
+              className={clsx(
+                "w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover",
+                !app.canOpen && "opacity-60"
+              )}
+            />
+            <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
+              {app.name}
+            </p>
+          </li>
+        ))}
+        {projects.map((project) => (
+          <li 
+            key={project.id}
+            onPointerDown={handlePointerDown}
+            onPointerUp={(e) => handleOpenProjectFinder(e, project)}
+            className="flex flex-col items-center gap-[6px] cursor-pointer"
+          >
+            <img 
+              src="/images/folder.png" 
+              alt={project.name} 
+              className="w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover"
+            />
+            <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
+              {project.name}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+};
+
+export default Home;
+</file>
+
 <file path="src/hoc/WindowWrapper.jsx">
 import useWindowStore from "#store/window.js";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Draggable } from "gsap/Draggable";
 import { useRef, useState, useEffect, memo } from "react";
+import useSound from "use-sound";
+import useSettingsStore from "#store/settings.js";
+
+let openPitchCounter = 0;
+const PITCH_LEVELS = [1.0, 1.05, 1.1, 1.15];
+
 const WindowWrapper = (Component, windowKey) => {
   const Wrapped = memo((props) => {
     const isOpen = useWindowStore((s) => s.windows[windowKey].isOpen);
@@ -3122,6 +3365,10 @@ const WindowWrapper = (Component, windowKey) => {
     const launchPos = useWindowStore((s) => s.windows[windowKey].launchPos);
     const focusWindow = useWindowStore((s) => s.focusWindow);
     const [hasLaunched, setHasLaunched] = useState(isOpen);
+    const { volume, isMuted } = useSettingsStore();
+        const [playOpen, { sound }] = useSound("/sounds/oxygen_open.ogg", { 
+          volume: isMuted ? 0 : volume 
+        });
 
     const ref = useRef(null);
     const dragInstance = useRef(null);
@@ -3130,6 +3377,20 @@ const WindowWrapper = (Component, windowKey) => {
     const preMaxState = useRef(null);
     const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
 
+    useEffect(() => {
+         if (isOpen) {
+           if (sound) {
+               
+               sound.rate(PITCH_LEVELS[openPitchCounter % PITCH_LEVELS.length]);
+               playOpen();
+               openPitchCounter++;
+           }
+           
+           if (!hasLaunched) setHasLaunched(true);
+           setIsActuallyVisible(true);
+         }
+       }, [isOpen, sound, playOpen, hasLaunched]);
+    
     useEffect(() => {
       const checkMobile = () => setIsMobile(window.innerWidth < 768);
       checkMobile();
@@ -3780,276 +4041,6 @@ const BootSequence = ({ onComplete }) => {
 };
 
 export default BootSequence;
-</file>
-
-<file path="src/components/Home.jsx">
-import { locations, dockApps } from "#constants";
-import clsx from "clsx";
-import { useGSAP } from "@gsap/react";
-import Draggable from "gsap/Draggable";
-import gsap from "gsap";
-import SpotifyWidget from "./SpotifyWidget.jsx";
-import { useWebHaptics } from "web-haptics/react";
-import useWindowStore from "#store/window.js";
-import useLocationStore from "#store/location.js";
-import { useState, useEffect, useRef } from "react";
-import dayjs from "dayjs";
-
-const projects = locations.work?.children ??[];
-
-const Home = () => {
-  const { trigger } = useWebHaptics();
-  const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
-  const openWindow = useWindowStore((s) => s.openWindow);
-  const [time, setTime] = useState(dayjs());
-
-  useEffect(() => {
-    const timer = setInterval(() => setTime(dayjs()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-  
-  const pointerPos = useRef({ x: 0, y: 0 });
-  
-    const handlePointerDown = (e) => {
-      pointerPos.current = { x: e.clientX, y: e.clientY };
-    };
-
-  const handleOpenProjectFinder = (e, project) => {
-    const dx = Math.abs(e.clientX - pointerPos.current.x);
-        const dy = Math.abs(e.clientY - pointerPos.current.y);
-        if (dx > 5 || dy > 5) return;
-    trigger("nudge");
-    const rect = e.currentTarget.getBoundingClientRect();
-    const launchPos = {
-      x: rect.left + rect.width / 2,
-      y: rect.top + rect.height / 2,
-      width: rect.width,
-      height: rect.height,
-    };
-    setActiveLocation(project);
-    openWindow("finder", null, launchPos);
-  };
-
-  const handleOpenApp = (e, app) => {
-    const dx = Math.abs(e.clientX - pointerPos.current.x);
-        const dy = Math.abs(e.clientY - pointerPos.current.y);
-        if (dx > 5 || dy > 5) return;
-    if (!app.canOpen) { 
-      trigger("error");
-      return;
-    }
-    trigger("nudge", { intensity: 0.8 }); 
-    const rect = e.currentTarget.getBoundingClientRect();
-    const launchPos = {
-      x: rect.left + rect.width / 2,
-      y: rect.top + rect.height / 2,
-      width: rect.width,
-      height: rect.height,
-    };
-    openWindow(app.id, null, launchPos);
-  };
-
-  useGSAP(() => {
-    let draggables =[];
-    const initDrag = () => {
-      if (window.innerWidth > 768) {
-        if (draggables.length === 0) {
-          draggables = Draggable.create(".folder", {
-            type: "x,y",
-            bounds: "body",
-            dragClickables: true,
-            
-                      onDragEnd: function () {
-                          const gridW = 100; 
-                          const gridH = 85; 
-                          const offsetX = 80; 
-                          const offsetY = 80; 
-                          const rect = this.target.getBoundingClientRect();
-                          const centerX = rect.left + rect.width / 2;
-                          const centerY = rect.top + rect.height / 2;
-                          const targetCenterX = Math.round((centerX - offsetX) / gridW) * gridW + offsetX;
-                          const targetCenterY = Math.round((centerY - offsetY) / gridH) * gridH + offsetY;
-                          const deltaX = targetCenterX - centerX;
-                          const deltaY = targetCenterY - centerY;
-                          gsap.to(this.target, {
-                            x: this.x + deltaX,
-                            y: this.y + deltaY,
-                            duration: 0.3,
-                            ease: "back.out(1.5)",
-                            overwrite: "auto"
-                          });
-                        }
-          });
-        } else {
-          draggables.forEach(d => d.enable());
-        }
-      } else {
-        if (draggables.length > 0) {
-          draggables.forEach(d => d.disable());
-          gsap.set(".folder", { clearProps: "x,y,transform" });
-        }
-      }
-    };
-    initDrag();
-    window.addEventListener("resize", initDrag);
-    return () => window.removeEventListener("resize", initDrag);
-  },[]);
-
-  // Intercept the apps array to replace Trash with Resume ONLY on mobile
-  const mobileApps = dockApps.map(app => 
-    app.id === "trash" ? { id: "resume", name: "Resume", icon: "pdf.png", canOpen: true } : app
-  );
-
-  return (
-    <section id="home" className="absolute inset-0 w-full h-full z-0 overflow-hidden">
-      <SpotifyWidget /> 
-      <div className="absolute top-[12vh] left-0 w-full flex flex-col items-center justify-center md:hidden text-white drop-shadow-xl z-20 pointer-events-none select-none">
-        <h1 className="text-[5.5rem] font-light tracking-tight leading-none text-center">
-          {time.format("h:mm")}
-        </h1>
-        <p className="text-[1.2rem] font-medium mt-2 tracking-wide text-center">
-          {time.format("dddd, MMMM D")}
-        </p>
-      </div>
-      
-      <ul className="desktop-projects w-full h-full max-md:hidden">
-        {projects.map((project) => (
-          <li
-            key={project.id}
-            className={clsx("group folder", project.windowPosition)}
-            onPointerDown={handlePointerDown}
-            onPointerUp={(e) => handleOpenProjectFinder(e, project)}
-          >
-            <img 
-              src="/images/folder.png" 
-              alt={project.name}
-              width={64}
-              height={60}
-              loading="eager"
-              className="pointer-events-none" 
-            />
-            <p>{project.name}</p>
-          </li>
-        ))}
-      </ul>
-
-      <ul className="hidden max-md:grid grid-cols-4 gap-x-2 gap-y-6 px-5 relative z-30 w-full box-border mt-[38vh]">
-        {mobileApps.map((app) => (
-          <li 
-            key={app.id || app.name}
-            onPointerDown={handlePointerDown}
-            onPointerUp={(e) => handleOpenApp(e, app)}
-            className="flex flex-col items-center gap-[6px] cursor-pointer"
-          >
-            <img 
-              src={`/images/${app.icon}`} 
-              alt={app.name} 
-              className={clsx(
-                "w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover",
-                !app.canOpen && "opacity-60"
-              )}
-            />
-            <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
-              {app.name}
-            </p>
-          </li>
-        ))}
-        {projects.map((project) => (
-          <li 
-            key={project.id}
-            onPointerDown={handlePointerDown}
-            onPointerUp={(e) => handleOpenProjectFinder(e, project)}
-            className="flex flex-col items-center gap-[6px] cursor-pointer"
-          >
-            <img 
-              src="/images/folder.png" 
-              alt={project.name} 
-              className="w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover"
-            />
-            <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
-              {project.name}
-            </p>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-};
-
-export default Home;
-</file>
-
-<file path="src/components/Dock.jsx">
-import { dockApps } from "#constants/index.js";
-import useWindowStore from "#store/window.js";
-import { memo } from "react";
-import { Tooltip } from "react-tooltip";
-import { Proximity } from "../proximity-engine/Proximity.jsx";
-
-const Dock = memo(() => {
-  const openWindow = useWindowStore((s) => s.openWindow);
-  const closeWindow = useWindowStore((s) => s.closeWindow);
-  const windows = useWindowStore((s) => s.windows);
-
-  const toggleApp = (app) => {
-    if (!app.canOpen) {
-      return;
-    };
-    const windowState = windows[app.id];
-    if (windowState?.isOpen) {
-      closeWindow(app.id);
-    } else {
-      openWindow(app.id);
-    }
-  };
-
-  return (
-    <section id="dock" className="max-md:hidden">
-      <Proximity
-        className="dock-container"
-        selector=".dock-icon"
-        preset="scale-y"
-        reach={2}
-        config={{
-          scale: [1, 1.3],
-          y:[0, -30],
-          duration: 0.1,
-          resetDuration: 1,
-          ease: "power2.out",
-          resetEase: "elastic",
-        }}
-      >
-        {dockApps.map(({ id, name, icon, canOpen }) => (
-          <div key={id ?? name} className="relative flex justify-center">
-            <button
-              type="button"
-              className="dock-icon flex items-center justify-center will-change-transform"
-              aria-label={name}
-              data-tooltip-id="dock-tooltip"
-              data-tooltip-content={name}
-              data-tooltip-delay-show={150}
-              disabled={!canOpen}
-              onClick={() => toggleApp({ id, canOpen })}
-            >
-              <img
-                src={`/images/${icon}`}
-                alt={name}
-                width={56}
-                height={56}
-                loading="lazy"
-                decoding="async"
-                className={canOpen ? "" : "opacity-60"}
-              />
-            </button>
-          </div>
-        ))}
-      </Proximity>
-      <Tooltip id="dock-tooltip" place="top" className="tooltip" />
-    </section>
-  );
-});
-
-export default Dock;
 </file>
 
 <file path="src/windows/Terminal.jsx">
@@ -4836,6 +4827,209 @@ const TerminalWindow = WindowWrapper(Terminal, "terminal");
 export default TerminalWindow;
 </file>
 
+<file path="src/components/Dock.jsx">
+import { locations } from "#constants/index.js";
+import useWindowStore from "#store/window.js";
+import useLocationStore from "#store/location.js";
+import { useGSAP } from "@gsap/react";
+import { Draggable } from "gsap/Draggable";
+import { Flip } from "gsap/Flip";
+import gsap from "gsap";
+import useSound from "use-sound";
+import useSettingsStore from "#store/settings.js";
+import { useWebHaptics } from "web-haptics/react";
+import { memo, useRef, useLayoutEffect } from "react";
+import { Tooltip } from "react-tooltip";
+import { Proximity } from "../proximity-engine/Proximity.jsx";
+
+// Register the FLIP plugin alongside Draggable
+gsap.registerPlugin(Draggable, Flip);
+
+const Dock = memo(() => {
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const closeWindow = useWindowStore((s) => s.closeWindow);
+  const windows = useWindowStore((s) => s.windows);
+  const dockItems = useWindowStore((s) => s.dockItems);
+  const removeDockItem = useWindowStore((s) => s.removeDockItem);
+  const moveDockItem = useWindowStore((s) => s.moveDockItem);
+  const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
+  
+  const { trigger } = useWebHaptics();
+  const { volume, isMuted } = useSettingsStore();
+  const [playTrash] = useSound("/sounds/oxygen_trash.ogg", { volume: isMuted ? 0 : volume });
+
+  // Store the Flip state to animate after React re-renders
+  const flipStateRef = useRef(null);
+
+  const toggleApp = (app) => {
+    if (!app.canOpen) return;
+    if (app.id === "trash") {
+      setActiveLocation(locations.trash);
+      openWindow("finder");
+      return;
+    }
+    const windowState = windows[app.id];
+    if (windowState?.isOpen) {
+      closeWindow(app.id);
+    } else {
+      openWindow(app.id);
+    }
+  };
+
+  // FLIP Animation: Runs immediately after React updates the DOM order
+  useLayoutEffect(() => {
+    if (flipStateRef.current) {
+      Flip.from(flipStateRef.current, {
+        targets: ".dock-container, .dock-wrapper, .dock-icon",
+        duration: 0.5,
+        ease: "elastic.out(1, 0.75)",
+        absolute: true,
+        nested: true,
+        zIndex: 9999,
+      });
+      flipStateRef.current = null;
+    }
+  }, [dockItems]);
+
+  // Drag and Drop Logic
+  useGSAP(() => {
+    Draggable.create(".dock-draggable", {
+      type: "x,y",
+      dragClickables: true,
+      allowContextMenu: true,
+      onDragStart: function() {
+        gsap.to(this.target, { opacity: 0.8, scale: 1.1, duration: 0.2 });
+      },
+      onDragEnd: function() {
+        const el = this.target;
+        const id = el.getAttribute("data-id");
+        
+        gsap.to(el, { opacity: 1, scale: 1, duration: 0.2 });
+
+        if (id === 'finder' || id === 'trash') {
+           gsap.to(el, { x: 0, y: 0, duration: 0.3, ease: "back.out(1.5)" });
+           return;
+        }
+
+        // 1. Trash Interaction
+        const trashEl = document.querySelector(".dock-draggable[data-id='trash']");
+        if (trashEl && this.hitTest(trashEl, "30%")) {
+           trigger("success");
+           playTrash();
+           gsap.to(el, { 
+             scale: 0, opacity: 0, rotation: -90, duration: 0.3, ease: "back.in(1.5)",
+             onComplete: () => {
+                 // Capture FLIP state BEFORE removing
+                 flipStateRef.current = Flip.getState(".dock-container, .dock-wrapper, .dock-icon");
+                 removeDockItem(id);
+             } 
+           });
+           return;
+        }
+
+        // 2. Rearrange / Swap Interaction
+        let swapped = false;
+        const items = Array.from(document.querySelectorAll(".dock-draggable"));
+        for (const item of items) {
+          if (item !== el && this.hitTest(item, "50%")) {
+            const targetId = item.getAttribute("data-id");
+            
+            // Capture FLIP state BEFORE resetting x/y so the animation starts from the dropped position
+            flipStateRef.current = Flip.getState(".dock-container, .dock-wrapper, .dock-icon");
+            
+            // Reset the inline transform so React and FLIP can calculate pure layout positions
+            gsap.set(el, { x: 0, y: 0 }); 
+            
+            moveDockItem(id, targetId);
+            swapped = true;
+            break;
+          }
+        }
+
+        if (swapped) {
+           trigger("selection");
+           return;
+        }
+
+        // 3. Drag Outside (Unpin / Poof)
+        const dockContainer = document.querySelector(".dock-container");
+        if (!this.hitTest(dockContainer, "50%")) {
+           trigger("success");
+           gsap.to(el, { 
+             scale: 1.5, opacity: 0, filter: "blur(10px)", duration: 0.3, ease: "power2.out",
+             onComplete: () => {
+                 // Capture FLIP state BEFORE removing so the container shrinks organically
+                 flipStateRef.current = Flip.getState(".dock-container, .dock-wrapper, .dock-icon");
+                 removeDockItem(id);
+             } 
+           });
+           return;
+        }
+
+        // 4. Snap Back
+        gsap.to(el, { x: 0, y: 0, duration: 0.4, ease: "elastic.out(1, 0.7)" });
+      }
+    });
+  }, [dockItems]);
+
+  return (
+    <section id="dock" className="max-md:hidden">
+      <Proximity
+        className="dock-container"
+        selector=".dock-icon"
+        preset="scale-y"
+        reach={2}
+        config={{
+          scale: [1, 1.3],
+          y: [0, -30],
+          duration: 0.1,
+          resetDuration: 1,
+          ease: "power2.out",
+          resetEase: "elastic",
+        }}
+      >
+        {dockItems.map(({ id, name, icon, canOpen }) => (
+          <div 
+            key={id ?? name} 
+            data-flip-id={`wrapper-${id}`} // Helps GSAP track the elements during React re-renders
+            className="relative flex justify-center dock-wrapper"
+          >
+            <button
+              type="button"
+              className="dock-icon dock-item dock-draggable flex items-center justify-center will-change-transform z-10"
+              data-id={id}
+              data-flip-id={`icon-${id}`} // Helps GSAP track the elements during React re-renders
+              aria-label={name}
+              data-tooltip-id="dock-tooltip"
+              data-tooltip-content={name}
+              data-tooltip-delay-show={150}
+              onClick={(e) => {
+                // Prevent click firing when finishing a drag
+                if (e.button !== 0) return;
+                toggleApp({ id, canOpen });
+              }}
+            >
+              <img
+                src={`/images/${icon}`}
+                alt={name}
+                width={56}
+                height={56}
+                loading="lazy"
+                decoding="async"
+                className={canOpen ? "pointer-events-none" : "opacity-60 pointer-events-none"}
+              />
+            </button>
+          </div>
+        ))}
+      </Proximity>
+      <Tooltip id="dock-tooltip" place="top" className="tooltip" />
+    </section>
+  );
+});
+
+export default Dock;
+</file>
+
 <file path="src/index.css">
 @font-face {
     font-family: "JetBrainsMonoNF";
@@ -4871,8 +5065,16 @@ export default TerminalWindow;
 }
 
 @layer base {
+
+    *, *::before, *::after {
+        @apply transition-colors duration-300;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    }
     html, body {
         @apply w-full max-w-[100vw] h-[100dvh] overflow-hidden fixed top-0 left-0 bg-[url('/images/wallpaper.webp')] bg-cover bg-no-repeat bg-center max-md:bg-[url('/images/wallpaper-2.webp')];
+        
+        transition: background 0.8s cubic-bezier(0.4, 0, 0.2, 1), 
+                    background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     main {
@@ -5151,10 +5353,11 @@ export default TerminalWindow;
             }
             li {
                             @apply absolute flex items-center flex-col gap-2 p-3 -m-3 cursor-pointer z-10 max-md:relative max-md:top-0 max-md:left-0 max-md:m-0 max-md:flex-row max-md:justify-start max-md:p-3 max-md:gap-4;
+                             position: absolute; 
                             
                             &::before {
                                 content: '';
-                                @apply absolute inset-0 bg-black/5 dark:bg-white/[0.12] rounded-2xl opacity-0 scale-75 transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-0 max-md:hidden;
+                                @apply absolute inset-0 bg-blue-500/15 rounded-2xl opacity-0 scale-75 transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-[-1] max-md:hidden;
                             }
                             
                             &:hover::before {
@@ -5162,7 +5365,7 @@ export default TerminalWindow;
                             }
                             
                             &:active::before {
-                                @apply bg-black/10 dark:bg-white/[0.2] scale-95 transition-all duration-150 ease-out;
+                                @apply bg-black/10 dark:bg-white/20 scale-95 transition-all duration-150 ease-out;
                             }
             
                             &:last-child {
