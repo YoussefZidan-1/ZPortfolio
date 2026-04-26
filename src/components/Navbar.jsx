@@ -36,13 +36,13 @@ const Navbar = memo(() => {
     
       {/* PC Navbar */}
       <div className="flex items-center gap-4 max-md:hidden">
-        <img src="/images/logo.svg" alt="logo" width={20} height={20} className="w-5 h-5" />
-        <p className="font-bold whitespace-nowrap">Yousef's Portfolio</p>
+        <img src="/images/logo.svg" alt="logo" width={20} height={20} className="w-5 h-5 dark:invert" />
+        <p className="font-bold whitespace-nowrap dark:text-white">Yousef's Portfolio</p>
         <ul className="flex items-center gap-3">
           {navLinks.map(({ id, name, type }) => (
             <li 
               key={id} 
-              className="relative cursor-pointer" 
+              className="relative cursor-pointer"
               onClick={() => openWindow(type)}
               role="button"
               tabIndex={0}
@@ -78,7 +78,10 @@ const Navbar = memo(() => {
                 alt={`icon-${id}`} 
                 width={18} 
                 height={18} 
-                className="icon-hover w-[18px] h-[18px] cursor-pointer" 
+                className="w-[22px] h-[22px] p-[2px] transition-all duration-300 ease-in-out 
+                                 rounded-md cursor-pointer dark:invert
+                                 hover:bg-black/10 dark:hover:bg-white/20 
+                                 hover:scale-110 active:scale-95" 
                 loading="lazy" 
                 onClick={() => {
                   if (id === 4) setIsControlCenterOpen(!isControlCenterOpen);

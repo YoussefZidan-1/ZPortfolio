@@ -2125,13 +2125,13 @@ const Navbar = memo(() => {
     
       {/* PC Navbar */}
       <div className="flex items-center gap-4 max-md:hidden">
-        <img src="/images/logo.svg" alt="logo" width={20} height={20} className="w-5 h-5" />
-        <p className="font-bold whitespace-nowrap">Yousef's Portfolio</p>
+        <img src="/images/logo.svg" alt="logo" width={20} height={20} className="w-5 h-5 dark:invert" />
+        <p className="font-bold whitespace-nowrap dark:text-white">Yousef's Portfolio</p>
         <ul className="flex items-center gap-3">
           {navLinks.map(({ id, name, type }) => (
             <li 
               key={id} 
-              className="relative cursor-pointer" 
+              className="relative cursor-pointer"
               onClick={() => openWindow(type)}
               role="button"
               tabIndex={0}
@@ -2167,7 +2167,10 @@ const Navbar = memo(() => {
                 alt={`icon-${id}`} 
                 width={18} 
                 height={18} 
-                className="icon-hover w-[18px] h-[18px] cursor-pointer" 
+                className="w-[22px] h-[22px] p-[2px] transition-all duration-300 ease-in-out 
+                                 rounded-md cursor-pointer dark:invert
+                                 hover:bg-black/10 dark:hover:bg-white/20 
+                                 hover:scale-110 active:scale-95" 
                 loading="lazy" 
                 onClick={() => {
                   if (id === 4) setIsControlCenterOpen(!isControlCenterOpen);
@@ -4924,7 +4927,7 @@ export default TerminalWindow;
     }
 
     .icon {
-        @apply p-1 hover:bg-gray-200 dark:hover:bg-white/10 rounded hover:cursor-default;
+        @apply p-1 hover:bg-gray-200 dark:hover:bg-white/10 text-blue-600 dark:text-blue-400 rounded hover:cursor-default;
     }
 
     #welcome {
@@ -4986,15 +4989,15 @@ export default TerminalWindow;
                 }
             }
             .blog {
-                @apply dark:bg-[#1c1c1e]/10 w-full h-full max-md:h-full max-md:overflow-y-auto max-md:bg-white dark:max-md:bg-black;
+                @apply dark:bg-[#1c1c1e]/30 w-full h-full max-md:h-full max-md:overflow-y-auto max-md:bg-white dark:max-md:bg-black;
                 .blog-container {
                     @apply p-10 max-w-3xl mx-auto max-md:p-6 max-md:w-full max-md:max-w-full pb-20;
                 }
                 h2 {
-                    @apply text-xl font-bold text-pink-600 dark:text-pink-400 mb-10 max-md:text-2xl max-md:text-black dark:max-md:text-white max-md:mb-6 text-center max-md:text-center;
+                    @apply text-xl font-bold text-black dark:text-white mb-10 max-md:text-2xl max-md:text-black dark:max-md:text-white max-md:mb-6 text-center max-md:text-center;
                 }
                 .blog-post {
-                    @apply relative grid grid-cols-12 space-x-5 max-md:flex max-md:flex-col max-md:gap-4 max-md:mb-10 max-md:ml-0 max-md:space-x-0 bg-white/50 dark:bg-white/10 max-md:bg-gray-50 dark:max-md:bg-white/5 max-md:p-3 rounded-3xl p-5 max-md:rounded-3xl shadow-sm transition-all duration-300;
+                    @apply relative grid grid-cols-12 space-x-5 max-md:flex max-md:flex-col max-md:gap-4 max-md:mb-10 max-md:ml-0 max-md:space-x-0 bg-white/50 dark:bg-white/40 max-md:bg-gray-50 dark:max-md:bg-white/5 max-md:p-3 rounded-3xl p-5 max-md:rounded-3xl shadow-sm transition-all duration-300;
                     
                     &::before {
                         content: '';
@@ -5010,13 +5013,13 @@ export default TerminalWindow;
                     .content {
                         @apply relative z-10 col-span-10 space-y-3 max-md:py-2;
                         p {
-                            @apply text-xs text-gray-600 dark:text-gray-400 max-md:text-sm;
+                            @apply text-xs text-indigo-600 dark:text-indigo-700 max-md:text-sm;
                         }
                         h3 {
                             @apply font-semibold text-base text-gray-800 dark:text-white max-md:text-lg max-md:leading-tight;
                         }
                         a {
-                            @apply text-blue-600 dark:text-blue-400 text-xs hover:underline flex items-center gap-3 max-md:text-sm font-medium;
+                            @apply text-blue-600 text-xs hover:underline flex items-center gap-3 max-md:text-sm font-medium;
                         }
                     }
                 }
@@ -5067,7 +5070,7 @@ export default TerminalWindow;
     #photos {
         @apply w-125 top-[20%] left-[20%] absolute bg-white/30 dark:bg-black/40 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white dark:max-md:bg-black;
         .sidebar {
-            @apply w-3/12 flex-none bg-white/20 dark:bg-black/30 backdrop-blur-xl border-r border-black/10 flex flex-col p-5 max-md:hidden;
+            @apply w-3/12 flex-none border-r border-black/10 flex flex-col p-5 max-md:hidden;
             h2 {
                 @apply text-xs font-medium text-black dark:text-white mb-1;
             }
@@ -5124,9 +5127,9 @@ export default TerminalWindow;
     #finder {
         @apply backdrop-blur-xl absolute w-3xl left-40 top-20 shadow-2xl drop-shadow-2xl overflow-hidden rounded-xl max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none;
         .sidebar {
-            @apply w-48 bg-white/20 dark:bg-black/30 backdrop-blur-xl border-r border-gray-200 dark:border-white/10 flex flex-col p-5 space-y-3 max-md:hidden;
+            @apply w-48  border-r border-gray-200 dark:border-white/10 flex flex-col p-5 space-y-3 max-md:hidden;
             h3 {
-                @apply text-xs font-medium text-gray-400 dark:text-gray-500 mb-1;
+                @apply text-xs font-medium text-black  dark:text-white mb-1;
             }
             ul {
                 @apply space-y-1;
@@ -5134,7 +5137,7 @@ export default TerminalWindow;
                     @apply bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200;
                 }
                 .not-active {
-                    @apply text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-white/10;
+                    @apply text-gray-900 hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-white/10;
                 }
                 li {
                     @apply flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors;
@@ -5151,7 +5154,7 @@ export default TerminalWindow;
                             
                             &::before {
                                 content: '';
-                                @apply absolute inset-0 bg-black/5 dark:bg-white/20 rounded-2xl opacity-0 scale-75 transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-0 max-md:hidden;
+                                @apply absolute inset-0 bg-black/5 dark:bg-white/[0.12] rounded-2xl opacity-0 scale-75 transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-0 max-md:hidden;
                             }
                             
                             &:hover::before {
@@ -5159,7 +5162,7 @@ export default TerminalWindow;
                             }
                             
                             &:active::before {
-                                @apply bg-black/10 dark:bg-white/30 scale-95 transition-all duration-150 ease-out;
+                                @apply bg-black/10 dark:bg-white/[0.2] scale-95 transition-all duration-150 ease-out;
                             }
             
                             &:last-child {
