@@ -1,4 +1,5 @@
-import { dockApps } from "#constants/index.js";
+import { dockApps, locations } from "#constants/index.js";
+import useLocationStore from "#store/location.js";
 import useWindowStore from "#store/window.js";
 import { memo } from "react";
 import { Tooltip } from "react-tooltip";
@@ -8,11 +9,16 @@ const Dock = memo(() => {
   const openWindow = useWindowStore((s) => s.openWindow);
   const closeWindow = useWindowStore((s) => s.closeWindow);
   const windows = useWindowStore((s) => s.windows);
-
+  const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
   const toggleApp = (app) => {
     if (!app.canOpen) {
       return;
     };
+    if (app.id === "trash") {
+          setActiveLocation(locations.trash); 
+          openWindow("finder");
+          return;
+        }
     const windowState = windows[app.id];
     if (windowState?.isOpen) {
       closeWindow(app.id);
