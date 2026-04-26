@@ -30,7 +30,6 @@ if (typeof window !== "undefined") {
 
 const App = () => {
   const [isBooted, setIsBooted] = useState(false);
-
   return (
     <>
       {!isBooted && <BootSequence onComplete={() => setIsBooted(true)} />}

@@ -29,7 +29,7 @@ const Finder = () => {
             key={item.id}
             onClick={() => {
               setActiveLocation(item);
-              setShowSidebar(false); // Auto-closes sidebar when a folder is selected
+              setShowSidebar(false);
             }}
             className={clsx(
               item.id === activeLocation.id ? "active" : "not-active",
@@ -48,7 +48,6 @@ const Finder = () => {
       <div id="window-header">
         <WindowControls target="finder" />
         
-        {/* Mobile Sidebar Toggle Icon */}
         <PanelLeft 
           className="hidden max-md:block absolute left-15 bottom-3.5 text-blue-600 cursor-pointer z-50 transition-transform active:scale-95" 
           size={22} 
@@ -61,8 +60,8 @@ const Finder = () => {
         <Search className="icon" />
       </div>
 
-      <div className="bg-white flex h-full relative">
-        {/* Mobile Backdrop Overlay (Fades in/out) */}
+      <div className="flex h-full relative">
+        
         <div 
           className={clsx(
             "hidden max-md:block absolute inset-0 bg-black/20 z-45 transition-opacity duration-300 ease-in-out",
@@ -71,7 +70,6 @@ const Finder = () => {
           onClick={() => setShowSidebar(false)}
         />
         
-        {/* Sidebar container (Slides in/out) */}
         <div className={clsx(
           "sidebar",
           "max-md:flex! max-md:absolute max-md:top-0 max-md:left-0 max-md:h-full max-md:z-50 max-md:w-60 max-md:shadow-2xl max-md:transition-transform max-md:duration-300 max-md:ease-in-out",
