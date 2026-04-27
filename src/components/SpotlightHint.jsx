@@ -95,9 +95,15 @@ const SpotlightHint = ({ isBooted }) => {
           </div>
           <h4 className="text-[15px] font-semibold text-gray-900 dark:text-white leading-tight">Spotlight Search</h4>
           <p className="text-[13px] text-gray-600 dark:text-gray-400 leading-snug mt-0.5">
-            Press <span className="inline-flex items-center gap-0.5 bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded border border-black/5 dark:border-white/10 font-terminal text-[11px] font-bold text-gray-800 dark:text-gray-200">
-              <Command size={10} /> K
-            </span> to quickly search apps and files.
+            {window.innerWidth < 768 ? (
+              "Swipe down on the home screen to search apps and files."
+            ) : (
+              <>
+                Press <span className="inline-flex items-center gap-0.5 bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded border border-black/5 dark:border-white/10 font-terminal text-[11px] font-bold text-gray-800 dark:text-gray-200">
+                  <Command size={10} /> K
+                </span> to quickly search.
+              </>
+            )}
           </p>
         </div>
       </div>

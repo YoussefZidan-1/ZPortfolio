@@ -206,7 +206,7 @@ const Spotlight = () => {
     >
       <div 
         ref={boxRef} 
-        className="w-full max-w-[650px] h-fit bg-white/80 dark:bg-[#1e1e2e]/85 backdrop-blur-3xl shadow-[0_30px_100px_rgba(0,0,0,0.5)] border border-white/50 dark:border-white/10 rounded-[24px] overflow-hidden flex flex-col will-change-transform"
+        className="w-full max-w-[650px] max-md:max-w-[95vw] h-fit bg-white/80 dark:bg-[#1e1e2e]/85 backdrop-blur-3xl shadow-[0_30px_100px_rgba(0,0,0,0.5)] border border-white/50 dark:border-white/10 rounded-[24px] max-md:rounded-[20px] overflow-hidden flex flex-col will-change-transform"
       >
         <div className="flex items-center px-5 py-4 border-b border-transparent data-[has-query=true]:border-gray-400/20 dark:data-[has-query=true]:border-white/10 transition-colors duration-300" data-has-query={!!query}>
           <Search className="text-gray-500 dark:text-gray-400 mr-3 shrink-0" size={24} />

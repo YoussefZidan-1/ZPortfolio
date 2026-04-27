@@ -40,6 +40,21 @@ const Home = () => {
   const pointerPos = useRef({ x: 0, y: 0 });
   const rippleRef = useRef(null);
   const desktopGhostRef = useRef(null); // Reference for the Grid Ghost Box
+  const touchStart = useRef(0);
+ 
+   const handleTouchStart = (e) => {
+     touchStart.current = e.touches[0].clientY;
+   };
+ 
+   const handleTouchEnd = (e) => {
+     const touchEnd = e.changedTouches[0].clientY;
+     const distance = touchEnd - touchStart.current;
+ 
+     if (distance > 50 && !isEditMode) {
+       window.dispatchEvent(new CustomEvent('toggle-spotlight'));
+       trigger("selection");
+     }
+   };
 
   useEffect(() => {
     const timer = setInterval(() => setTime(dayjs()), 1000);
@@ -328,6 +343,8 @@ const Home = () => {
       id="home" 
       className="absolute inset-0 w-full h-full z-0 overflow-hidden"
       onPointerDown={(e) => e.target === e.currentTarget && setIsEditMode(false)}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       <SpotifyWidget /> 
 
