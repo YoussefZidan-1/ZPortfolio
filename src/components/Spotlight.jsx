@@ -26,15 +26,12 @@ const getTypeLabel = (item) => {
 
 // Safe Math Evaluator for the built-in Calculator
 const evaluateMath = (expr) => {
-  const clean = expr.replace(/\s+/g, ''); // Remove spaces
-  // Make sure it only contains numbers, decimals, and math operators
+  const clean = expr.replace(/\s+/g, ''); 
   if (/^[-+*/().0-9]+$/.test(clean) && /[-+*/]/.test(clean)) {
     try {
-      // Safely evaluate the math string
       // eslint-disable-next-line no-new-func
       const result = new Function(`return ${clean}`)();
       if (result !== undefined && !Number.isNaN(result) && Number.isFinite(result)) {
-        // Format to max 4 decimal places, removing trailing zeros
         return Number.isInteger(result) ? result.toString() : parseFloat(result.toFixed(4)).toString();
       }
     } catch (e) {
@@ -47,7 +44,7 @@ const evaluateMath = (expr) => {
 const Spotlight = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const[selectedIndex, setSelectedIndex] = useState(0);
   
   const containerRef = useRef(null);
   const boxRef = useRef(null);
@@ -58,7 +55,6 @@ const Spotlight = () => {
   const openWindow = useWindowStore((s) => s.openWindow);
   const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
 
-  // Recursive Data Aggregation
   const allItems = useMemo(() => {
     const items =[];
     dockApps.forEach(app => {
@@ -85,15 +81,12 @@ const Spotlight = () => {
       }
     }
     return unique;
-  },[]);
+  }, []);
 
-  // Filter logic + Calculator Injection + Limit to 7 items!
   const filteredItems = useMemo(() => {
-    if (!query) return [];
+    if (!query) return[];
     
     let results =[];
-
-    // 1. Check if the user is typing math
     const mathResult = evaluateMath(query);
     if (mathResult !== null) {
       results.push({
@@ -104,15 +97,12 @@ const Spotlight = () => {
       });
     }
 
-    // 2. Add normal file/app search results
     const textMatches = allItems.filter(item => item.searchStr.includes(query.toLowerCase()));
     results = [...results, ...textMatches];
 
-    // 3. Limit to 7 items max to perfectly fit the screen before scrolling
     return results.slice(0, 7);
-  }, [query, allItems]);
+  },[query, allItems]);
 
-  // Global Triggers
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && (e.code === 'Space' || e.key === 'k')) {
@@ -130,7 +120,6 @@ const Spotlight = () => {
     };
   },[]);
 
-  // Focus & Reset Management
   useEffect(() => {
     if (!isOpen) {
       setTimeout(() => { setQuery(''); setSelectedIndex(0); }, 300);
@@ -139,14 +128,12 @@ const Spotlight = () => {
     }
   }, [isOpen]);
 
-  // Scroll Active Item into View
   useEffect(() => {
     if (isOpen && itemRefs.current[selectedIndex]) {
       itemRefs.current[selectedIndex].scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
   }, [selectedIndex, isOpen]);
 
-  // Action Execution (Opens app/file or Copies Math Result)
   const executeItem = (item) => {
     trigger("success");
     setIsOpen(false);
@@ -178,7 +165,6 @@ const Spotlight = () => {
     openWindow(`${item.fileType}${item.kind}`, item);
   };
 
-  // Local Keyboard Navigation
   const handleKeyDown = (e) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -197,7 +183,6 @@ const Spotlight = () => {
     }
   };
 
-  // Premium GSAP Entry Animations
   useGSAP(() => {
     if (!containerRef.current || !boxRef.current) return;
     
@@ -221,10 +206,9 @@ const Spotlight = () => {
     >
       <div 
         ref={boxRef} 
-        // Height naturally wraps the content (Search bar + results). Automatically expands!
         className="w-full max-w-[650px] h-fit bg-white/80 dark:bg-[#1e1e2e]/85 backdrop-blur-3xl shadow-[0_30px_100px_rgba(0,0,0,0.5)] border border-white/50 dark:border-white/10 rounded-[24px] overflow-hidden flex flex-col will-change-transform"
       >
-        <div className="flex items-center px-5 py-4 border-b border-transparent data-[has-query=true]:border-gray-400/20 dark:data-[has-query=true]:border-white/10 transition-colors" data-has-query={!!query}>
+        <div className="flex items-center px-5 py-4 border-b border-transparent data-[has-query=true]:border-gray-400/20 dark:data-[has-query=true]:border-white/10 transition-colors duration-300" data-has-query={!!query}>
           <Search className="text-gray-500 dark:text-gray-400 mr-3 shrink-0" size={24} />
           <input 
             ref={inputRef}
@@ -242,55 +226,60 @@ const Spotlight = () => {
           </div>
         </div>
         
-        {query && (
-          // Max-height calculation: 7 items * ~60px per item = ~420px. 
-          // This forces it to scroll after 7 items exactly.
-          <div className="overflow-y-auto scrollbar-hide py-2 max-h-[420px]">
-            {filteredItems.length > 0 ? (
-              <ul>
-                {filteredItems.map((item, index) => (
-                  <li
-                    key={item.id}
-                    ref={(el) => (itemRefs.current[index] = el)}
-                    className={clsx(
-                      "flex items-center justify-between px-4 py-3 mx-2 my-1 rounded-xl cursor-pointer transition-colors",
-                      index === selectedIndex 
-                        ? "bg-blue-600 dark:bg-blue-600 text-white shadow-md" 
-                        : "hover:bg-black/5 dark:hover:bg-white/10 text-gray-800 dark:text-gray-200"
-                    )}
-                    onMouseEnter={() => setSelectedIndex(index)}
-                    onClick={() => executeItem(item)}
-                  >
-                    <div className="flex items-center gap-4 pointer-events-none">
-                      
-                      {/* Calculator Icon vs Standard File Icon */}
-                      {item.isCalc ? (
-                        <div className="w-8 h-8 flex items-center justify-center bg-gray-200 dark:bg-white/20 rounded-lg drop-shadow-sm">
-                          <Calculator size={18} className={index === selectedIndex ? "text-white" : "text-gray-700 dark:text-gray-200"} />
-                        </div>
-                      ) : (
-                        <img src={getIconSrc(item.icon)} className={clsx("w-8 h-8 object-contain drop-shadow-sm", index === selectedIndex && "scale-110 transition-transform")} />
+        {/* EXPERT FIX: CSS Grid Height Transition */}
+        <div 
+          className={clsx(
+            "grid transition-[grid-template-rows,opacity] duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]",
+            query ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+          )}
+        >
+          <div className="overflow-hidden">
+            <div className="overflow-y-auto scrollbar-hide pt-2 pb-3 max-h-[420px]">
+              {filteredItems.length > 0 ? (
+                <ul>
+                  {filteredItems.map((item, index) => (
+                    <li
+                      key={item.id}
+                      ref={(el) => (itemRefs.current[index] = el)}
+                      // EXPERT FIX: Staggered entry animation using Tailwind's animate-in and dynamic animation delays
+                      className={clsx(
+                        "flex items-center justify-between px-4 py-3 mx-2 my-1 rounded-xl cursor-pointer transition-colors",
+                        "animate-in fade-in slide-in-from-bottom-2 duration-300 fill-mode-both", 
+                        index === selectedIndex 
+                          ? "bg-blue-600 dark:bg-blue-600 text-white shadow-md" 
+                          : "hover:bg-black/5 dark:hover:bg-white/10 text-gray-800 dark:text-gray-200"
                       )}
-                      
-                      <span className={clsx("font-medium text-[15px]", item.isCalc && "text-[18px]")}>
-                        {item.name}
+                      style={{ animationDelay: `${index * 30}ms` }}
+                      onMouseEnter={() => setSelectedIndex(index)}
+                      onClick={() => executeItem(item)}
+                    >
+                      <div className="flex items-center gap-4 pointer-events-none">
+                        {item.isCalc ? (
+                          <div className="w-8 h-8 flex items-center justify-center bg-gray-200 dark:bg-white/20 rounded-lg drop-shadow-sm">
+                            <Calculator size={18} className={index === selectedIndex ? "text-white" : "text-gray-700 dark:text-gray-200"} />
+                          </div>
+                        ) : (
+                          <img src={getIconSrc(item.icon)} className={clsx("w-8 h-8 object-contain drop-shadow-sm", index === selectedIndex && "scale-110 transition-transform")} />
+                        )}
+                        <span className={clsx("font-medium text-[15px]", item.isCalc && "text-[18px]")}>
+                          {item.name}
+                        </span>
+                      </div>
+                      <span className={clsx("text-xs font-semibold tracking-wide", index === selectedIndex ? "text-blue-100" : "text-gray-500 dark:text-gray-400")}>
+                        {item.isCalc ? (index === selectedIndex ? "Press Enter to Copy" : "Calculator") : getTypeLabel(item)}
                       </span>
-                    </div>
-                    
-                    <span className={clsx("text-xs font-semibold tracking-wide", index === selectedIndex ? "text-blue-100" : "text-gray-500 dark:text-gray-400")}>
-                      {item.isCalc ? (index === selectedIndex ? "Press Enter to Copy" : "Calculator") : getTypeLabel(item)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="px-6 py-10 text-center text-gray-500 dark:text-gray-400 animate-in fade-in">
-                <p className="text-lg font-medium">No results found</p>
-                <p className="text-sm mt-1">Try searching for "ZCinema", "Resume", or "Contact"</p>
-              </div>
-            )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="px-6 py-10 text-center text-gray-500 dark:text-gray-400 animate-in fade-in zoom-in-[0.98] duration-300">
+                  <p className="text-lg font-medium">No results found</p>
+                  <p className="text-sm mt-1">Try searching for "ZCinema", "Resume", or "Contact"</p>
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

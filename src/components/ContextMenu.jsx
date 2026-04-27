@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
-import { FolderPlus, Terminal, Code, RefreshCw, Moon, Sun, Info, Trash2, ExternalLink, XCircle, PinOff } from "lucide-react";
+import { Folder, Terminal, Code, RefreshCw, Moon, Sun, Info, Trash2, ExternalLink, XCircle, PinOff } from "lucide-react";
 import useWindowStore from "#store/window.js";
 import useSettingsStore from "#store/settings.js";
 import useLocationStore from "#store/location.js";
@@ -177,8 +177,8 @@ const ContextMenu = () => {
       {contextData.targetType === 'desktop' && (
         <>
           <ActionItem 
-            icon={FolderPlus} 
-            label="New Folder" 
+            icon={Folder} 
+            label="Portfolio"
             onClick={() => handleAction(() => openWindow("finder"))} 
             divider 
           />
