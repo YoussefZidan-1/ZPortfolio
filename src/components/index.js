@@ -6,4 +6,6 @@ import Home from "#components/Home.jsx";
 import BootSequence from "#components/BootSequence.jsx";
 import ControlCenter from "#components/ControlCenter.jsx";
 import ContextMenu from "#components/ContextMenu.jsx";
-export { Navbar, Welcome, Dock, WindowControls, Home, BootSequence, ControlCenter, ContextMenu};
+import Spotlight from "#components/Spotlight.jsx";
+
+export { Navbar, Welcome, Dock, WindowControls, Home, BootSequence, ControlCenter, ContextMenu, Spotlight };

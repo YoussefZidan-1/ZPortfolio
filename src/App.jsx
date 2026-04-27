@@ -17,6 +17,7 @@ const Contact = lazy(() => import("#windows/Contact.jsx"));
 const Photos = lazy(() => import("#windows/Photos.jsx"));
 const CodeEditor = lazy(() => import("#windows/CodeEditor.jsx"));
 const ContextMenu = lazy(() => import("#components/ContextMenu.jsx"));
+const Spotlight = lazy(() => import("#components/Spotlight.jsx"));
 
 gsap.registerPlugin(Draggable);
 
@@ -56,6 +57,7 @@ const App = () => {
             <Welcome />
             <Home />
             <ContextMenu />
+            <Spotlight />
             <Dock />
             <Terminal />
             <ZenBrowser />

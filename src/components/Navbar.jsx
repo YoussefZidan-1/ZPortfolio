@@ -85,6 +85,7 @@ const Navbar = memo(() => {
                 loading="lazy" 
                 onClick={() => {
                   if (id === 4) setIsControlCenterOpen(!isControlCenterOpen);
+                  if (id === 2) window.dispatchEvent(new CustomEvent('toggle-spotlight'));
                 }}
               />
             </li>
