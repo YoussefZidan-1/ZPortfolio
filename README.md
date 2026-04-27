@@ -79,12 +79,13 @@ This portfolio is a living project. I’m planning to implement the following fe
 
 ```text
 src/
-├── components/      # UI Components: Dock, Navbar, Welcome text, WindowControls
-├── constants/       # Core Data: Apps, Projects, Tech Stack, Social links
-├── hoc/             # HOCs: WindowWrapper for draggable and focus logic
-├── store/           # Zustand Stores: Window manager and directory state
-├── windows/         # App Windows: Finder, Safari, Photos, Terminal, etc.
-└── App.jsx          # Main application registry and layout
+├── components/       # UI Components: Dock, Navbar, Welcome text, WindowControls.
+├── constants/        # Core Data: Apps, Projects, Tech Stack, Social links.
+├── hoc/              # HOCs: WindowWrapper for draggable and focus logic.
+├── store/            # Zustand Stores: Window manager and directory state.
+├── windows/          # App Windows: Finder, Safari, Photos, Terminal, etc.
+├── proximity-engine/ # ZPROXIMITYENGINE source code.
+└── App.jsx           # Main application registry and layout.
 ```
 
 ---
