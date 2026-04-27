@@ -923,6 +923,62 @@ const useSettingsStore = create((set) => ({
 export default useSettingsStore;
 </file>
 
+<file path="src/store/window.js">
+import { INITIAL_Z_INDEX, WINDOW_CONFIG, dockApps } from "#constants";
+import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
+
+const useWindowStore = create(
+  immer((set) => ({
+    windows: WINDOW_CONFIG,
+    dockItems: dockApps,
+    nextZIndex: INITIAL_Z_INDEX + 1,
+    removeDockItem: (id) => set((state) => {
+      if (id === 'finder' || id === 'trash') return;
+      state.dockItems = state.dockItems.filter(item => item.id !== id);
+    }),
+    moveDockItem: (id1, id2) => set((state) => {
+      const idx1 = state.dockItems.findIndex(i => i.id === id1);
+      const idx2 = state.dockItems.findIndex(i => i.id === id2);
+      if (idx1 === -1 || idx2 === -1 || idx1 === idx2) return;
+      
+      const temp = state.dockItems[idx1];
+      state.dockItems[idx1] = state.dockItems[idx2];
+      state.dockItems[idx2] = temp;
+    }),
+    openWindow: (windowKey, data = null, launchPos = null) =>
+      set((state) => {
+        const win = state.windows[windowKey];
+        if (!win) return;
+        win.isOpen = true;
+        win.zIndex = state.nextZIndex;
+        win.data = data ?? win.data;
+        win.launchPos = launchPos;
+        state.nextZIndex++;
+      }),
+    closeWindow: (windowKey) => set((state) => {
+      const win = state.windows[windowKey];
+      if (!win) return;
+      win.isOpen = false;
+      win.zIndex = INITIAL_Z_INDEX;
+      win.data = null;
+      win.launchPos = null;
+    }),
+    toggleMaximize: (windowKey) => set((state) => {
+      const win = state.windows[windowKey];
+      if (win) win.isMaximized = !win.isMaximized;
+    }),
+    focusWindow: (windowKey) => set((state) => {
+      const win = state.windows[windowKey];
+      if (!win) return;
+      win.zIndex = state.nextZIndex++;
+    }),
+  })),
+);
+
+export default useWindowStore;
+</file>
+
 <file path="src/windows/Photos.jsx">
 import { Mail, Search } from "lucide-react"
 import WindowWrapper from "#hoc/WindowWrapper"
@@ -1318,62 +1374,6 @@ const SpotifyWidget = memo(() => {
 });
 
 export default SpotifyWidget;
-</file>
-
-<file path="src/store/window.js">
-import { INITIAL_Z_INDEX, WINDOW_CONFIG, dockApps } from "#constants";
-import { create } from "zustand";
-import { immer } from "zustand/middleware/immer";
-
-const useWindowStore = create(
-  immer((set) => ({
-    windows: WINDOW_CONFIG,
-    dockItems: dockApps,
-    nextZIndex: INITIAL_Z_INDEX + 1,
-    removeDockItem: (id) => set((state) => {
-      if (id === 'finder' || id === 'trash') return;
-      state.dockItems = state.dockItems.filter(item => item.id !== id);
-    }),
-    moveDockItem: (id1, id2) => set((state) => {
-      const idx1 = state.dockItems.findIndex(i => i.id === id1);
-      const idx2 = state.dockItems.findIndex(i => i.id === id2);
-      if (idx1 === -1 || idx2 === -1 || idx1 === idx2) return;
-      
-      const temp = state.dockItems[idx1];
-      state.dockItems[idx1] = state.dockItems[idx2];
-      state.dockItems[idx2] = temp;
-    }),
-    openWindow: (windowKey, data = null, launchPos = null) =>
-      set((state) => {
-        const win = state.windows[windowKey];
-        if (!win) return;
-        win.isOpen = true;
-        win.zIndex = state.nextZIndex;
-        win.data = data ?? win.data;
-        win.launchPos = launchPos;
-        state.nextZIndex++;
-      }),
-    closeWindow: (windowKey) => set((state) => {
-      const win = state.windows[windowKey];
-      if (!win) return;
-      win.isOpen = false;
-      win.zIndex = INITIAL_Z_INDEX;
-      win.data = null;
-      win.launchPos = null;
-    }),
-    toggleMaximize: (windowKey) => set((state) => {
-      const win = state.windows[windowKey];
-      if (win) win.isMaximized = !win.isMaximized;
-    }),
-    focusWindow: (windowKey) => set((state) => {
-      const win = state.windows[windowKey];
-      if (!win) return;
-      win.zIndex = state.nextZIndex++;
-    }),
-  })),
-);
-
-export default useWindowStore;
 </file>
 
 <file path="src/windows/Finder.jsx">
@@ -2126,6 +2126,74 @@ export {
 };
 </file>
 
+<file path="src/App.jsx">
+import React, { Suspense, lazy, useState } from "react";
+import gsap from "gsap";
+import { Draggable } from "gsap/Draggable";
+import BootSequence from "#components/BootSequence.jsx";
+const Navbar = lazy(() => import("#components/Navbar.jsx"));
+const Welcome = lazy(() => import("#components/Welcome.jsx"));
+const Dock = lazy(() => import("#components/Dock.jsx"));
+const Home = lazy(() => import("#components/Home.jsx"));
+const Terminal = lazy(() => import("#windows/Terminal.jsx"));
+const ZenBrowser = lazy(() => import("#windows/ZenBrowser.jsx"));
+const Resume = lazy(() => import("#windows/Resume.jsx"));
+const Finder = lazy(() => import("#windows/Finder.jsx"));
+const Text = lazy(() => import("#windows/Text.jsx"));
+const Image = lazy(() => import("#windows/Image.jsx"));
+const Contact = lazy(() => import("#windows/Contact.jsx"));
+const Photos = lazy(() => import("#windows/Photos.jsx"));
+const CodeEditor = lazy(() => import("#windows/CodeEditor.jsx"));
+const ContextMenu = lazy(() => import("#components/ContextMenu.jsx"));
+
+gsap.registerPlugin(Draggable);
+
+if (typeof window !== "undefined") {
+  console.log(
+    "%c 💻 ZPortfolio by ZED Studios %c Developed by Yousef Zedan %c https://github.com/YoussefZidan-1/zportfolio ",
+    "color: white; background: #000; padding: 5px 10px; border-radius: 5px 0 0 5px; font-weight: bold;",
+    "color: #fff; background: #007aff; padding: 5px 10px; font-weight: bold;",
+    "color: #000; background: #fff; padding: 5px 10px; border-radius: 0 5px 5px 0; border: 1px solid #000;"
+  );
+}
+
+const App = () => {
+  const [isBooted, setIsBooted] = useState(false);
+  return (
+    <>
+      {!isBooted && <BootSequence onComplete={() => setIsBooted(true)} />}
+      <div 
+        className={`fixed inset-0 w-full h-full transition-opacity duration-1000 ease-in-out z-0 ${
+          isBooted ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        <Suspense fallback={null}>
+          <main className="w-full h-full">
+            <div className="ios-home-indicator" />
+            <Navbar />
+            <Welcome />
+            <Home />
+            <ContextMenu />
+            <Dock />
+            <Terminal />
+            <ZenBrowser />
+            <Resume />
+            <Finder />
+            <Text />
+            <Image />
+            <Contact />
+            <Photos />
+            <CodeEditor /> 
+          </main>
+        </Suspense>
+      </div>
+    </>
+  );
+};
+
+export default App;
+</file>
+
 <file path="src/components/Navbar.jsx">
 import React, { memo, useState, useEffect, useRef } from "react";
 import { navIcons, navLinks } from "#constants";
@@ -2296,74 +2364,6 @@ const WindowControls = ({ target }) => {
 }
 
 export default WindowControls;
-</file>
-
-<file path="src/App.jsx">
-import React, { Suspense, lazy, useState } from "react";
-import gsap from "gsap";
-import { Draggable } from "gsap/Draggable";
-import BootSequence from "#components/BootSequence.jsx";
-const Navbar = lazy(() => import("#components/Navbar.jsx"));
-const Welcome = lazy(() => import("#components/Welcome.jsx"));
-const Dock = lazy(() => import("#components/Dock.jsx"));
-const Home = lazy(() => import("#components/Home.jsx"));
-const Terminal = lazy(() => import("#windows/Terminal.jsx"));
-const ZenBrowser = lazy(() => import("#windows/ZenBrowser.jsx"));
-const Resume = lazy(() => import("#windows/Resume.jsx"));
-const Finder = lazy(() => import("#windows/Finder.jsx"));
-const Text = lazy(() => import("#windows/Text.jsx"));
-const Image = lazy(() => import("#windows/Image.jsx"));
-const Contact = lazy(() => import("#windows/Contact.jsx"));
-const Photos = lazy(() => import("#windows/Photos.jsx"));
-const CodeEditor = lazy(() => import("#windows/CodeEditor.jsx"));
-const ContextMenu = lazy(() => import("#components/ContextMenu.jsx"));
-
-gsap.registerPlugin(Draggable);
-
-if (typeof window !== "undefined") {
-  console.log(
-    "%c 💻 ZPortfolio by ZED Studios %c Developed by Yousef Zedan %c https://github.com/YoussefZidan-1/zportfolio ",
-    "color: white; background: #000; padding: 5px 10px; border-radius: 5px 0 0 5px; font-weight: bold;",
-    "color: #fff; background: #007aff; padding: 5px 10px; font-weight: bold;",
-    "color: #000; background: #fff; padding: 5px 10px; border-radius: 0 5px 5px 0; border: 1px solid #000;"
-  );
-}
-
-const App = () => {
-  const [isBooted, setIsBooted] = useState(false);
-  return (
-    <>
-      {!isBooted && <BootSequence onComplete={() => setIsBooted(true)} />}
-      <div 
-        className={`fixed inset-0 w-full h-full transition-opacity duration-1000 ease-in-out z-0 ${
-          isBooted ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-        }`}
-      >
-        <Suspense fallback={null}>
-          <main className="w-full h-full">
-            <div className="ios-home-indicator" />
-            <Navbar />
-            <Welcome />
-            <Home />
-            <ContextMenu />
-            <Dock />
-            <Terminal />
-            <ZenBrowser />
-            <Resume />
-            <Finder />
-            <Text />
-            <Image />
-            <Contact />
-            <Photos />
-            <CodeEditor /> 
-          </main>
-        </Suspense>
-      </div>
-    </>
-  );
-};
-
-export default App;
 </file>
 
 <file path="src/components/Welcome.jsx">
@@ -2753,6 +2753,260 @@ export const Proximity = ({
     </div>
   );
 };
+</file>
+
+<file path="src/hoc/WindowWrapper.jsx">
+import useWindowStore from "#store/window.js";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+import { Draggable } from "gsap/Draggable";
+import { useRef, useState, useEffect, memo } from "react";
+import useSound from "use-sound";
+import useSettingsStore from "#store/settings.js";
+
+let openPitchCounter = 0;
+const PITCH_LEVELS = [1.0, 1.05, 1.1, 1.15];
+
+const WindowWrapper = (Component, windowKey) => {
+  const Wrapped = memo((props) => {
+    const isOpen = useWindowStore((s) => s.windows[windowKey].isOpen);
+    const zIndex = useWindowStore((s) => s.windows[windowKey].zIndex);
+    const isMaximized = useWindowStore((s) => s.windows[windowKey].isMaximized);
+    const dataId = useWindowStore((s) => s.windows[windowKey].data?.id);
+    const launchPos = useWindowStore((s) => s.windows[windowKey].launchPos);
+    const focusWindow = useWindowStore((s) => s.focusWindow);
+    const [hasLaunched, setHasLaunched] = useState(isOpen);
+    const { volume, isMuted } = useSettingsStore();
+        const [playOpen, { sound }] = useSound("/sounds/oxygen_open.ogg", { 
+          volume: isMuted ? 0 : volume 
+        });
+
+    const ref = useRef(null);
+    const dragInstance = useRef(null);
+    const resizeInstances = useRef([]);
+    const [isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
+    const preMaxState = useRef(null);
+    const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
+
+    useEffect(() => {
+         if (isOpen) {
+           if (sound) {
+               
+               sound.rate(PITCH_LEVELS[openPitchCounter % PITCH_LEVELS.length]);
+               playOpen();
+               openPitchCounter++;
+           }
+           
+           if (!hasLaunched) setHasLaunched(true);
+           setIsActuallyVisible(true);
+         }
+       }, [isOpen, sound, playOpen, hasLaunched]);
+    
+    useEffect(() => {
+      const checkMobile = () => setIsMobile(window.innerWidth < 768);
+      checkMobile();
+      window.addEventListener("resize", checkMobile, { passive: true });
+      return () => window.removeEventListener("resize", checkMobile);
+    }, []);
+    
+    useEffect(() => {
+      if (isOpen && !hasLaunched) {
+        setHasLaunched(true);
+      }
+    }, [isOpen, hasLaunched]);
+
+
+    useGSAP(() => {
+      const el = ref.current;
+      if (!el) return;
+      if (isOpen) {
+        setIsActuallyVisible(true);
+        if (isMobile) {
+          if (launchPos) {
+            gsap.fromTo(el,
+              {
+                opacity: 0,
+                scale: 0.8,
+                transformOrigin: `${launchPos.x}px ${launchPos.y}px`,
+                borderRadius: "32px",
+                x: 0,
+                y: 0
+              },
+              {
+                opacity: 1,
+                scale: 1,
+                borderRadius: "0px",
+                duration: 0.35,
+                ease: "power3.out",
+                overwrite: "auto",
+                x: 0,
+                y: 0
+              }
+            );
+          } else {
+            gsap.fromTo(el,
+              { yPercent: 100, opacity: 1, x: 0, y: 0 },
+              { yPercent: 0, duration: 0.35, ease: "power3.out", overwrite: "auto", x: 0, y: 0 }
+            );
+          }
+        } else {
+          gsap.fromTo(el,
+            { scale: 0.9, opacity: 0, yPercent: 0 },
+            { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)", overwrite: "auto" }
+          );
+        }
+      } else {
+        if (isMobile) {
+          gsap.to(el, {
+            opacity: 0,
+            scale: 0.9,
+            duration: 0.25,
+            ease: "power3.in",
+            overwrite: "auto",
+            onComplete: () => setIsActuallyVisible(false),
+          });
+        } else {
+          gsap.to(el, {
+            scale: 0.8, opacity: 0, duration: 0.25, ease: "power2.in", overwrite: "auto",
+            onComplete: () => setIsActuallyVisible(false),
+          });
+        }
+      }
+    }, [isOpen, dataId, isMobile]);
+
+    useGSAP(() => {
+      if (isMobile) return;
+      const el = ref.current;
+      if (!el || !isOpen) return;
+
+      if (isMaximized) {
+        const currentX = gsap.getProperty(el, "x");
+        const currentY = gsap.getProperty(el, "y");
+        const rect = el.getBoundingClientRect();
+        preMaxState.current = { width: el.offsetWidth, height: el.offsetHeight, x: currentX, y: currentY };
+        if (dragInstance.current) dragInstance.current.disable();
+        resizeInstances.current.forEach(i => i.disable());
+        gsap.to(el, { x: currentX - rect.left, y: currentY - rect.top, width: "100vw", height: "100vh", maxWidth: "none", maxHeight: "none",  borderRadius: "0px", duration: 0.5, ease: "expo.inOut" });
+      } else if (preMaxState.current) {
+        if (dragInstance.current) dragInstance.current.enable();
+        resizeInstances.current.forEach(i => i.enable());
+        gsap.to(el, { x: preMaxState.current.x, y: preMaxState.current.y, width: preMaxState.current.width, height: preMaxState.current.height, borderRadius: "12px", duration: 0.5, ease: "expo.inOut", onComplete: () => dragInstance.current.update() });
+      }
+    }, [isMaximized, isMobile]);
+
+    useGSAP(() => {
+      const el = ref.current;
+      if (!el) return;
+
+      if (isMobile) return;
+
+      [dragInstance.current] = Draggable.create(el, {
+        trigger: el.querySelector("#window-header") || el,
+        bounds: "main",
+      });
+
+      resizeInstances.current =[];
+
+      const minW = 350;
+      const minH = 250;
+      const handleConfigs =[
+        { cls: ".resizer-n", type: "n" }, { cls: ".resizer-s", type: "s" },
+        { cls: ".resizer-e", type: "e" }, { cls: ".resizer-w", type: "w" },
+        { cls: ".resizer-nw", type: "nw" }, { cls: ".resizer-ne", type: "ne" },
+        { cls: ".resizer-sw", type: "sw" }, { cls: ".resizer-se", type: "se" },
+      ];
+
+      handleConfigs.forEach(({ cls, type }) => {
+        const hEl = el.querySelector(cls);
+        if (!hEl) return;
+        const [instance] = Draggable.create(hEl, {
+          type: "x,y",
+          onPress: function(e) {
+            e.stopPropagation();
+            focusWindow(windowKey);
+            this.startW = el.offsetWidth;
+            this.startH = el.offsetHeight;
+            this.startX = gsap.getProperty(el, "x");
+            this.startY = gsap.getProperty(el, "y");
+            this.startPointerX = this.pointerX;
+            this.startPointerY = this.pointerY;
+          },
+          onDrag: function() {
+            gsap.set(this.target, { x: 0, y: 0 });
+            const deltaX = this.pointerX - this.startPointerX;
+            const deltaY = this.pointerY - this.startPointerY;
+            let w = this.startW, h = this.startH, x = this.startX, y = this.startY;
+            if (type.includes("e")) w = this.startW + deltaX;
+            if (type.includes("w")) {
+              const constrainedDelta = Math.min(deltaX, this.startW - minW);
+              w = this.startW - constrainedDelta;
+              x = this.startX + constrainedDelta;
+            }
+            if (type.includes("s")) h = this.startH + deltaY;
+            if (type.includes("n")) {
+              const constrainedDelta = Math.min(deltaY, this.startH - minH);
+              h = this.startH - constrainedDelta;
+              y = this.startY + constrainedDelta;
+            }
+            gsap.set(el, { width: Math.max(w, minW), height: Math.max(h, minH), x, y });
+          },
+          onDragEnd: function() {
+            gsap.set(this.target, { x: 0, y: 0 });
+            dragInstance.current.update();
+          }
+        });
+        resizeInstances.current.push(instance);
+      });
+
+      return () => {
+        dragInstance.current?.kill();
+        resizeInstances.current.forEach(i => i.kill());
+      };
+    }, [isMobile]);
+
+    return (
+      <section
+        id={windowKey}
+        ref={ref}
+        onPointerDownCapture={() => focusWindow(windowKey)}
+        className="os-window absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none max-md:bg-white"
+        style={{
+            zIndex,
+            display: isActuallyVisible ? "flex" : "none",
+            willChange: "transform, width, height, opacity",
+            transform: "translate3d(0,0,0)",
+        }}
+      >
+        {hasLaunched && <Component {...props} />}
+
+        {isMobile && (
+          <div className="absolute bottom-0 left-0 w-full h-8 z-[2000] flex justify-center items-end pb-2 pointer-events-none">
+            <div className="w-[130px] h-1.5 bg-black/40 rounded-full" />
+          </div>
+        )}
+
+        {/* Kept mounted to not destroy GSAP hooks, simply hidden via CSS when maximized */}
+        {!isMobile && (
+          <div className={isMaximized ? "hidden pointer-events-none" : ""}>
+            <div className="resizer-n absolute top-0 left-0 w-full h-1.5 cursor-ns-resize z-50" />
+            <div className="resizer-s absolute bottom-0 left-0 w-full h-1.5 cursor-ns-resize z-50" />
+            <div className="resizer-w absolute top-0 left-0 h-full w-1.5 cursor-ew-resize z-50" />
+            <div className="resizer-e absolute top-0 right-0 h-full w-1.5 cursor-ew-resize z-50" />
+            <div className="resizer-nw absolute top-0 left-0 size-4 cursor-nwse-resize z-[60]" />
+            <div className="resizer-ne absolute top-0 right-0 size-4 cursor-nesw-resize z-[60]" />
+            <div className="resizer-sw absolute bottom-0 left-0 size-4 cursor-nesw-resize z-[60]" />
+            <div className="resizer-se absolute bottom-0 right-0 size-4 cursor-nwse-resize z-[60]" />
+          </div>
+        )}
+      </section>
+    );
+  });
+
+  Wrapped.displayName = `WindowWrapper(${Component.displayName || Component.name || "Component"})`;
+  return Wrapped;
+};
+
+export default WindowWrapper;
 </file>
 
 <file path="src/windows/CodeEditor.jsx">
@@ -3145,457 +3399,6 @@ const CodeEditor = memo(() => {
 
 const CodeEditorWindow = WindowWrapper(CodeEditor, "vscode");
 export default CodeEditorWindow;
-</file>
-
-<file path="src/components/Home.jsx">
-import { locations, dockApps } from "#constants";
-import clsx from "clsx";
-import { useGSAP } from "@gsap/react";
-import Draggable from "gsap/Draggable";
-import gsap from "gsap";
-import SpotifyWidget from "./SpotifyWidget.jsx";
-import { useWebHaptics } from "web-haptics/react";
-import useWindowStore from "#store/window.js";
-import useLocationStore from "#store/location.js";
-import { useState, useEffect, useRef } from "react";
-import dayjs from "dayjs";
-
-const projects = locations.work?.children ??[];
-
-const Home = () => {
-  const { trigger } = useWebHaptics();
-  const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
-  const openWindow = useWindowStore((s) => s.openWindow);
-  const [time, setTime] = useState(dayjs());
-
-  useEffect(() => {
-    const timer = setInterval(() => setTime(dayjs()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-  
-  const pointerPos = useRef({ x: 0, y: 0 });
-  
-    const handlePointerDown = (e) => {
-      pointerPos.current = { x: e.clientX, y: e.clientY };
-    };
-
-  const handleOpenProjectFinder = (e, project) => {
-    const dx = Math.abs(e.clientX - pointerPos.current.x);
-        const dy = Math.abs(e.clientY - pointerPos.current.y);
-        if (dx > 5 || dy > 5) return;
-    trigger("nudge");
-    const rect = e.currentTarget.getBoundingClientRect();
-    const launchPos = {
-      x: rect.left + rect.width / 2,
-      y: rect.top + rect.height / 2,
-      width: rect.width,
-      height: rect.height,
-    };
-    setActiveLocation(project);
-    openWindow("finder", null, launchPos);
-  };
-
-  const handleOpenApp = (e, app) => {
-    const dx = Math.abs(e.clientX - pointerPos.current.x);
-        const dy = Math.abs(e.clientY - pointerPos.current.y);
-        if (dx > 5 || dy > 5) return;
-    if (!app.canOpen) { 
-      trigger("error");
-      return;
-    }
-    trigger("nudge", { intensity: 0.8 }); 
-    const rect = e.currentTarget.getBoundingClientRect();
-    const launchPos = {
-      x: rect.left + rect.width / 2,
-      y: rect.top + rect.height / 2,
-      width: rect.width,
-      height: rect.height,
-    };
-    openWindow(app.id, null, launchPos);
-  };
-
-  useGSAP(() => {
-    let draggables =[];
-    const initDrag = () => {
-      if (window.innerWidth > 768) {
-        if (draggables.length === 0) {
-          draggables = Draggable.create(".folder", {
-            type: "x,y",
-            bounds: "body",
-            dragClickables: true,
-            
-                      onDragEnd: function () {
-                          const gridW = 100; 
-                          const gridH = 85; 
-                          const offsetX = 80; 
-                          const offsetY = 80; 
-                          const rect = this.target.getBoundingClientRect();
-                          const centerX = rect.left + rect.width / 2;
-                          const centerY = rect.top + rect.height / 2;
-                          const targetCenterX = Math.round((centerX - offsetX) / gridW) * gridW + offsetX;
-                          const targetCenterY = Math.round((centerY - offsetY) / gridH) * gridH + offsetY;
-                          const deltaX = targetCenterX - centerX;
-                          const deltaY = targetCenterY - centerY;
-                          gsap.to(this.target, {
-                            x: this.x + deltaX,
-                            y: this.y + deltaY,
-                            duration: 0.3,
-                            ease: "back.out(1.5)",
-                            overwrite: "auto"
-                          });
-                        }
-          });
-        } else {
-          draggables.forEach(d => d.enable());
-        }
-      } else {
-        if (draggables.length > 0) {
-          draggables.forEach(d => d.disable());
-          gsap.set(".folder", { clearProps: "x,y,transform" });
-        }
-      }
-    };
-    initDrag();
-    window.addEventListener("resize", initDrag);
-    return () => window.removeEventListener("resize", initDrag);
-  },[]);
-
-  // Intercept the apps array to replace Trash with Resume ONLY on mobile
-  const mobileApps = dockApps.map(app => 
-    app.id === "trash" ? { id: "resume", name: "Resume", icon: "pdf.png", canOpen: true } : app
-  );
-
-  return (
-    <section id="home" className="absolute inset-0 w-full h-full z-0 overflow-hidden">
-      <SpotifyWidget /> 
-      <div className="absolute top-[12vh] left-0 w-full flex flex-col items-center justify-center md:hidden text-white drop-shadow-xl z-20 pointer-events-none select-none">
-        <h1 className="text-[5.5rem] font-light tracking-tight leading-none text-center">
-          {time.format("h:mm")}
-        </h1>
-        <p className="text-[1.2rem] font-medium mt-2 tracking-wide text-center">
-          {time.format("dddd, MMMM D")}
-        </p>
-      </div>
-      
-      <ul className="desktop-projects w-full h-full max-md:hidden">
-        {projects.map((project) => (
-          <li
-            key={project.id}
-            className={clsx("group folder", project.windowPosition)}
-            onPointerDown={handlePointerDown}
-            onPointerUp={(e) => handleOpenProjectFinder(e, project)}
-          >
-            <img 
-              src="/images/folder.png" 
-              alt={project.name}
-              width={64}
-              height={60}
-              loading="eager"
-              className="pointer-events-none" 
-            />
-            <p>{project.name}</p>
-          </li>
-        ))}
-      </ul>
-
-      <ul className="hidden max-md:grid grid-cols-4 gap-x-2 gap-y-6 px-5 relative z-30 w-full box-border mt-[38vh]">
-        {mobileApps.map((app) => (
-          <li 
-            key={app.id || app.name}
-            onPointerDown={handlePointerDown}
-            onPointerUp={(e) => handleOpenApp(e, app)}
-            className="flex flex-col items-center gap-[6px] cursor-pointer"
-          >
-            <img 
-              src={`/images/${app.icon}`} 
-              alt={app.name} 
-              className={clsx(
-                "w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover",
-                !app.canOpen && "opacity-60"
-              )}
-            />
-            <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
-              {app.name}
-            </p>
-          </li>
-        ))}
-        {projects.map((project) => (
-          <li 
-            key={project.id}
-            onPointerDown={handlePointerDown}
-            onPointerUp={(e) => handleOpenProjectFinder(e, project)}
-            className="flex flex-col items-center gap-[6px] cursor-pointer"
-          >
-            <img 
-              src="/images/folder.png" 
-              alt={project.name} 
-              className="w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover"
-            />
-            <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
-              {project.name}
-            </p>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-};
-
-export default Home;
-</file>
-
-<file path="src/hoc/WindowWrapper.jsx">
-import useWindowStore from "#store/window.js";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
-import { Draggable } from "gsap/Draggable";
-import { useRef, useState, useEffect, memo } from "react";
-import useSound from "use-sound";
-import useSettingsStore from "#store/settings.js";
-
-let openPitchCounter = 0;
-const PITCH_LEVELS = [1.0, 1.05, 1.1, 1.15];
-
-const WindowWrapper = (Component, windowKey) => {
-  const Wrapped = memo((props) => {
-    const isOpen = useWindowStore((s) => s.windows[windowKey].isOpen);
-    const zIndex = useWindowStore((s) => s.windows[windowKey].zIndex);
-    const isMaximized = useWindowStore((s) => s.windows[windowKey].isMaximized);
-    const dataId = useWindowStore((s) => s.windows[windowKey].data?.id);
-    const launchPos = useWindowStore((s) => s.windows[windowKey].launchPos);
-    const focusWindow = useWindowStore((s) => s.focusWindow);
-    const [hasLaunched, setHasLaunched] = useState(isOpen);
-    const { volume, isMuted } = useSettingsStore();
-        const [playOpen, { sound }] = useSound("/sounds/oxygen_open.ogg", { 
-          volume: isMuted ? 0 : volume 
-        });
-
-    const ref = useRef(null);
-    const dragInstance = useRef(null);
-    const resizeInstances = useRef([]);
-    const [isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
-    const preMaxState = useRef(null);
-    const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
-
-    useEffect(() => {
-         if (isOpen) {
-           if (sound) {
-               
-               sound.rate(PITCH_LEVELS[openPitchCounter % PITCH_LEVELS.length]);
-               playOpen();
-               openPitchCounter++;
-           }
-           
-           if (!hasLaunched) setHasLaunched(true);
-           setIsActuallyVisible(true);
-         }
-       }, [isOpen, sound, playOpen, hasLaunched]);
-    
-    useEffect(() => {
-      const checkMobile = () => setIsMobile(window.innerWidth < 768);
-      checkMobile();
-      window.addEventListener("resize", checkMobile, { passive: true });
-      return () => window.removeEventListener("resize", checkMobile);
-    }, []);
-    
-    useEffect(() => {
-      if (isOpen && !hasLaunched) {
-        setHasLaunched(true);
-      }
-    }, [isOpen, hasLaunched]);
-
-
-    useGSAP(() => {
-      const el = ref.current;
-      if (!el) return;
-      if (isOpen) {
-        setIsActuallyVisible(true);
-        if (isMobile) {
-          if (launchPos) {
-            gsap.fromTo(el,
-              {
-                opacity: 0,
-                scale: 0.8,
-                transformOrigin: `${launchPos.x}px ${launchPos.y}px`,
-                borderRadius: "32px",
-                x: 0,
-                y: 0
-              },
-              {
-                opacity: 1,
-                scale: 1,
-                borderRadius: "0px",
-                duration: 0.35,
-                ease: "power3.out",
-                overwrite: "auto",
-                x: 0,
-                y: 0
-              }
-            );
-          } else {
-            gsap.fromTo(el,
-              { yPercent: 100, opacity: 1, x: 0, y: 0 },
-              { yPercent: 0, duration: 0.35, ease: "power3.out", overwrite: "auto", x: 0, y: 0 }
-            );
-          }
-        } else {
-          gsap.fromTo(el,
-            { scale: 0.9, opacity: 0, yPercent: 0 },
-            { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)", overwrite: "auto" }
-          );
-        }
-      } else {
-        if (isMobile) {
-          gsap.to(el, {
-            opacity: 0,
-            scale: 0.9,
-            duration: 0.25,
-            ease: "power3.in",
-            overwrite: "auto",
-            onComplete: () => setIsActuallyVisible(false),
-          });
-        } else {
-          gsap.to(el, {
-            scale: 0.8, opacity: 0, duration: 0.25, ease: "power2.in", overwrite: "auto",
-            onComplete: () => setIsActuallyVisible(false),
-          });
-        }
-      }
-    }, [isOpen, dataId, isMobile]);
-
-    useGSAP(() => {
-      if (isMobile) return;
-      const el = ref.current;
-      if (!el || !isOpen) return;
-
-      if (isMaximized) {
-        const currentX = gsap.getProperty(el, "x");
-        const currentY = gsap.getProperty(el, "y");
-        const rect = el.getBoundingClientRect();
-        preMaxState.current = { width: el.offsetWidth, height: el.offsetHeight, x: currentX, y: currentY };
-        if (dragInstance.current) dragInstance.current.disable();
-        resizeInstances.current.forEach(i => i.disable());
-        gsap.to(el, { x: currentX - rect.left, y: currentY - rect.top, width: "100vw", height: "100vh", maxWidth: "none", maxHeight: "none",  borderRadius: "0px", duration: 0.5, ease: "expo.inOut" });
-      } else if (preMaxState.current) {
-        if (dragInstance.current) dragInstance.current.enable();
-        resizeInstances.current.forEach(i => i.enable());
-        gsap.to(el, { x: preMaxState.current.x, y: preMaxState.current.y, width: preMaxState.current.width, height: preMaxState.current.height, borderRadius: "12px", duration: 0.5, ease: "expo.inOut", onComplete: () => dragInstance.current.update() });
-      }
-    }, [isMaximized, isMobile]);
-
-    useGSAP(() => {
-      const el = ref.current;
-      if (!el) return;
-
-      if (isMobile) return;
-
-      [dragInstance.current] = Draggable.create(el, {
-        trigger: el.querySelector("#window-header") || el,
-        bounds: "main",
-      });
-
-      resizeInstances.current =[];
-
-      const minW = 350;
-      const minH = 250;
-      const handleConfigs =[
-        { cls: ".resizer-n", type: "n" }, { cls: ".resizer-s", type: "s" },
-        { cls: ".resizer-e", type: "e" }, { cls: ".resizer-w", type: "w" },
-        { cls: ".resizer-nw", type: "nw" }, { cls: ".resizer-ne", type: "ne" },
-        { cls: ".resizer-sw", type: "sw" }, { cls: ".resizer-se", type: "se" },
-      ];
-
-      handleConfigs.forEach(({ cls, type }) => {
-        const hEl = el.querySelector(cls);
-        if (!hEl) return;
-        const [instance] = Draggable.create(hEl, {
-          type: "x,y",
-          onPress: function(e) {
-            e.stopPropagation();
-            focusWindow(windowKey);
-            this.startW = el.offsetWidth;
-            this.startH = el.offsetHeight;
-            this.startX = gsap.getProperty(el, "x");
-            this.startY = gsap.getProperty(el, "y");
-            this.startPointerX = this.pointerX;
-            this.startPointerY = this.pointerY;
-          },
-          onDrag: function() {
-            gsap.set(this.target, { x: 0, y: 0 });
-            const deltaX = this.pointerX - this.startPointerX;
-            const deltaY = this.pointerY - this.startPointerY;
-            let w = this.startW, h = this.startH, x = this.startX, y = this.startY;
-            if (type.includes("e")) w = this.startW + deltaX;
-            if (type.includes("w")) {
-              const constrainedDelta = Math.min(deltaX, this.startW - minW);
-              w = this.startW - constrainedDelta;
-              x = this.startX + constrainedDelta;
-            }
-            if (type.includes("s")) h = this.startH + deltaY;
-            if (type.includes("n")) {
-              const constrainedDelta = Math.min(deltaY, this.startH - minH);
-              h = this.startH - constrainedDelta;
-              y = this.startY + constrainedDelta;
-            }
-            gsap.set(el, { width: Math.max(w, minW), height: Math.max(h, minH), x, y });
-          },
-          onDragEnd: function() {
-            gsap.set(this.target, { x: 0, y: 0 });
-            dragInstance.current.update();
-          }
-        });
-        resizeInstances.current.push(instance);
-      });
-
-      return () => {
-        dragInstance.current?.kill();
-        resizeInstances.current.forEach(i => i.kill());
-      };
-    }, [isMobile]);
-
-    return (
-      <section
-        id={windowKey}
-        ref={ref}
-        onPointerDownCapture={() => focusWindow(windowKey)}
-        className="os-window absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none max-md:bg-white"
-        style={{
-            zIndex,
-            display: isActuallyVisible ? "flex" : "none",
-            willChange: "transform, width, height, opacity",
-            transform: "translate3d(0,0,0)",
-        }}
-      >
-        {hasLaunched && <Component {...props} />}
-
-        {isMobile && (
-          <div className="absolute bottom-0 left-0 w-full h-8 z-[2000] flex justify-center items-end pb-2 pointer-events-none">
-            <div className="w-[130px] h-1.5 bg-black/40 rounded-full" />
-          </div>
-        )}
-
-        {/* Kept mounted to not destroy GSAP hooks, simply hidden via CSS when maximized */}
-        {!isMobile && (
-          <div className={isMaximized ? "hidden pointer-events-none" : ""}>
-            <div className="resizer-n absolute top-0 left-0 w-full h-1.5 cursor-ns-resize z-50" />
-            <div className="resizer-s absolute bottom-0 left-0 w-full h-1.5 cursor-ns-resize z-50" />
-            <div className="resizer-w absolute top-0 left-0 h-full w-1.5 cursor-ew-resize z-50" />
-            <div className="resizer-e absolute top-0 right-0 h-full w-1.5 cursor-ew-resize z-50" />
-            <div className="resizer-nw absolute top-0 left-0 size-4 cursor-nwse-resize z-[60]" />
-            <div className="resizer-ne absolute top-0 right-0 size-4 cursor-nesw-resize z-[60]" />
-            <div className="resizer-sw absolute bottom-0 left-0 size-4 cursor-nesw-resize z-[60]" />
-            <div className="resizer-se absolute bottom-0 right-0 size-4 cursor-nwse-resize z-[60]" />
-          </div>
-        )}
-      </section>
-    );
-  });
-
-  Wrapped.displayName = `WindowWrapper(${Component.displayName || Component.name || "Component"})`;
-  return Wrapped;
-};
-
-export default WindowWrapper;
 </file>
 
 <file path="src/components/BootSequence.jsx">
@@ -4041,6 +3844,349 @@ const BootSequence = ({ onComplete }) => {
 };
 
 export default BootSequence;
+</file>
+
+<file path="src/components/Home.jsx">
+import { locations, dockApps } from "#constants";
+import clsx from "clsx";
+import { useGSAP } from "@gsap/react";
+import Draggable from "gsap/Draggable";
+import { Flip } from "gsap/Flip";
+import gsap from "gsap";
+import SpotifyWidget from "./SpotifyWidget.jsx";
+import { useWebHaptics } from "web-haptics/react";
+import useWindowStore from "#store/window.js";
+import useLocationStore from "#store/location.js";
+import useSettingsStore from "#store/settings.js";
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { flushSync } from "react-dom";
+import { RefreshCw, Moon, Sun } from "lucide-react";
+import dayjs from "dayjs";
+
+gsap.registerPlugin(Draggable, Flip);
+
+const Home = () => {
+  const { trigger } = useWebHaptics();
+  const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const { isDarkMode, toggleDarkMode } = useSettingsStore();
+  
+  const [time, setTime] = useState(dayjs());
+  const [isEditMode, setIsEditMode] = useState(false);
+  
+  // Base set for recovery
+  const getInitialItems = () => {
+    const apps = dockApps.map(app => 
+      app.id === "trash" ? { ...app, id: "resume", name: "Resume", icon: "pdf.png", canOpen: true } : app
+    );
+    const projects = locations.work?.children || [];
+    return [...apps, ...projects];
+  };
+
+  const [mobileItems, setMobileItems] = useState(getInitialItems);
+
+  const flipStateRef = useRef(null);
+  const longPressTimer = useRef(null);
+  const pointerPos = useRef({ x: 0, y: 0 });
+  const rippleRef = useRef(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(dayjs()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // 1. Reorder Logic (Keeping your preferred "Dock" logic)
+  const moveItem = (id1, id2) => {
+    if (id1 === id2) return;
+    const next = [...mobileItems];
+    const idx1 = next.findIndex((i) => (i.id || i.name) === id1);
+    const idx2 = next.findIndex((i) => (i.id || i.name) === id2);
+    if (idx1 === -1 || idx2 === -1) return;
+    
+    const [movedItem] = next.splice(idx1, 1);
+    next.splice(idx2, 0, movedItem);
+    setMobileItems(next);
+  };
+
+  // 2. Liquid Theme Toggle Logic
+  const handleThemeToggle = (e) => {
+    e.stopPropagation();
+    trigger("selection");
+
+    const x = e.clientX || (e.touches && e.touches[0].clientX);
+    const y = e.clientY || (e.touches && e.touches[0].clientY);
+
+    const ripple = rippleRef.current;
+    gsap.set(ripple, { 
+        left: x, 
+        top: y, 
+        scale: 0, 
+        opacity: 1, 
+        backgroundColor: isDarkMode ? "#ffffff" : "#000000" 
+    });
+
+    gsap.to(ripple, {
+      scale: 60,
+      duration: 0.8,
+      ease: "expo.inOut",
+      onComplete: () => {
+        toggleDarkMode();
+        gsap.to(ripple, { opacity: 0, duration: 0.4 });
+      }
+    });
+  };
+
+  // 3. System Restore Logic
+  const restoreSystem = () => {
+    trigger("success");
+    const state = Flip.getState(".mobile-app-item");
+    setMobileItems(getInitialItems());
+    
+    setTimeout(() => {
+      Flip.from(state, {
+        duration: 0.6,
+        ease: "back.out(1.2)",
+        stagger: 0.04,
+        onEnter: (elements) => gsap.from(elements, { y: 100, opacity: 0, stagger: 0.04 })
+      });
+    }, 50);
+  };
+
+  // 4. Flip Effect (Triggered by state changes)
+  useLayoutEffect(() => {
+    if (flipStateRef.current) {
+      Flip.from(flipStateRef.current, {
+        targets: ".mobile-app-item:not(.is-dragging)",
+        duration: 0.4,
+        ease: "back.out(1.2)",
+        absolute: false,
+        onEnter: (elements) => gsap.fromTo(elements, { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3 }),
+        onLeave: (elements) => gsap.to(elements, { scale: 0, opacity: 0, duration: 0.3 })
+      });
+      flipStateRef.current = null;
+    }
+  }, [mobileItems]);
+
+  // 5. Draggable Setup (Keeping your preferred logic)
+  useGSAP(() => {
+    if (!isEditMode) return;
+
+    Draggable.create(".mobile-app-item", {
+      type: "x,y",
+      onDragStart: function() {
+        this.target.classList.add("is-dragging");
+        gsap.to(this.target, { scale: 1.15, zIndex: 1000, duration: 0.2 });
+      },
+      onDrag: function() {
+        const el = this.target;
+        const id = el.getAttribute("data-id");
+        const items = Array.from(document.querySelectorAll(".mobile-app-item:not(.is-dragging)"));
+
+        for (const item of items) {
+          if (this.hitTest(item, "50%")) {
+            const targetId = item.getAttribute("data-id");
+
+            const rectBefore = el.getBoundingClientRect();
+            flipStateRef.current = Flip.getState(".mobile-app-item:not(.is-dragging)");
+
+            flushSync(() => {
+              moveItem(id, targetId);
+            });
+
+            const rectAfter = el.getBoundingClientRect();
+            const dx = rectAfter.left - rectBefore.left;
+            const dy = rectAfter.top - rectBefore.top;
+
+            const currentX = gsap.getProperty(el, "x");
+            const currentY = gsap.getProperty(el, "y");
+
+            gsap.set(el, { x: currentX - dx, y: currentY - dy });
+            this.update();
+            break;
+          }
+        }
+      },
+      onDragEnd: function() {
+        this.target.classList.remove("is-dragging");
+        gsap.to(this.target, { x: 0, y: 0, scale: 1, zIndex: 30, duration: 0.4, ease: "back.out(1.5)" });
+      }
+    });
+  }, [isEditMode, mobileItems.length]);
+
+  const handleRemove = (e, targetId) => {
+    e.stopPropagation();
+    trigger("success");
+    
+    flipStateRef.current = Flip.getState(".mobile-app-item");
+    flushSync(() => {
+      setMobileItems(prev => prev.filter(item => (item.id || item.name) !== targetId));
+    });
+  };
+
+  const handlePointerDown = (e) => {
+    pointerPos.current = { x: e.clientX, y: e.clientY };
+    longPressTimer.current = setTimeout(() => {
+      setIsEditMode(true);
+      trigger("selection");
+    }, 600);
+  };
+
+  const handlePointerUp = (e, item) => {
+    clearTimeout(longPressTimer.current);
+    const dx = Math.abs(e.clientX - pointerPos.current.x);
+    const dy = Math.abs(e.clientY - pointerPos.current.y);
+
+    if (dx < 5 && dy < 5 && !isEditMode) {
+      trigger("nudge");
+      const rect = e.currentTarget.getBoundingClientRect();
+      const launchPos = {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+        width: rect.width,
+        height: rect.height,
+      };
+
+      if (item.kind === "folder") {
+        setActiveLocation(item);
+        openWindow("finder", null, launchPos);
+      } else {
+        openWindow(item.id, null, launchPos);
+      }
+    }
+  };
+
+  return (
+    <section 
+      id="home" 
+      className="absolute inset-0 w-full h-full z-0 overflow-hidden"
+      onPointerDown={(e) => e.target === e.currentTarget && setIsEditMode(false)}
+    >
+      <SpotifyWidget /> 
+
+      {/* RIPPLE EFFECT LAYER */}
+      <div ref={rippleRef} className="fixed size-10 rounded-full pointer-events-none z-[9999] opacity-0 -translate-x-1/2 -translate-y-1/2 will-change-transform" />
+
+      {/* CLOCK AREA (Dark mode trigger) */}
+      <div 
+        className="absolute top-[12vh] left-0 w-full flex flex-col items-center justify-center md:hidden text-white drop-shadow-xl z-20 select-none cursor-pointer"
+        onClick={handleThemeToggle}
+      >
+        <h1 className="text-[5.5rem] font-light tracking-tight leading-none text-center active:scale-95 transition-transform">
+          {time.format("h:mm")}
+        </h1>
+        <p className="text-[1.2rem] font-medium mt-2 tracking-wide text-center opacity-80">
+          {time.format("dddd, MMMM D")}
+        </p>
+        <div className="mt-4 p-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+        </div>
+      </div>
+      
+      {/* PC View Folders */}
+      <ul className="desktop-projects w-full h-full max-md:hidden">
+        {locations.work.children.map((project) => (
+          <li
+            key={project.id}
+            className={clsx("group folder", project.windowPosition)}
+            onPointerUp={() => { setActiveLocation(project); openWindow("finder"); }}
+          >
+            <img src="/images/folder.png" alt={project.name} width={64} height={60} />
+            <p>{project.name}</p>
+          </li>
+        ))}
+      </ul>
+
+      {/* Mobile Grid */}
+      <ul className="hidden max-md:grid grid-cols-4 gap-x-2 gap-y-6 px-5 relative z-30 w-full box-border mt-[38vh]">
+        {mobileItems.map((item) => {
+          const id = item.id || item.name;
+          return (
+            <li 
+              key={id}
+              data-id={id}
+              data-flip-id={id}
+              onPointerDown={(e) => handlePointerDown(e, item)}
+              onPointerUp={(e) => handlePointerUp(e, item)}
+              className={clsx(
+                "mobile-app-item flex flex-col items-center gap-[6px] cursor-pointer touch-none select-none",
+                isEditMode && "is-wiggling"
+              )}
+            >
+              <div className="relative icon-container">
+                <img 
+                  src={item.icon.startsWith('/') ? item.icon : `/images/${item.icon}`} 
+                  alt={item.name} 
+                  className={clsx(
+                    "w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover pointer-events-none shadow-lg rounded-[14px]",
+                    !item.canOpen && "opacity-60"
+                  )}
+                />
+                
+                {isEditMode && (
+                  <button 
+                    className="absolute -top-2 -left-2 size-6 bg-white dark:bg-gray-700 backdrop-blur-md rounded-full flex items-center justify-center shadow-md z-[1100] border border-black/10 active:scale-90 transition-transform"
+                    onPointerDown={(e) => handleRemove(e, id)}
+                  >
+                    <div className="w-2.5 h-[2.5px] bg-black dark:bg-white rounded-full" />
+                  </button>
+                )}
+              </div>
+              <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
+                {item.name}
+              </p>
+            </li>
+          );
+        })}
+
+        {/* Restore System (Only if empty) */}
+        {mobileItems.length === 0 && (
+          <li className="col-span-4 flex flex-col items-center justify-center py-20 gap-4">
+              <RefreshCw size={32} className="text-white/40 animate-spin-slow" />
+              <button 
+                onClick={restoreSystem} 
+                className="px-8 py-3 bg-white text-black font-bold rounded-2xl shadow-2xl active:scale-95 transition-transform"
+              >
+                Restore System
+              </button>
+          </li>
+        )}
+      </ul>
+
+      {/* Done Button */}
+      {isEditMode && (
+          <button 
+            onClick={() => setIsEditMode(false)} 
+            className="fixed top-14 right-5 z-[5000] px-4 py-1.5 bg-white/20 backdrop-blur-xl border border-white/30 rounded-full text-white text-sm font-bold animate-in fade-in slide-in-from-top-4"
+          >
+            Done
+          </button>
+      )}
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes wiggle {
+          0% { transform: rotate(-1.5deg); }
+          50% { transform: rotate(1.5deg); }
+          100% { transform: rotate(-1.5deg); }
+        }
+        .is-wiggling .icon-container {
+          animation: wiggle 0.25s ease-in-out infinite;
+        }
+        .is-dragging .icon-container {
+          animation: none !important;
+        }
+        .animate-spin-slow {
+          animation: spin 4s linear infinite;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}} />
+    </section>
+  );
+};
+
+export default Home;
 </file>
 
 <file path="src/windows/Terminal.jsx">
@@ -4827,216 +4973,6 @@ const TerminalWindow = WindowWrapper(Terminal, "terminal");
 export default TerminalWindow;
 </file>
 
-<file path="src/components/Dock.jsx">
-import { locations } from "#constants/index.js";
-import useWindowStore from "#store/window.js";
-import useLocationStore from "#store/location.js";
-import { useGSAP } from "@gsap/react";
-import { Draggable } from "gsap/Draggable";
-import { Flip } from "gsap/Flip";
-import gsap from "gsap";
-import useSound from "use-sound";
-import useSettingsStore from "#store/settings.js";
-import { useWebHaptics } from "web-haptics/react";
-import { memo, useRef, useLayoutEffect } from "react";
-import { flushSync } from "react-dom";
-import { Tooltip } from "react-tooltip";
-import { Proximity } from "../proximity-engine/Proximity.jsx";
-
-gsap.registerPlugin(Draggable, Flip);
-
-const Dock = memo(() => {
-  const openWindow = useWindowStore((s) => s.openWindow);
-  const closeWindow = useWindowStore((s) => s.closeWindow);
-  const windows = useWindowStore((s) => s.windows);
-  const dockItems = useWindowStore((s) => s.dockItems);
-  const removeDockItem = useWindowStore((s) => s.removeDockItem);
-  const moveDockItem = useWindowStore((s) => s.moveDockItem);
-  const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
-  
-  const { trigger } = useWebHaptics();
-  const { volume, isMuted } = useSettingsStore();
-  const [playTrash] = useSound("/sounds/oxygen_trash.ogg", { volume: isMuted ? 0 : volume });
-
-  const flipStateRef = useRef(null);
-
-  const toggleApp = (app) => {
-    if (!app.canOpen) return;
-    if (app.id === "trash") {
-      setActiveLocation(locations.trash);
-      openWindow("finder");
-      return;
-    }
-    const windowState = windows[app.id];
-    if (windowState?.isOpen) {
-      closeWindow(app.id);
-    } else {
-      openWindow(app.id);
-    }
-  };
-
-  useLayoutEffect(() => {
-    if (flipStateRef.current) {
-      Flip.from(flipStateRef.current, {
-        targets: ".dock-container, .dock-wrapper:not(.is-dragging)",
-        duration: 0.4,
-        ease: "back.out(1.2)",
-        absolute: true,
-        zIndex: 9999,
-      });
-      flipStateRef.current = null;
-    }
-  }, [dockItems]);
-
-  useGSAP(() => {
-    Draggable.create(".dock-draggable", {
-      type: "x,y",
-      dragClickables: true,
-      allowContextMenu: true,
-      onDragStart: function() {
-        this.target.classList.add("is-dragging");
-        gsap.to(this.target, { opacity: 0.9, scale: 1.15, duration: 0.2 });
-      },
-      onDrag: function() {
-        const el = this.target;
-        const id = el.getAttribute("data-id");
-        
-        if (id === 'finder' || id === 'trash') return;
-
-        const items = Array.from(document.querySelectorAll(".dock-draggable:not(.is-dragging)"));
-        for (const item of items) {
-          const targetId = item.getAttribute("data-id");
-          if (targetId === 'finder' || targetId === 'trash') continue;
-
-          if (this.hitTest(item, "50%")) {
-            const rectBefore = el.getBoundingClientRect();
-            
-            flipStateRef.current = Flip.getState(".dock-container, .dock-wrapper:not(.is-dragging)");
-            
-            flushSync(() => {
-              moveDockItem(id, targetId);
-            });
-            
-            const rectAfter = el.getBoundingClientRect();
-            const dx = rectAfter.left - rectBefore.left;
-            const dy = rectAfter.top - rectBefore.top;
-            
-            const currentX = gsap.getProperty(el, "x");
-            const currentY = gsap.getProperty(el, "y");
-            
-            gsap.set(el, { x: currentX - dx, y: currentY - dy });
-            this.update();
-            break;
-          }
-        }
-      },
-      onDragEnd: function() {
-        const el = this.target;
-        const id = el.getAttribute("data-id");
-        el.classList.remove("is-dragging");
-
-        if (id === 'finder' || id === 'trash') {
-           gsap.to(el, { x: 0, y: 0, scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)" });
-           return;
-        }
-
-        const trashEl = document.querySelector(".dock-draggable[data-id='trash']");
-        if (trashEl && this.hitTest(trashEl, "30%")) {
-           trigger("success");
-           playTrash();
-           gsap.to(el, { 
-             scale: 0, opacity: 0, rotation: -90, duration: 0.3, ease: "back.in(1.5)",
-             onComplete: () => {
-                 flipStateRef.current = Flip.getState(".dock-container, .dock-wrapper:not(.is-dragging)");
-                 removeDockItem(id);
-             } 
-           });
-           return;
-        }
-
-        const dockContainer = document.querySelector(".dock-container");
-        const dockRect = dockContainer.getBoundingClientRect();
-        const elRect = el.getBoundingClientRect();
-        const isOutside = (
-          elRect.bottom < dockRect.top - 50 ||
-          elRect.top > dockRect.bottom + 50 ||
-          elRect.right < dockRect.left - 50 ||
-          elRect.left > dockRect.right + 50
-        );
-
-        if (isOutside) {
-           trigger("success");
-           gsap.to(el, { 
-             scale: 1.5, opacity: 0, filter: "blur(10px)", duration: 0.3, ease: "power2.out",
-             onComplete: () => {
-                 flipStateRef.current = Flip.getState(".dock-container, .dock-wrapper:not(.is-dragging)");
-                 removeDockItem(id);
-             } 
-           });
-           return;
-        }
-
-        gsap.to(el, { x: 0, y: 0, scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)" });
-      }
-    });
-  }, [dockItems.length]);
-
-  return (
-    <section id="dock" className="max-md:hidden">
-      <Proximity
-        className="dock-container"
-        selector=".dock-icon"
-        preset="scale-y"
-        reach={2}
-        config={{
-          scale: [1, 1.3],
-          y: [0, -30],
-          duration: 0.1,
-          resetDuration: 1,
-          ease: "power2.out",
-          resetEase: "elastic",
-        }}
-      >
-        {dockItems.map(({ id, name, icon, canOpen }) => (
-          <div 
-            key={id ?? name} 
-            data-flip-id={`wrapper-${id}`}
-            className="relative flex justify-center dock-wrapper dock-item dock-draggable"
-            data-id={id}
-          >
-            <button
-              type="button"
-              className="dock-icon flex items-center justify-center will-change-transform z-10"
-              aria-label={name}
-              data-tooltip-id="dock-tooltip"
-              data-tooltip-content={name}
-              data-tooltip-delay-show={150}
-              onClick={(e) => {
-                if (e.button !== 0) return;
-                toggleApp({ id, canOpen });
-              }}
-            >
-              <img
-                src={`/images/${icon}`}
-                alt={name}
-                width={56}
-                height={56}
-                loading="lazy"
-                decoding="async"
-                className={canOpen ? "pointer-events-none" : "opacity-60 pointer-events-none"}
-              />
-            </button>
-          </div>
-        ))}
-      </Proximity>
-      <Tooltip id="dock-tooltip" place="top" className="tooltip" />
-    </section>
-  );
-});
-
-export default Dock;
-</file>
-
 <file path="src/index.css">
 @font-face {
     font-family: "JetBrainsMonoNF";
@@ -5431,6 +5367,231 @@ export default Dock;
         @apply fixed bottom-2 left-1/2 -translate-x-1/2 w-[130px] h-1.5 bg-white/60 dark:bg-white/30 rounded-full z-[100] pointer-events-none max-md:block hidden;
     }
 }
+</file>
+
+<file path="src/components/Dock.jsx">
+import { locations } from "#constants/index.js";
+import useWindowStore from "#store/window.js";
+import useLocationStore from "#store/location.js";
+import { useGSAP } from "@gsap/react";
+import { Draggable } from "gsap/Draggable";
+import { Flip } from "gsap/Flip";
+import gsap from "gsap";
+import useSound from "use-sound";
+import useSettingsStore from "#store/settings.js";
+import { useWebHaptics } from "web-haptics/react";
+import { memo, useRef, useLayoutEffect } from "react";
+import { flushSync } from "react-dom";
+import { Tooltip } from "react-tooltip";
+import { Proximity } from "../proximity-engine/Proximity.jsx";
+
+gsap.registerPlugin(Draggable, Flip);
+
+const Dock = memo(() => {
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const closeWindow = useWindowStore((s) => s.closeWindow);
+  const windows = useWindowStore((s) => s.windows);
+  const dockItems = useWindowStore((s) => s.dockItems);
+  const removeDockItem = useWindowStore((s) => s.removeDockItem);
+  const moveDockItem = useWindowStore((s) => s.moveDockItem);
+  const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
+  
+  const { trigger } = useWebHaptics();
+  const { volume, isMuted } = useSettingsStore();
+  const [playTrash] = useSound("/sounds/oxygen_trash.ogg", { volume: isMuted ? 0 : volume });
+
+  const flipStateRef = useRef(null);
+
+  const toggleApp = (app) => {
+    if (!app.canOpen) return;
+    if (app.id === "trash") {
+      setActiveLocation(locations.trash);
+      openWindow("finder");
+      return;
+    }
+    const windowState = windows[app.id];
+    if (windowState?.isOpen) {
+      closeWindow(app.id);
+    } else {
+      openWindow(app.id);
+    }
+  };
+
+  useLayoutEffect(() => {
+    if (flipStateRef.current) {
+      Flip.from(flipStateRef.current, {
+        targets: ".dock-container, .dock-wrapper:not(.is-dragging)",
+        duration: 0.4,
+        ease: "back.out(1.2)",
+        absolute: false,
+        zIndex: 9999,
+      });
+      flipStateRef.current = null;
+    }
+  }, [dockItems]);
+
+  useGSAP(() => {
+    let lastSwapTarget = null;
+    let swapTimeout = null;
+
+    Draggable.create(".dock-draggable", {
+      type: "x,y",
+      dragClickables: true,
+      allowContextMenu: true,
+      onDragStart: function() {
+        this.target.classList.add("is-dragging");
+        gsap.to(this.target, { opacity: 0.9, scale: 1.15, duration: 0.2 });
+      },
+      onDrag: function() {
+        const el = this.target;
+        const id = el.getAttribute("data-id");
+        
+        if (id === 'finder' || id === 'trash') return;
+
+        const items = Array.from(document.querySelectorAll(".dock-draggable:not(.is-dragging)"));
+        for (const item of items) {
+          const targetId = item.getAttribute("data-id");
+          if (targetId === 'finder' || targetId === 'trash') continue;
+
+          if (this.hitTest(item, "50%")) {
+            if (targetId === lastSwapTarget) continue;
+
+            const rectBefore = el.getBoundingClientRect();
+            
+            flipStateRef.current = Flip.getState(".dock-container, .dock-wrapper:not(.is-dragging)");
+            
+            flushSync(() => {
+              moveDockItem(id, targetId);
+            });
+
+            lastSwapTarget = targetId;
+            clearTimeout(swapTimeout);
+            swapTimeout = setTimeout(() => {
+              lastSwapTarget = null;
+            }, 400);
+            
+            const rectAfter = el.getBoundingClientRect();
+            const dx = rectAfter.left - rectBefore.left;
+            const dy = rectAfter.top - rectBefore.top;
+            
+            const currentX = gsap.getProperty(el, "x") || 0;
+            const currentY = gsap.getProperty(el, "y") || 0;
+            
+            gsap.set(el, { x: currentX - dx, y: currentY - dy });
+            this.update();
+            break;
+          }
+        }
+      },
+      onDragEnd: function() {
+        const el = this.target;
+        const id = el.getAttribute("data-id");
+        el.classList.remove("is-dragging");
+
+        // Clear tracking on release
+        lastSwapTarget = null;
+        clearTimeout(swapTimeout);
+
+        if (id === 'finder' || id === 'trash') {
+           gsap.to(el, { x: 0, y: 0, scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)" });
+           return;
+        }
+
+        const trashEl = document.querySelector(".dock-draggable[data-id='trash']");
+        if (trashEl && this.hitTest(trashEl, "30%")) {
+           trigger("success");
+           playTrash();
+           gsap.to(el, { 
+             scale: 0, opacity: 0, rotation: -90, duration: 0.3, ease: "back.in(1.5)",
+             onComplete: () => {
+                 flipStateRef.current = Flip.getState(".dock-container, .dock-wrapper:not(.is-dragging)");
+                 removeDockItem(id);
+             } 
+           });
+           return;
+        }
+
+        const dockContainer = document.querySelector(".dock-container");
+        const dockRect = dockContainer.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        const isOutside = (
+          elRect.bottom < dockRect.top - 50 ||
+          elRect.top > dockRect.bottom + 50 ||
+          elRect.right < dockRect.left - 50 ||
+          elRect.left > dockRect.right + 50
+        );
+
+        if (isOutside) {
+           trigger("success");
+           gsap.to(el, { 
+             scale: 1.5, opacity: 0, filter: "blur(10px)", duration: 0.3, ease: "power2.out",
+             onComplete: () => {
+                 flipStateRef.current = Flip.getState(".dock-container, .dock-wrapper:not(.is-dragging)");
+                 removeDockItem(id);
+             } 
+           });
+           return;
+        }
+
+        gsap.to(el, { x: 0, y: 0, scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)" });
+      }
+    });
+  },[dockItems.length]);
+
+  return (
+    <section id="dock" className="max-md:hidden">
+      <Proximity
+        className="dock-container"
+        selector=".dock-icon"
+        preset="scale-y"
+        reach={2}
+        config={{
+          scale: [1, 1.3],
+          y: [0, -30],
+          duration: 0.1,
+          resetDuration: 1,
+          ease: "power2.out",
+          resetEase: "elastic",
+        }}
+      >
+        {dockItems.map(({ id, name, icon, canOpen }) => (
+          <div 
+            key={id ?? name} 
+            data-flip-id={`wrapper-${id}`}
+            className="relative flex justify-center dock-wrapper dock-item dock-draggable"
+            data-id={id}
+          >
+            <button
+              type="button"
+              className="dock-icon flex items-center justify-center will-change-transform z-10"
+              aria-label={name}
+              data-tooltip-id="dock-tooltip"
+              data-tooltip-content={name}
+              data-tooltip-delay-show={150}
+              onClick={(e) => {
+                if (e.button !== 0) return;
+                toggleApp({ id, canOpen });
+              }}
+            >
+              <img
+                src={`/images/${icon}`}
+                alt={name}
+                width={56}
+                height={56}
+                loading="lazy"
+                decoding="async"
+                className={canOpen ? "pointer-events-none" : "opacity-60 pointer-events-none"}
+              />
+            </button>
+          </div>
+        ))}
+      </Proximity>
+      <Tooltip id="dock-tooltip" place="top" className="tooltip" />
+    </section>
+  );
+});
+
+export default Dock;
 </file>
 
 </files>
