@@ -51,7 +51,7 @@ const Dock = memo(() => {
         targets: ".dock-container, .dock-wrapper:not(.is-dragging)",
         duration: 0.4,
         ease: "back.out(1.2)",
-        absolute: true,
+        absolute: false,
         zIndex: 9999,
       });
       flipStateRef.current = null;
@@ -59,6 +59,9 @@ const Dock = memo(() => {
   }, [dockItems]);
 
   useGSAP(() => {
+    let lastSwapTarget = null;
+    let swapTimeout = null;
+
     Draggable.create(".dock-draggable", {
       type: "x,y",
       dragClickables: true,
@@ -79,6 +82,8 @@ const Dock = memo(() => {
           if (targetId === 'finder' || targetId === 'trash') continue;
 
           if (this.hitTest(item, "50%")) {
+            if (targetId === lastSwapTarget) continue;
+
             const rectBefore = el.getBoundingClientRect();
             
             flipStateRef.current = Flip.getState(".dock-container, .dock-wrapper:not(.is-dragging)");
@@ -86,13 +91,19 @@ const Dock = memo(() => {
             flushSync(() => {
               moveDockItem(id, targetId);
             });
+
+            lastSwapTarget = targetId;
+            clearTimeout(swapTimeout);
+            swapTimeout = setTimeout(() => {
+              lastSwapTarget = null;
+            }, 400);
             
             const rectAfter = el.getBoundingClientRect();
             const dx = rectAfter.left - rectBefore.left;
             const dy = rectAfter.top - rectBefore.top;
             
-            const currentX = gsap.getProperty(el, "x");
-            const currentY = gsap.getProperty(el, "y");
+            const currentX = gsap.getProperty(el, "x") || 0;
+            const currentY = gsap.getProperty(el, "y") || 0;
             
             gsap.set(el, { x: currentX - dx, y: currentY - dy });
             this.update();
@@ -104,6 +115,10 @@ const Dock = memo(() => {
         const el = this.target;
         const id = el.getAttribute("data-id");
         el.classList.remove("is-dragging");
+
+        // Clear tracking on release
+        lastSwapTarget = null;
+        clearTimeout(swapTimeout);
 
         if (id === 'finder' || id === 'trash') {
            gsap.to(el, { x: 0, y: 0, scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)" });
@@ -149,7 +164,7 @@ const Dock = memo(() => {
         gsap.to(el, { x: 0, y: 0, scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)" });
       }
     });
-  }, [dockItems.length]);
+  },[dockItems.length]);
 
   return (
     <section id="dock" className="max-md:hidden">
