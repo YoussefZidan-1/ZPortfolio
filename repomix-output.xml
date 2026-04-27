@@ -80,6 +80,7 @@ public/images/yousef-5.webp
 public/images/yousef.webp
 public/images/zcinema.png
 public/macbook.png
+public/sounds/oxygen_aurora.mp3
 public/sounds/oxygen_boot.ogg
 public/sounds/oxygen_close.ogg
 public/sounds/oxygen_maximize.ogg
@@ -96,6 +97,8 @@ src/components/Home.jsx
 src/components/index.js
 src/components/Navbar.jsx
 src/components/SpotifyWidget.jsx
+src/components/Spotlight.jsx
+src/components/SpotlightHint.jsx
 src/components/Welcome.jsx
 src/components/WindowControls.jsx
 src/constants/index.js
@@ -570,6 +573,111 @@ const ControlCenter = memo(({ isOpen }) => {
 export default ControlCenter;
 </file>
 
+<file path="src/proximity-engine/ProximityContext.jsx">
+import { createContext, useContext } from "react";
+
+const ProximityContext = createContext({
+  defaultFont: "'Georama', sans-serif",
+});
+
+export const ProximityProvider = ({ children, config }) => {
+  return (
+    <ProximityContext.Provider value={{ ...config }}>
+      {children}
+    </ProximityContext.Provider>
+  );
+};
+
+export const useProximityConfig = () => useContext(ProximityContext);
+</file>
+
+<file path="src/proximity-engine/ProximityText.jsx">
+import { Fragment, useMemo } from "react";
+import { Proximity } from "./Proximity";
+import { useProximityConfig } from "./ProximityContext";
+export const ProximityText = ({
+  text,
+  splitBy = "letter",
+  className = "",
+  textClassName = "",
+  fontFamily,
+  lineHeight = 1.2,
+  letterSpacing = 0,
+  wordSpacing = 0.25,
+  clipFix = "0.2em",
+  ...proximityProps
+}) => {
+  const globalConfig = useProximityConfig();
+  const actualFontFamily = fontFamily || globalConfig.defaultFont;
+
+  const containerStyle = useMemo(() => {
+    const base = { 
+      display: "flex", 
+      fontFamily: actualFontFamily,
+      lineHeight: lineHeight,
+      letterSpacing: `${letterSpacing}em`,
+      textAlign: "center",
+      justifyContent: "center"
+    };
+    if (splitBy === "word") return { ...base, flexWrap: "wrap", columnGap: `${wordSpacing}em`, rowGap: "0.1em" };
+    if (splitBy === "line") return { ...base, display: "block" };
+    return { ...base, flexWrap: "wrap" };
+  }, [splitBy, actualFontFamily, lineHeight, letterSpacing, wordSpacing]);
+
+  const renderedContent = useMemo(() => {
+    const itemStyle = {
+      display: "inline-block",
+      userSelect: "none",
+      willChange: "transform, filter, opacity",
+      padding: clipFix,
+      margin: clipFix ? `-${clipFix}` : "0",
+    };
+
+    const formattedText = text;
+
+    if (splitBy === "word") {
+      return formattedText.split("\n").map((line, lineIdx) => (
+        <Fragment key={lineIdx}>
+          {line.split(" ").map((word, i) => (
+            <span key={i} aria-hidden="true" className={`prox-part ${textClassName}`} style={itemStyle}>{word}</span>
+          ))}
+          {lineIdx < formattedText.split("\n").length - 1 && <div style={{ width: "100%" }} />}
+        </Fragment>
+      ));
+    }
+
+    if (splitBy === "line") {
+      return formattedText.split("\n").map((line, i) => (
+        <Fragment key={i}>
+          <span aria-hidden="true" className={`prox-part ${textClassName}`} style={itemStyle}>{line}</span>
+          {i < formattedText.split("\n").length - 1 && <br />}
+        </Fragment>
+      ));
+    }
+
+    return [...formattedText].map((char, i) => {
+      if (char === "\n") {
+        return <div key={i} style={{ width: "100%", height: 0 }} />;
+      }
+      return (
+        <span aria-hidden="true" key={i} className={`prox-part ${textClassName}`} style={{ ...itemStyle, whiteSpace: char === " " ? "pre" : "normal" }}>
+          {char}
+        </span>
+      );
+    });
+
+  },[text, splitBy, textClassName, clipFix]);
+
+  return (
+    <Proximity selector=".prox-part" className={className} {...proximityProps}>
+      <div aria-label={text} role="img" style={containerStyle}>
+        {renderedContent}
+      </div>
+    </Proximity>
+  );
+};
+</file>
+
 <file path="src/store/location.js">
 import { locations } from "#constants";
 import { create } from "zustand";
@@ -795,109 +903,187 @@ const ZenWindow = WindowWrapper(ZenBrowser, 'safari')
 export default ZenWindow;
 </file>
 
-<file path="src/proximity-engine/ProximityContext.jsx">
-import { createContext, useContext } from "react";
+<file path="src/components/SpotlightHint.jsx">
+import { useState, useEffect, useRef } from "react";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { Info, X, Command } from "lucide-react";
+import useSettingsStore from "#store/settings.js";
+import { useWebHaptics } from "web-haptics/react";
 
-const ProximityContext = createContext({
-  defaultFont: "'Georama', sans-serif",
-});
+const SpotlightHint = ({ isBooted }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const { volume, isMuted } = useSettingsStore();
+  const { trigger } = useWebHaptics();
+  const notificationRef = useRef(null);
 
-export const ProximityProvider = ({ children, config }) => {
+  useEffect(() => {
+    if (isBooted) {
+      // Wait seconds after boot before showing the hint
+      const timer = setTimeout(() => {
+        setIsVisible(true);
+        
+        // Play the notification sound
+        const audio = new Audio("/sounds/oxygen_aurora.mp3");
+        audio.volume = isMuted ? 0 : volume;
+        audio.play().catch((e) => console.log("Sound play blocked:", e));
+        
+        trigger("notification");
+      }, 14500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isBooted, volume, isMuted, trigger]);
+
+  useGSAP(() => {
+    if (isVisible) {
+      gsap.fromTo(
+        notificationRef.current,
+        { x: 400, opacity: 0, scale: 0.9 },
+        { 
+          x: 0, 
+          opacity: 1, 
+          scale: 1, 
+          duration: 0.8, 
+          ease: "elastic.out(1, 0.75)" 
+        }
+      );
+
+      // Auto-hide after 8 seconds
+      const hideTimer = setTimeout(() => handleClose(), 8000);
+      return () => clearTimeout(hideTimer);
+    }
+  }, [isVisible]);
+
+  const { contextSafe } = useGSAP();
+  
+  const handleClose = contextSafe(() => {
+    gsap.to(notificationRef.current, {
+      x: 100,
+      opacity: 0,
+      scale: 0.9,
+      duration: 0.4,
+      ease: "power2.in",
+      onComplete: () => setIsVisible(false)
+    });
+  });
+
+  const openSpotlight = () => {
+    window.dispatchEvent(new CustomEvent('toggle-spotlight'));
+    handleClose();
+  };
+
+  if (!isVisible) return null;
+
   return (
-    <ProximityContext.Provider value={{ ...config }}>
-      {children}
-    </ProximityContext.Provider>
+    <div 
+      ref={notificationRef}
+      className="fixed top-16 right-4 z-[999999] w-[320px] bg-white/70 dark:bg-[#1c1c1e]/80 backdrop-blur-2xl border border-white/40 dark:border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] p-4 cursor-pointer group select-none overflow-hidden"
+      onClick={openSpotlight}
+    >
+      {/* Glossy overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none" />
+      
+      <div className="flex items-start gap-3 relative z-10">
+        <div className="size-10 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0">
+          <Search size={22} className="text-white" />
+        </div>
+        
+        <div className="flex-1 flex flex-col gap-0.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[13px] font-bold text-gray-900 dark:text-white uppercase tracking-tight opacity-50">System Intelligence</span>
+            <button 
+              onClick={(e) => { e.stopPropagation(); handleClose(); }}
+              className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors"
+            >
+              <X size={14} className="text-gray-500" />
+            </button>
+          </div>
+          <h4 className="text-[15px] font-semibold text-gray-900 dark:text-white leading-tight">Spotlight Search</h4>
+          <p className="text-[13px] text-gray-600 dark:text-gray-400 leading-snug mt-0.5">
+            {window.innerWidth < 768 ? (
+              "Swipe down on the home screen to search apps and files."
+            ) : (
+              <>
+                Press <span className="inline-flex items-center gap-0.5 bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded border border-black/5 dark:border-white/10 font-terminal text-[11px] font-bold text-gray-800 dark:text-gray-200">
+                  <Command size={10} /> K
+                </span> to quickly search.
+              </>
+            )}
+          </p>
+        </div>
+      </div>
+
+      {/* Progress bar timer */}
+      <div className="absolute bottom-0 left-0 h-1 bg-blue-500/30 w-full">
+        <div className="h-full bg-blue-500 animate-[progress_8s_linear_forwards]" />
+      </div>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes progress {
+          from { width: 100%; }
+          to { width: 0%; }
+        }
+      `}} />
+    </div>
   );
 };
 
-export const useProximityConfig = () => useContext(ProximityContext);
+// Simple Search Icon internal to file
+const Search = ({ size, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+  </svg>
+);
+
+export default SpotlightHint;
 </file>
 
-<file path="src/proximity-engine/ProximityText.jsx">
-import { Fragment, useMemo } from "react";
-import { Proximity } from "./Proximity";
-import { useProximityConfig } from "./ProximityContext";
-export const ProximityText = ({
-  text,
-  splitBy = "letter",
-  className = "",
-  textClassName = "",
-  fontFamily,
-  lineHeight = 1.2,
-  letterSpacing = 0,
-  wordSpacing = 0.25,
-  clipFix = "0.2em",
-  ...proximityProps
-}) => {
-  const globalConfig = useProximityConfig();
-  const actualFontFamily = fontFamily || globalConfig.defaultFont;
+<file path="src/components/Welcome.jsx">
+import { ProximityText } from "../proximity-engine/ProximityText.jsx";
 
-  const containerStyle = useMemo(() => {
-    const base = { 
-      display: "flex", 
-      fontFamily: actualFontFamily,
-      lineHeight: lineHeight,
-      letterSpacing: `${letterSpacing}em`,
-      textAlign: "center",
-      justifyContent: "center"
-    };
-    if (splitBy === "word") return { ...base, flexWrap: "wrap", columnGap: `${wordSpacing}em`, rowGap: "0.1em" };
-    if (splitBy === "line") return { ...base, display: "block" };
-    return { ...base, flexWrap: "wrap" };
-  }, [splitBy, actualFontFamily, lineHeight, letterSpacing, wordSpacing]);
-
-  const renderedContent = useMemo(() => {
-    const itemStyle = {
-      display: "inline-block",
-      userSelect: "none",
-      willChange: "transform, filter, opacity",
-      padding: clipFix,
-      margin: clipFix ? `-${clipFix}` : "0",
-    };
-
-    const formattedText = text;
-
-    if (splitBy === "word") {
-      return formattedText.split("\n").map((line, lineIdx) => (
-        <Fragment key={lineIdx}>
-          {line.split(" ").map((word, i) => (
-            <span key={i} aria-hidden="true" className={`prox-part ${textClassName}`} style={itemStyle}>{word}</span>
-          ))}
-          {lineIdx < formattedText.split("\n").length - 1 && <div style={{ width: "100%" }} />}
-        </Fragment>
-      ));
-    }
-
-    if (splitBy === "line") {
-      return formattedText.split("\n").map((line, i) => (
-        <Fragment key={i}>
-          <span aria-hidden="true" className={`prox-part ${textClassName}`} style={itemStyle}>{line}</span>
-          {i < formattedText.split("\n").length - 1 && <br />}
-        </Fragment>
-      ));
-    }
-
-    return [...formattedText].map((char, i) => {
-      if (char === "\n") {
-        return <div key={i} style={{ width: "100%", height: 0 }} />;
-      }
-      return (
-        <span aria-hidden="true" key={i} className={`prox-part ${textClassName}`} style={{ ...itemStyle, whiteSpace: char === " " ? "pre" : "normal" }}>
-          {char}
-        </span>
-      );
-    });
-
-  },[text, splitBy, textClassName, clipFix]);
-
+const Welcome = () => {
   return (
-    <Proximity selector=".prox-part" className={className} {...proximityProps}>
-      <div aria-label={text} role="img" style={containerStyle}>
-        {renderedContent}
-      </div>
-    </Proximity>
+    <section id="welcome" className="max-md:hidden pointer-events-none w-full">
+      <ProximityText
+        text="Hey, I'm Yousef Zedan! Welcome to my"
+        preset="opacity-y"
+        splitBy="letter"
+        global={true}
+        ignoreSelectors={[".os-window"]}
+        config={{
+          duration: 1.5,
+          resetDuration: 1.5,
+          ease: "elastic",
+          resetEase: "elastic"
+        }}
+        reach={0.6}
+        falloff={2}
+        className="cursor-default text-center px-4"
+        textClassName="text-[5vw] sm:text-2xl md:text-3xl font-georama font-[150]"
+      />
+      <ProximityText
+        text="ZPortfolio"
+        preset="weight"
+        global={true}
+        ignoreSelectors={[".os-window"]}
+        config={{
+          duration: 1,
+          resetDuration: 1,
+          weight: [400, 900],
+          ease: "elastic",
+          resetEase: "elastic"
+        }}
+        reach={0.5}
+        falloff={2}
+        className="mt-4 md:mt-7 cursor-default text-center"
+        textClassName="text-[10.5vw] sm:text-7xl md:text-9xl italic font-georama"
+      />
+    </section>
   );
 };
+
+export default Welcome;
 </file>
 
 <file path="src/store/settings.js">
@@ -1085,248 +1271,6 @@ export default PhotosWindow;
 </html>
 </file>
 
-<file path="src/components/ContextMenu.jsx">
-import { useState, useEffect, useCallback, useRef } from "react";
-import { createPortal } from "react-dom";
-import { FolderPlus, Terminal, Code, RefreshCw, Moon, Sun, Info, Trash2, ExternalLink, XCircle, PinOff } from "lucide-react";
-import useWindowStore from "#store/window.js";
-import useSettingsStore from "#store/settings.js";
-import useLocationStore from "#store/location.js";
-import { useWebHaptics } from "web-haptics/react";
-import useSound from "use-sound";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
-import clsx from "clsx";
-
-const ActionItem = ({ icon: Icon, label, onClick, divider, variant = "default" }) => (
-  <>
-    <div 
-      className={clsx(
-        "flex items-center gap-2.5 w-full px-3 py-[6px] text-[13px] font-medium rounded-[6px] transition-all duration-150 ease-out cursor-pointer group select-none",
-        variant === "danger" 
-          ? "text-red-500 hover:bg-red-500 hover:text-white" 
-          : "text-gray-800 dark:text-gray-200 hover:bg-blue-500 hover:text-white"
-      )}
-      onClick={onClick}
-    >
-      {Icon && <Icon size={15} className={clsx("transition-colors duration-150", variant !== "danger" && "text-gray-600 dark:text-gray-400 group-hover:text-white")} />}
-      <span className="tracking-wide">{label}</span>
-    </div>
-    {divider && <div className="h-[1px] w-full bg-gray-400/20 my-[2px]" />}
-  </>
-);
-
-const ContextMenu = () => {
-  const [contextData, setContextData] = useState({ 
-    visible: false, 
-    exiting: false, 
-    x: 0, 
-    y: 0,
-    targetType: 'desktop',
-    targetId: null 
-  });
-
-  const openWindow = useWindowStore((s) => s.openWindow);
-  const closeWindow = useWindowStore((s) => s.closeWindow);
-  const removeDockItem = useWindowStore((s) => s.removeDockItem);
-  const { isDarkMode, toggleDarkMode, volume, isMuted } = useSettingsStore();
-  const emptyTrash = useLocationStore((s) => s.emptyTrash);
-  const { trigger } = useWebHaptics();
-
-  const [playTrash] = useSound("/sounds/oxygen_trash.ogg", { volume: isMuted ? 0 : volume });
-  
-  const menuRef = useRef(null);
-
-  const closeMenu = useCallback(() => {
-    setContextData((prev) => {
-      if (!prev.visible || prev.exiting) return prev;
-      setTimeout(() => {
-        setContextData((p) => ({ ...p, visible: false, exiting: false }));
-      }, 200);
-      return { ...prev, exiting: true };
-    });
-  },[]);
-
-  const handleContextMenu = useCallback((e) => {
-    const target = e.target;
-    if (target.tagName === 'INPUT' || target.closest('.monaco-editor')) return;
-
-    e.preventDefault();
-    
-    const dockItem = target.closest('.dock-item');
-    const isTrash = dockItem?.getAttribute('data-id') === 'trash';
-    
-    let type = 'desktop';
-    let id = null;
-
-    if (isTrash) {
-      type = 'trash';
-    } else if (dockItem) {
-      type = 'app';
-      id = dockItem.getAttribute('data-id');
-    }
-
-    const menuWidth = 220;
-    const menuHeight = type === 'app' ? 120 : 260;
-    let x = e.clientX;
-    let y = e.clientY;
-    if (x + menuWidth > window.innerWidth) x = window.innerWidth - menuWidth - 10;
-    if (y + menuHeight > window.innerHeight) y = window.innerHeight - menuHeight - 10;
-    
-    setContextData({ visible: true, exiting: false, x, y, targetType: type, targetId: id });
-    trigger("selection");
-  }, [trigger]);
-
-  useEffect(() => {
-    window.addEventListener("contextmenu", handleContextMenu);
-    const handlePointerDown = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) closeMenu();
-    };
-    window.addEventListener("pointerdown", handlePointerDown);
-    return () => {
-      window.removeEventListener("contextmenu", handleContextMenu);
-      window.removeEventListener("pointerdown", handlePointerDown);
-    };
-  }, [handleContextMenu, closeMenu]);
-
-  useGSAP(() => {
-    if (!menuRef.current) return;
-    if (contextData.visible && !contextData.exiting) {
-      gsap.fromTo(menuRef.current, 
-        { scale: 0.8, opacity: 0 }, 
-        { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(1.7)", overwrite: true }
-      );
-    } else if (contextData.exiting) {
-      gsap.to(menuRef.current, { scale: 0.95, opacity: 0, duration: 0.15, ease: "power2.in" });
-    }
-  },[contextData.visible, contextData.exiting]);
-
-  if (!contextData.visible) return null;
-
-  const handleAction = (cb) => {
-    trigger("nudge");
-    cb();
-    closeMenu();
-  };
-
-  return createPortal(
-    <div 
-      ref={menuRef}
-      className="fixed z-[999999] min-w-[200px] bg-white/60 dark:bg-[#1c1c1e]/70 backdrop-blur-3xl border border-white/40 dark:border-white/10 rounded-xl shadow-2xl p-1.5 select-none"
-      style={{ top: contextData.y, left: contextData.x }}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }}
-    >
-      {contextData.targetType === 'trash' && (
-        <>
-          <ActionItem 
-            icon={ExternalLink} 
-            label="Open Trash" 
-            onClick={() => handleAction(() => openWindow('finder'))} 
-          />
-          <ActionItem 
-            icon={Trash2} 
-            label="Empty Trash" 
-            variant="danger"
-            onClick={() => handleAction(() => {
-                emptyTrash();
-                playTrash();
-            })} 
-          />
-        </>
-      )}
-
-      {contextData.targetType === 'app' && (
-        <>
-          <ActionItem 
-            icon={ExternalLink} 
-            label="Open App" 
-            onClick={() => handleAction(() => openWindow(contextData.targetId))} 
-          />
-          {contextData.targetId !== 'finder' && contextData.targetId !== 'trash' && (
-            <ActionItem 
-              icon={PinOff} 
-              label="Unpin from Dock" 
-              onClick={() => handleAction(() => removeDockItem(contextData.targetId))} 
-              divider
-            />
-          )}
-          <ActionItem 
-            icon={XCircle} 
-            label="Force Quit" 
-            variant="danger"
-            onClick={() => handleAction(() => closeWindow(contextData.targetId))} 
-          />
-        </>
-      )}
-
-      {contextData.targetType === 'desktop' && (
-        <>
-          <ActionItem 
-            icon={FolderPlus} 
-            label="New Folder" 
-            onClick={() => handleAction(() => openWindow("finder"))} 
-            divider 
-          />
-          <ActionItem 
-            icon={Terminal} 
-            label="Open in Terminal" 
-            onClick={() => handleAction(() => openWindow("terminal"))} 
-          />
-          <ActionItem 
-            icon={Code} 
-            label="Open in ZED Code" 
-            onClick={() => handleAction(() => openWindow("vscode"))} 
-            divider
-          />
-          <ActionItem 
-            icon={isDarkMode ? Sun : Moon} 
-            label={isDarkMode ? "Light Mode" : "Dark Mode"} 
-            onClick={() => handleAction(toggleDarkMode)} 
-          />
-          <ActionItem 
-            icon={Info} 
-            label="About ZED OS" 
-            onClick={() => handleAction(() => openWindow("txtfile", {
-              id: "about-os",
-              name: "About ZED OS",
-              subtitle: "ZED OS v1.0",
-              description:[
-                "A modern, web-based operating system portfolio built with React, Tailwind CSS, and GSAP.", 
-                "Designed and developed by Yousef Zedan."
-              ]
-            }))}
-            divider
-          />
-          <ActionItem 
-            icon={RefreshCw} 
-            label="Reload OS" 
-            onClick={() => handleAction(() => window.location.reload())} 
-          />
-        </>
-      )}
-    </div>, 
-    document.body
-  );
-};
-
-export default ContextMenu;
-</file>
-
-<file path="src/components/index.js">
-import Navbar from "#components/Navbar.jsx";
-import Welcome from "#components/Welcome.jsx";
-import Dock from "#components/Dock.jsx"
-import WindowControls from "#components/WindowControls.jsx";
-import Home from "#components/Home.jsx";
-import BootSequence from "#components/BootSequence.jsx";
-import ControlCenter from "#components/ControlCenter.jsx";
-import ContextMenu from "#components/ContextMenu.jsx";
-export { Navbar, Welcome, Dock, WindowControls, Home, BootSequence, ControlCenter, ContextMenu};
-</file>
-
 <file path="src/components/SpotifyWidget.jsx">
 import { memo, useState } from "react";
 import { Play, Music } from "lucide-react";
@@ -1374,6 +1318,297 @@ const SpotifyWidget = memo(() => {
 });
 
 export default SpotifyWidget;
+</file>
+
+<file path="src/components/Spotlight.jsx">
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useGSAP } from '@gsap/react';
+import gsap from 'gsap';
+import { Search, Command, Calculator } from 'lucide-react';
+import { dockApps, locations } from '#constants';
+import useWindowStore from '#store/window.js';
+import useLocationStore from '#store/location.js';
+import { useWebHaptics } from 'web-haptics/react';
+import clsx from 'clsx';
+
+const getIconSrc = (icon) => {
+  if (!icon) return '/images/file.svg';
+  return icon.startsWith('/') ? icon : `/images/${icon}`;
+};
+
+const getTypeLabel = (item) => {
+  if (item.isCalc) return "Calculator";
+  if (item.isApp) return "Application";
+  if (item.kind === "folder") return "Folder";
+  if (item.fileType === "pdf") return "PDF Document";
+  if (item.fileType === "img") return "Image";
+  if (item.fileType === "txt") return "Text Document";
+  if (item.fileType === "url") return "Web Link";
+  return "File";
+};
+
+// Safe Math Evaluator for the built-in Calculator
+const evaluateMath = (expr) => {
+  const clean = expr.replace(/\s+/g, ''); 
+  if (/^[-+*/().0-9]+$/.test(clean) && /[-+*/]/.test(clean)) {
+    try {
+      // eslint-disable-next-line no-new-func
+      const result = new Function(`return ${clean}`)();
+      if (result !== undefined && !Number.isNaN(result) && Number.isFinite(result)) {
+        return Number.isInteger(result) ? result.toString() : parseFloat(result.toFixed(4)).toString();
+      }
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+};
+
+const Spotlight = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const[selectedIndex, setSelectedIndex] = useState(0);
+  
+  const containerRef = useRef(null);
+  const boxRef = useRef(null);
+  const inputRef = useRef(null);
+  const itemRefs = useRef([]);
+  
+  const { trigger } = useWebHaptics();
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
+
+  const allItems = useMemo(() => {
+    const items =[];
+    dockApps.forEach(app => {
+      if (app.canOpen) items.push({ ...app, isApp: true });
+    });
+
+    const parseNode = (node) => {
+      if (!node) return;
+      if (node.id && node.name) items.push(node);
+      if (Array.isArray(node.children)) {
+        node.children.forEach(parseNode);
+      } else if (typeof node === 'object' && !Array.isArray(node)) {
+        Object.values(node).forEach(parseNode);
+      }
+    };
+    parseNode(locations);
+
+    const unique =[];
+    const map = new Map();
+    for (const item of items) {
+      if (!map.has(item.id)) {
+        map.set(item.id, true);
+        unique.push({ ...item, searchStr: item.name.toLowerCase() });
+      }
+    }
+    return unique;
+  }, []);
+
+  const filteredItems = useMemo(() => {
+    if (!query) return[];
+    
+    let results =[];
+    const mathResult = evaluateMath(query);
+    if (mathResult !== null) {
+      results.push({
+        id: 'calc-result',
+        isCalc: true,
+        name: mathResult,
+        searchStr: query,
+      });
+    }
+
+    const textMatches = allItems.filter(item => item.searchStr.includes(query.toLowerCase()));
+    results = [...results, ...textMatches];
+
+    return results.slice(0, 7);
+  },[query, allItems]);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && (e.code === 'Space' || e.key === 'k')) {
+        e.preventDefault();
+        setIsOpen((prev) => !prev);
+      }
+    };
+    const handleCustomToggle = () => setIsOpen(p => !p);
+    
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    window.addEventListener('toggle-spotlight', handleCustomToggle);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+      window.removeEventListener('toggle-spotlight', handleCustomToggle);
+    };
+  },[]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setTimeout(() => { setQuery(''); setSelectedIndex(0); }, 300);
+    } else {
+      inputRef.current?.focus();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen && itemRefs.current[selectedIndex]) {
+      itemRefs.current[selectedIndex].scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [selectedIndex, isOpen]);
+
+  const executeItem = (item) => {
+    trigger("success");
+    setIsOpen(false);
+    
+    if (item.isCalc) {
+      navigator.clipboard.writeText(item.name);
+      return;
+    }
+
+    if (item.isApp) {
+      if (item.id === "trash") {
+        setActiveLocation(locations.trash);
+        openWindow("finder");
+      } else {
+        openWindow(item.id);
+      }
+      return;
+    }
+    
+    if (item.fileType === "pdf") return openWindow("resume");
+    if (item.kind === "folder") {
+      setActiveLocation(item);
+      openWindow("finder");
+      return;
+    }
+    if (["fig", "url"].includes(item.fileType) && item.href) {
+      return window.open(item.href, "_blank");
+    }
+    openWindow(`${item.fileType}${item.kind}`, item);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      trigger("selection");
+      if (filteredItems.length > 0) setSelectedIndex((prev) => (prev + 1) % filteredItems.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      trigger("selection");
+      if (filteredItems.length > 0) setSelectedIndex((prev) => (prev - 1 + filteredItems.length) % filteredItems.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (filteredItems[selectedIndex]) executeItem(filteredItems[selectedIndex]);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setIsOpen(false);
+    }
+  };
+
+  useGSAP(() => {
+    if (!containerRef.current || !boxRef.current) return;
+    
+    if (isOpen) {
+      gsap.to(containerRef.current, { opacity: 1, pointerEvents: 'auto', duration: 0.3, ease: "power2.out" });
+      gsap.fromTo(boxRef.current, 
+        { scale: 0.85, y: -40, opacity: 0, filter: "blur(15px)" }, 
+        { scale: 1, y: 0, opacity: 1, filter: "blur(0px)", duration: 0.45, ease: "back.out(1.2)", overwrite: true }
+      );
+    } else {
+      gsap.to(containerRef.current, { opacity: 0, pointerEvents: 'none', duration: 0.25, ease: "power2.in" });
+      gsap.to(boxRef.current, { scale: 0.95, y: -20, opacity: 0, filter: "blur(5px)", duration: 0.25, ease: "power2.in", overwrite: true });
+    }
+  }, [isOpen]);
+
+  return (
+    <div 
+      ref={containerRef} 
+      className="fixed inset-0 z-[999999] bg-black/20 dark:bg-black/40 backdrop-blur-sm opacity-0 pointer-events-none flex justify-center pt-[15vh] px-4 transition-all"
+      onClick={(e) => { if (e.target === e.currentTarget) setIsOpen(false) }}
+    >
+      <div 
+        ref={boxRef} 
+        className="w-full max-w-[650px] max-md:max-w-[95vw] h-fit bg-white/80 dark:bg-[#1e1e2e]/85 backdrop-blur-3xl shadow-[0_30px_100px_rgba(0,0,0,0.5)] border border-white/50 dark:border-white/10 rounded-[24px] max-md:rounded-[20px] overflow-hidden flex flex-col will-change-transform"
+      >
+        <div className="flex items-center px-5 py-4 border-b border-transparent data-[has-query=true]:border-gray-400/20 dark:data-[has-query=true]:border-white/10 transition-colors duration-300" data-has-query={!!query}>
+          <Search className="text-gray-500 dark:text-gray-400 mr-3 shrink-0" size={24} />
+          <input 
+            ref={inputRef}
+            type="text"
+            className="flex-1 bg-transparent outline-none text-[22px] md:text-2xl font-medium text-gray-800 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 font-georama"
+            placeholder="Spotlight Search"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setSelectedIndex(0); }}
+            onKeyDown={handleKeyDown}
+            spellCheck={false}
+          />
+          <div className="hidden md:flex items-center gap-1 bg-black/5 dark:bg-white/10 px-2 py-1 rounded-md text-gray-500 dark:text-gray-400">
+            <Command size={14} />
+            <span className="text-xs font-bold font-terminal">K</span>
+          </div>
+        </div>
+        
+        {/* EXPERT FIX: CSS Grid Height Transition */}
+        <div 
+          className={clsx(
+            "grid transition-[grid-template-rows,opacity] duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]",
+            query ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+          )}
+        >
+          <div className="overflow-hidden">
+            <div className="overflow-y-auto scrollbar-hide pt-2 pb-3 max-h-[420px]">
+              {filteredItems.length > 0 ? (
+                <ul>
+                  {filteredItems.map((item, index) => (
+                    <li
+                      key={item.id}
+                      ref={(el) => (itemRefs.current[index] = el)}
+                      // EXPERT FIX: Staggered entry animation using Tailwind's animate-in and dynamic animation delays
+                      className={clsx(
+                        "flex items-center justify-between px-4 py-3 mx-2 my-1 rounded-xl cursor-pointer transition-colors",
+                        "animate-in fade-in slide-in-from-bottom-2 duration-300 fill-mode-both", 
+                        index === selectedIndex 
+                          ? "bg-blue-600 dark:bg-blue-600 text-white shadow-md" 
+                          : "hover:bg-black/5 dark:hover:bg-white/10 text-gray-800 dark:text-gray-200"
+                      )}
+                      style={{ animationDelay: `${index * 30}ms` }}
+                      onMouseEnter={() => setSelectedIndex(index)}
+                      onClick={() => executeItem(item)}
+                    >
+                      <div className="flex items-center gap-4 pointer-events-none">
+                        {item.isCalc ? (
+                          <div className="w-8 h-8 flex items-center justify-center bg-gray-200 dark:bg-white/20 rounded-lg drop-shadow-sm">
+                            <Calculator size={18} className={index === selectedIndex ? "text-white" : "text-gray-700 dark:text-gray-200"} />
+                          </div>
+                        ) : (
+                          <img src={getIconSrc(item.icon)} className={clsx("w-8 h-8 object-contain drop-shadow-sm", index === selectedIndex && "scale-110 transition-transform")} />
+                        )}
+                        <span className={clsx("font-medium text-[15px]", item.isCalc && "text-[18px]")}>
+                          {item.name}
+                        </span>
+                      </div>
+                      <span className={clsx("text-xs font-semibold tracking-wide", index === selectedIndex ? "text-blue-100" : "text-gray-500 dark:text-gray-400")}>
+                        {item.isCalc ? (index === selectedIndex ? "Press Enter to Copy" : "Calculator") : getTypeLabel(item)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="px-6 py-10 text-center text-gray-500 dark:text-gray-400 animate-in fade-in zoom-in-[0.98] duration-300">
+                  <p className="text-lg font-medium">No results found</p>
+                  <p className="text-sm mt-1">Try searching for "ZCinema", "Resume", or "Contact"</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Spotlight;
 </file>
 
 <file path="src/windows/Finder.jsx">
@@ -1589,120 +1824,234 @@ export default defineConfig({
 }
 </file>
 
-<file path="README.md">
-# 💻 ZPortfolio — MacOS Inspired Creative Portfolio
+<file path="src/components/ContextMenu.jsx">
+import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
+import { Folder, Terminal, Code, RefreshCw, Moon, Sun, Info, Trash2, ExternalLink, XCircle, PinOff } from "lucide-react";
+import useWindowStore from "#store/window.js";
+import useSettingsStore from "#store/settings.js";
+import useLocationStore from "#store/location.js";
+import { useWebHaptics } from "web-haptics/react";
+import useSound from "use-sound";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+import clsx from "clsx";
 
-Welcome to **ZPortfolio**, a highly interactive, MacOS-inspired personal portfolio designed and developed by **Yousef Zedan (ZED Studios)**. This project isn't just a website; it's a browser-based operating system experience built to showcase creative development skills through draggable windows, a functional file explorer, and high-end animations.
+const ActionItem = ({ icon: Icon, label, onClick, divider, variant = "default" }) => (
+  <>
+    <div 
+      className={clsx(
+        "flex items-center gap-2.5 w-full px-3 py-[6px] text-[13px] font-medium rounded-[6px] transition-all duration-150 ease-out cursor-pointer group select-none",
+        variant === "danger" 
+          ? "text-red-500 hover:bg-red-500 hover:text-white" 
+          : "text-gray-800 dark:text-gray-200 hover:bg-blue-500 hover:text-white"
+      )}
+      onClick={onClick}
+    >
+      {Icon && <Icon size={15} className={clsx("transition-colors duration-150", variant !== "danger" && "text-gray-600 dark:text-gray-400 group-hover:text-white")} />}
+      <span className="tracking-wide">{label}</span>
+    </div>
+    {divider && <div className="h-[1px] w-full bg-gray-400/20 my-[2px]" />}
+  </>
+);
 
----
+const ContextMenu = () => {
+  const [contextData, setContextData] = useState({ 
+    visible: false, 
+    exiting: false, 
+    x: 0, 
+    y: 0,
+    targetType: 'desktop',
+    targetId: null 
+  });
 
-## ✨ Features
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const closeWindow = useWindowStore((s) => s.closeWindow);
+  const removeDockItem = useWindowStore((s) => s.removeDockItem);
+  const { isDarkMode, toggleDarkMode, volume, isMuted } = useSettingsStore();
+  const emptyTrash = useLocationStore((s) => s.emptyTrash);
+  const { trigger } = useWebHaptics();
 
-- 🖥️ **Desktop OS Experience:** A custom window manager handling minimize, maximize, and close actions with focus-based z-index logic.
-- 🖱️ **Draggable Windows:** Fluid, interactive window movements powered by **GSAP Draggable**.
-- 📁 **Finder (File Explorer):** A fully functional navigation system to browse projects, read text files, and view images.
-- 🌊 **Animated Dock:** A MacOS-style app dock with proximity-based scaling and magnification effects.
-- 📄 **Integrated PDF Viewer:** View and download my professional resume natively within the interface.
-- 🎨 **Dynamic Typography:** Interactive variable font weight adjustments that react to mouse movements.
-- ⚡ **Optimized State Management:** Powered by **Zustand** and **Immer** for seamless window and location handling.
+  const [playTrash] = useSound("/sounds/oxygen_trash.ogg", { volume: isMuted ? 0 : volume });
+  
+  const menuRef = useRef(null);
 
----
+  const closeMenu = useCallback(() => {
+    setContextData((prev) => {
+      if (!prev.visible || prev.exiting) return prev;
+      setTimeout(() => {
+        setContextData((p) => ({ ...p, visible: false, exiting: false }));
+      }, 200);
+      return { ...prev, exiting: true };
+    });
+  },[]);
 
-## 🛠️ Tech Stack
+  const handleContextMenu = useCallback((e) => {
+    const target = e.target;
+    if (target.tagName === 'INPUT' || target.closest('.monaco-editor')) return;
 
-- **Framework:** [React 19](https://react.dev/) & [Vite](https://vitejs.dev/)
-- **Animations:** [GSAP](https://gsap.com/) & [GSAP Draggable](https://gsap.com/docs/v3/Plugins/Draggable/)
-- **State Management:** [Zustand](https://github.com/pmndrs/zustand) (with Immer middleware)
-- **Styling:** [Tailwind CSS v4](https://tailwindcss.com/)
-- **Icons:** [Lucide React](https://lucide.dev/) & Custom SVGs
-- **PDF Rendering:** [React-PDF](https://github.com/wojtekmaj/react-pdf)
+    e.preventDefault();
+    
+    const dockItem = target.closest('.dock-item');
+    const isTrash = dockItem?.getAttribute('data-id') === 'trash';
+    
+    let type = 'desktop';
+    let id = null;
 
----
+    if (isTrash) {
+      type = 'trash';
+    } else if (dockItem) {
+      type = 'app';
+      id = dockItem.getAttribute('data-id');
+    }
 
-## 🚀 Getting Started
+    const menuWidth = 220;
+    const menuHeight = type === 'app' ? 120 : 260;
+    let x = e.clientX;
+    let y = e.clientY;
+    if (x + menuWidth > window.innerWidth) x = window.innerWidth - menuWidth - 10;
+    if (y + menuHeight > window.innerHeight) y = window.innerHeight - menuHeight - 10;
+    
+    setContextData({ visible: true, exiting: false, x, y, targetType: type, targetId: id });
+    trigger("selection");
+  }, [trigger]);
 
-### Prerequisites
-Ensure you have **Node.js** and **npm** installed on your machine.
+  useEffect(() => {
+    window.addEventListener("contextmenu", handleContextMenu);
+    const handlePointerDown = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) closeMenu();
+    };
+    window.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      window.removeEventListener("contextmenu", handleContextMenu);
+      window.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [handleContextMenu, closeMenu]);
 
-### Installation
+  useGSAP(() => {
+    if (!menuRef.current) return;
+    if (contextData.visible && !contextData.exiting) {
+      gsap.fromTo(menuRef.current, 
+        { scale: 0.8, opacity: 0 }, 
+        { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(1.7)", overwrite: true }
+      );
+    } else if (contextData.exiting) {
+      gsap.to(menuRef.current, { scale: 0.95, opacity: 0, duration: 0.15, ease: "power2.in" });
+    }
+  },[contextData.visible, contextData.exiting]);
 
-1. **Clone the repository:**
-   ```sh
-   git clone https://github.com/YoussefZidan-1/ZPortfolio.git
-   ```
+  if (!contextData.visible) return null;
 
-2. **Navigate to the project directory:**
-   ```sh
-   cd zportfolio
-   ```
+  const handleAction = (cb) => {
+    trigger("nudge");
+    cb();
+    closeMenu();
+  };
 
-3. **Install dependencies:**
-   ```sh
-   npm install
-   ```
+  return createPortal(
+    <div 
+      ref={menuRef}
+      className="fixed z-[999999] min-w-[200px] bg-white/60 dark:bg-[#1c1c1e]/70 backdrop-blur-3xl border border-white/40 dark:border-white/10 rounded-xl shadow-2xl p-1.5 select-none"
+      style={{ top: contextData.y, left: contextData.x }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+    >
+      {contextData.targetType === 'trash' && (
+        <>
+          <ActionItem 
+            icon={ExternalLink} 
+            label="Open Trash" 
+            onClick={() => handleAction(() => openWindow('finder'))} 
+          />
+          <ActionItem 
+            icon={Trash2} 
+            label="Empty Trash" 
+            variant="danger"
+            onClick={() => handleAction(() => {
+                emptyTrash();
+                playTrash();
+            })} 
+          />
+        </>
+      )}
 
-4. **Start the development server:**
-   ```sh
-   npm run dev
-   ```
+      {contextData.targetType === 'app' && (
+        <>
+          <ActionItem 
+            icon={ExternalLink} 
+            label="Open App" 
+            onClick={() => handleAction(() => openWindow(contextData.targetId))} 
+          />
+          {contextData.targetId !== 'finder' && contextData.targetId !== 'trash' && (
+            <ActionItem 
+              icon={PinOff} 
+              label="Unpin from Dock" 
+              onClick={() => handleAction(() => removeDockItem(contextData.targetId))} 
+              divider
+            />
+          )}
+          <ActionItem 
+            icon={XCircle} 
+            label="Force Quit" 
+            variant="danger"
+            onClick={() => handleAction(() => closeWindow(contextData.targetId))} 
+          />
+        </>
+      )}
 
-5. **Open your browser:** Visit `http://localhost:5173` to see the magic.
+      {contextData.targetType === 'desktop' && (
+        <>
+          <ActionItem 
+            icon={Folder} 
+            label="Portfolio"
+            onClick={() => handleAction(() => openWindow("finder"))} 
+            divider 
+          />
+          <ActionItem 
+            icon={Terminal} 
+            label="Open in Terminal" 
+            onClick={() => handleAction(() => openWindow("terminal"))} 
+          />
+          <ActionItem 
+            icon={Code} 
+            label="Open in ZED Code" 
+            onClick={() => handleAction(() => openWindow("vscode"))} 
+            divider
+          />
+          <ActionItem 
+            icon={isDarkMode ? Sun : Moon} 
+            label={isDarkMode ? "Light Mode" : "Dark Mode"} 
+            onClick={() => handleAction(toggleDarkMode)} 
+          />
+          <ActionItem 
+            icon={Info} 
+            label="About ZED OS" 
+            onClick={() => handleAction(() => openWindow("txtfile", {
+              id: "about-os",
+              name: "About ZED OS",
+              subtitle: "ZED OS v1.0",
+              description:[
+                "A modern, web-based operating system portfolio built with React, Tailwind CSS, and GSAP.", 
+                "Designed and developed by Yousef Zedan."
+              ]
+            }))}
+            divider
+          />
+          <ActionItem 
+            icon={RefreshCw} 
+            label="Reload OS" 
+            onClick={() => handleAction(() => window.location.reload())} 
+          />
+        </>
+      )}
+    </div>, 
+    document.body
+  );
+};
 
----
-
-## 🗺️ Roadmap (Open Source Goals)
-
-This portfolio is a living project. I’m planning to implement the following features and would love for the community to contribute:
-
-- [ ] 🌓 **Light / Dark Mode:** Implement a full theme-switching mechanism.
-- [x] 📱 **Mobile iOS Version:** Transform the desktop layout into a responsive iOS-inspired experience for mobile users.
-- [x] ⌨️ **Interactive Terminal:** Upgrade the static terminal into a functional CLI that accepts commands like `ls`, `cd`, and `cat` autocomplete, open apps and more.
-- [x]  **Arch Linux Boot Sequence:** When The Website opens it shows a looding arch linux screen like GRUB & SDDM.
-- [ ]  **System Sounds:** Adding subtle sound effects (a mechanical keyboard click for the terminal, a swoosh when a window opens, a crumple sound when something goes to the trash) elevates the "feel" of the OS incredibly.
-
----
-
-## 📂 Project Structure
-
-```text
-src/
-├── components/      # UI Components: Dock, Navbar, Welcome text, WindowControls
-├── constants/       # Core Data: Apps, Projects, Tech Stack, Social links
-├── hoc/             # HOCs: WindowWrapper for draggable and focus logic
-├── store/           # Zustand Stores: Window manager and directory state
-├── windows/         # App Windows: Finder, Safari, Photos, Terminal, etc.
-└── App.jsx          # Main application registry and layout
-```
-
----
-
-## 📫 Contact & Credits
-
-**Yousef Zedan (ZED Studios)**
-
-<div align="center">
-
-[![Email](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:zedstudios.devs@gmail.com)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/yousef-zedan-6a275a400/)
-[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/YoussefZidan-1/)
-[![X](https://img.shields.io/badge/X-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/YousefZeda59629)
-
-</div>
-<p align="center">
-  Developed with passion by <b>Yousef Zedan (ZED Studios)</b>. <br>
-  <i>"Always building, always learning."</i>
-</p>
-
----
-
-### 🎨 Visual Portfolio Preview
-> **Note:** The icons above will take you directly to my profiles. If you want to see the MacOS experience in action, check out the [Live Demo](https://yzportfolio.vercel.app/).
-
----
-
-## 📝 License
-
-Distributed under the **MIT License**. See `LICENSE` for more information.
+export default ContextMenu;
 </file>
 
 <file path="src/constants/index.js">
@@ -2126,72 +2475,152 @@ export {
 };
 </file>
 
-<file path="src/App.jsx">
-import React, { Suspense, lazy, useState } from "react";
-import gsap from "gsap";
-import { Draggable } from "gsap/Draggable";
+<file path="src/components/index.js">
+import Navbar from "#components/Navbar.jsx";
+import Welcome from "#components/Welcome.jsx";
+import Dock from "#components/Dock.jsx"
+import WindowControls from "#components/WindowControls.jsx";
+import Home from "#components/Home.jsx";
 import BootSequence from "#components/BootSequence.jsx";
-const Navbar = lazy(() => import("#components/Navbar.jsx"));
-const Welcome = lazy(() => import("#components/Welcome.jsx"));
-const Dock = lazy(() => import("#components/Dock.jsx"));
-const Home = lazy(() => import("#components/Home.jsx"));
-const Terminal = lazy(() => import("#windows/Terminal.jsx"));
-const ZenBrowser = lazy(() => import("#windows/ZenBrowser.jsx"));
-const Resume = lazy(() => import("#windows/Resume.jsx"));
-const Finder = lazy(() => import("#windows/Finder.jsx"));
-const Text = lazy(() => import("#windows/Text.jsx"));
-const Image = lazy(() => import("#windows/Image.jsx"));
-const Contact = lazy(() => import("#windows/Contact.jsx"));
-const Photos = lazy(() => import("#windows/Photos.jsx"));
-const CodeEditor = lazy(() => import("#windows/CodeEditor.jsx"));
-const ContextMenu = lazy(() => import("#components/ContextMenu.jsx"));
+import ControlCenter from "#components/ControlCenter.jsx";
+import ContextMenu from "#components/ContextMenu.jsx";
+import Spotlight from "#components/Spotlight.jsx";
+import SpotlightHint from "#components/SpotlightHint.jsx";
 
-gsap.registerPlugin(Draggable);
-
-if (typeof window !== "undefined") {
-  console.log(
-    "%c 💻 ZPortfolio by ZED Studios %c Developed by Yousef Zedan %c https://github.com/YoussefZidan-1/zportfolio ",
-    "color: white; background: #000; padding: 5px 10px; border-radius: 5px 0 0 5px; font-weight: bold;",
-    "color: #fff; background: #007aff; padding: 5px 10px; font-weight: bold;",
-    "color: #000; background: #fff; padding: 5px 10px; border-radius: 0 5px 5px 0; border: 1px solid #000;"
-  );
-}
-
-const App = () => {
-  const [isBooted, setIsBooted] = useState(false);
-  return (
-    <>
-      {!isBooted && <BootSequence onComplete={() => setIsBooted(true)} />}
-      <div 
-        className={`fixed inset-0 w-full h-full transition-opacity duration-1000 ease-in-out z-0 ${
-          isBooted ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-        }`}
-      >
-        <Suspense fallback={null}>
-          <main className="w-full h-full">
-            <div className="ios-home-indicator" />
-            <Navbar />
-            <Welcome />
-            <Home />
-            <ContextMenu />
-            <Dock />
-            <Terminal />
-            <ZenBrowser />
-            <Resume />
-            <Finder />
-            <Text />
-            <Image />
-            <Contact />
-            <Photos />
-            <CodeEditor /> 
-          </main>
-        </Suspense>
-      </div>
-    </>
-  );
+export { 
+  Navbar, 
+  Welcome, 
+  Dock, 
+  WindowControls, 
+  Home, 
+  BootSequence, 
+  ControlCenter, 
+  ContextMenu, 
+  Spotlight, 
+  SpotlightHint,
 };
+</file>
 
-export default App;
+<file path="README.md">
+# 💻 ZPortfolio — MacOS Inspired Creative Portfolio
+
+Welcome to **ZPortfolio**, a highly interactive, MacOS-inspired personal portfolio designed and developed by **Yousef Zedan (ZED Studios)**. This project isn't just a website; it's a browser-based operating system experience built to showcase creative development skills through draggable windows, a functional file explorer, and high-end animations.
+
+---
+
+## ✨ Features
+
+- 🖥️ **Desktop OS Experience:** A custom window manager handling minimize, maximize, and close actions with focus-based z-index logic.
+- 🖱️ **Draggable Windows:** Fluid, interactive window movements powered by **GSAP Draggable**.
+- 📁 **Finder (File Explorer):** A fully functional navigation system to browse projects, read text files, and view images.
+- 🌊 **Animated Dock:** A MacOS-style app dock with proximity-based scaling and magnification effects.
+- 📄 **Integrated PDF Viewer:** View and download my professional resume natively within the interface.
+- 🎨 **Dynamic Typography:** Interactive variable font weight adjustments that react to mouse movements.
+- ⚡ **Optimized State Management:** Powered by **Zustand** and **Immer** for seamless window and location handling.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework:** [React 19](https://react.dev/) & [Vite](https://vitejs.dev/)
+- **Animations:** [GSAP](https://gsap.com/) & [GSAP Draggable](https://gsap.com/docs/v3/Plugins/Draggable/)
+- **State Management:** [Zustand](https://github.com/pmndrs/zustand) (with Immer middleware)
+- **Styling:** [Tailwind CSS v4](https://tailwindcss.com/)
+- **Icons:** [Lucide React](https://lucide.dev/) & Custom SVGs
+- **PDF Rendering:** [React-PDF](https://github.com/wojtekmaj/react-pdf)
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+Ensure you have **Node.js** and **npm** installed on your machine.
+
+### Installation
+
+1. **Clone the repository:**
+   ```sh
+   git clone https://github.com/YoussefZidan-1/ZPortfolio.git
+   ```
+
+2. **Navigate to the project directory:**
+   ```sh
+   cd zportfolio
+   ```
+
+3. **Install dependencies:**
+   ```sh
+   npm install
+   ```
+
+4. **Start the development server:**
+   ```sh
+   npm run dev
+   ```
+
+5. **Open your browser:** Visit `http://localhost:5173` to see the magic.
+
+---
+
+## 🗺️ Roadmap (Open Source Goals)
+
+This portfolio is a living project. I’m planning to implement the following features and would love for the community to contribute:
+
+- [x] 🌓 **Light / Dark Mode:** Implement a full theme-switching mechanism.
+- [x] 📱 **Mobile iOS Version:** Transform the desktop layout into a responsive iOS-inspired experience for mobile users.
+- [x] ⌨️ **Interactive Terminal:** Upgrade the static terminal into a functional CLI that accepts commands like `ls`, `cd`, and `cat` autocomplete, open apps and more.
+- [x]  **Arch Linux Boot Sequence:** When The Website opens it shows a looding arch linux screen like GRUB & SDDM.
+- [x]  **System Sounds:** Adding subtle sound effects (a mechanical keyboard click for the terminal, a swoosh when a window opens, a crumple sound when something goes to the trash) elevates the "feel" of the OS incredibly.
+- [ ]  **Spotlight:** implement a spotlight like app for searching apps and calculating.
+- [ ]  **Dynamic Island:** when expanding Dynamic Island on mobile it should show the Spotify widget.
+- [ ]  **Window Snap:** like Windows 11 and KDE thing that MacOS will never have.
+- [ ]  **Settings:** users can change the accent color and the background.
+- [ ]  **More Easter Eggs:** there aren't enough Easter eggs yet.
+
+---
+
+## 📂 Project Structure
+
+```text
+src/
+├── components/       # UI Components: Dock, Navbar, Welcome text, WindowControls.
+├── constants/        # Core Data: Apps, Projects, Tech Stack, Social links.
+├── hoc/              # HOCs: WindowWrapper for draggable and focus logic.
+├── store/            # Zustand Stores: Window manager and directory state.
+├── windows/          # App Windows: Finder, Safari, Photos, Terminal, etc.
+├── proximity-engine/ # ZPROXIMITYENGINE source code.
+└── App.jsx           # Main application registry and layout.
+```
+
+---
+
+## 📫 Contact & Credits
+
+**Yousef Zedan (ZED Studios)**
+
+<div align="center">
+
+[![Email](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:zedstudios.devs@gmail.com)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/yousef-zedan-6a275a400/)
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/YoussefZidan-1/)
+[![X](https://img.shields.io/badge/X-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/YousefZeda59629)
+
+</div>
+<p align="center">
+  Developed with passion by <b>Yousef Zedan (ZED Studios)</b>. <br>
+  <i>"Always building, always learning."</i>
+</p>
+
+---
+
+### 🎨 Visual Portfolio Preview
+> **Note:** The icons above will take you directly to my profiles. If you want to see the MacOS experience in action, check out the [Live Demo](https://yzportfolio.vercel.app/).
+
+---
+
+## 📝 License
+
+Distributed under the **MIT License**. See `LICENSE` for more information.
 </file>
 
 <file path="src/components/Navbar.jsx">
@@ -2282,6 +2711,7 @@ const Navbar = memo(() => {
                 loading="lazy" 
                 onClick={() => {
                   if (id === 4) setIsControlCenterOpen(!isControlCenterOpen);
+                  if (id === 2) window.dispatchEvent(new CustomEvent('toggle-spotlight'));
                 }}
               />
             </li>
@@ -2364,53 +2794,6 @@ const WindowControls = ({ target }) => {
 }
 
 export default WindowControls;
-</file>
-
-<file path="src/components/Welcome.jsx">
-import { ProximityText } from "../proximity-engine/ProximityText.jsx";
-
-const Welcome = () => {
-  return (
-    <section id="welcome" className="max-md:hidden pointer-events-none w-full">
-      <ProximityText
-        text="Hey, I'm Yousef Zedan! Welcome to my"
-        preset="opacity-y"
-        splitBy="letter"
-        global={true}
-        ignoreSelectors={[".os-window"]}
-        config={{
-          duration: 1.5,
-          resetDuration: 1.5,
-          ease: "elastic",
-          resetEase: "elastic"
-        }}
-        reach={0.6}
-        falloff={2}
-        className="cursor-default text-center px-4"
-        textClassName="text-[5vw] sm:text-2xl md:text-3xl font-georama font-[150]"
-      />
-      <ProximityText
-        text="ZPortfolio"
-        preset="weight"
-        global={true}
-        ignoreSelectors={[".os-window"]}
-        config={{
-          duration: 1,
-          resetDuration: 1,
-          weight: [400, 900],
-          ease: "elastic",
-          resetEase: "elastic"
-        }}
-        reach={0.5}
-        falloff={2}
-        className="mt-4 md:mt-7 cursor-default text-center"
-        textClassName="text-[10.5vw] sm:text-7xl md:text-9xl italic font-georama"
-      />
-    </section>
-  );
-};
-
-export default Welcome;
 </file>
 
 <file path="src/proximity-engine/Proximity.jsx">
@@ -2755,258 +3138,87 @@ export const Proximity = ({
 };
 </file>
 
-<file path="src/hoc/WindowWrapper.jsx">
-import useWindowStore from "#store/window.js";
+<file path="src/App.jsx">
+import React, { Suspense, lazy, useState, useEffect } from "react";
 import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
 import { Draggable } from "gsap/Draggable";
-import { useRef, useState, useEffect, memo } from "react";
-import useSound from "use-sound";
-import useSettingsStore from "#store/settings.js";
+import BootSequence from "#components/BootSequence.jsx";
+import { loader } from "@monaco-editor/react";
+const Navbar = lazy(() => import("#components/Navbar.jsx"));
+const Welcome = lazy(() => import("#components/Welcome.jsx"));
+const Dock = lazy(() => import("#components/Dock.jsx"));
+const Home = lazy(() => import("#components/Home.jsx"));
+const Terminal = lazy(() => import("#windows/Terminal.jsx"));
+const ZenBrowser = lazy(() => import("#windows/ZenBrowser.jsx"));
+const Resume = lazy(() => import("#windows/Resume.jsx"));
+const Finder = lazy(() => import("#windows/Finder.jsx"));
+const Text = lazy(() => import("#windows/Text.jsx"));
+const Image = lazy(() => import("#windows/Image.jsx"));
+const Contact = lazy(() => import("#windows/Contact.jsx"));
+const Photos = lazy(() => import("#windows/Photos.jsx"));
+const CodeEditor = lazy(() => import("#windows/CodeEditor.jsx"));
+const ContextMenu = lazy(() => import("#components/ContextMenu.jsx"));
+const Spotlight = lazy(() => import("#components/Spotlight.jsx"));
+const SpotlightHint = lazy(() => import("#components/SpotlightHint.jsx"));
 
-let openPitchCounter = 0;
-const PITCH_LEVELS = [1.0, 1.05, 1.1, 1.15];
+gsap.registerPlugin(Draggable);
 
-const WindowWrapper = (Component, windowKey) => {
-  const Wrapped = memo((props) => {
-    const isOpen = useWindowStore((s) => s.windows[windowKey].isOpen);
-    const zIndex = useWindowStore((s) => s.windows[windowKey].zIndex);
-    const isMaximized = useWindowStore((s) => s.windows[windowKey].isMaximized);
-    const dataId = useWindowStore((s) => s.windows[windowKey].data?.id);
-    const launchPos = useWindowStore((s) => s.windows[windowKey].launchPos);
-    const focusWindow = useWindowStore((s) => s.focusWindow);
-    const [hasLaunched, setHasLaunched] = useState(isOpen);
-    const { volume, isMuted } = useSettingsStore();
-        const [playOpen, { sound }] = useSound("/sounds/oxygen_open.ogg", { 
-          volume: isMuted ? 0 : volume 
-        });
+if (typeof window !== "undefined") {
+  console.log(
+    "%c 💻 ZPortfolio by ZED Studios %c Developed by Yousef Zedan %c https://github.com/YoussefZidan-1/zportfolio ",
+    "color: white; background: #000; padding: 5px 10px; border-radius: 5px 0 0 5px; font-weight: bold;",
+    "color: #fff; background: #007aff; padding: 5px 10px; font-weight: bold;",
+    "color: #000; background: #fff; padding: 5px 10px; border-radius: 0 5px 5px 0; border: 1px solid #000;"
+  );
+}
 
-    const ref = useRef(null);
-    const dragInstance = useRef(null);
-    const resizeInstances = useRef([]);
-    const [isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
-    const preMaxState = useRef(null);
-    const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
-
-    useEffect(() => {
-         if (isOpen) {
-           if (sound) {
-               
-               sound.rate(PITCH_LEVELS[openPitchCounter % PITCH_LEVELS.length]);
-               playOpen();
-               openPitchCounter++;
-           }
-           
-           if (!hasLaunched) setHasLaunched(true);
-           setIsActuallyVisible(true);
-         }
-       }, [isOpen, sound, playOpen, hasLaunched]);
-    
-    useEffect(() => {
-      const checkMobile = () => setIsMobile(window.innerWidth < 768);
-      checkMobile();
-      window.addEventListener("resize", checkMobile, { passive: true });
-      return () => window.removeEventListener("resize", checkMobile);
-    }, []);
-    
-    useEffect(() => {
-      if (isOpen && !hasLaunched) {
-        setHasLaunched(true);
-      }
-    }, [isOpen, hasLaunched]);
-
-
-    useGSAP(() => {
-      const el = ref.current;
-      if (!el) return;
-      if (isOpen) {
-        setIsActuallyVisible(true);
-        if (isMobile) {
-          if (launchPos) {
-            gsap.fromTo(el,
-              {
-                opacity: 0,
-                scale: 0.8,
-                transformOrigin: `${launchPos.x}px ${launchPos.y}px`,
-                borderRadius: "32px",
-                x: 0,
-                y: 0
-              },
-              {
-                opacity: 1,
-                scale: 1,
-                borderRadius: "0px",
-                duration: 0.35,
-                ease: "power3.out",
-                overwrite: "auto",
-                x: 0,
-                y: 0
-              }
-            );
-          } else {
-            gsap.fromTo(el,
-              { yPercent: 100, opacity: 1, x: 0, y: 0 },
-              { yPercent: 0, duration: 0.35, ease: "power3.out", overwrite: "auto", x: 0, y: 0 }
-            );
-          }
-        } else {
-          gsap.fromTo(el,
-            { scale: 0.9, opacity: 0, yPercent: 0 },
-            { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)", overwrite: "auto" }
-          );
-        }
-      } else {
-        if (isMobile) {
-          gsap.to(el, {
-            opacity: 0,
-            scale: 0.9,
-            duration: 0.25,
-            ease: "power3.in",
-            overwrite: "auto",
-            onComplete: () => setIsActuallyVisible(false),
-          });
-        } else {
-          gsap.to(el, {
-            scale: 0.8, opacity: 0, duration: 0.25, ease: "power2.in", overwrite: "auto",
-            onComplete: () => setIsActuallyVisible(false),
-          });
-        }
-      }
-    }, [isOpen, dataId, isMobile]);
-
-    useGSAP(() => {
-      if (isMobile) return;
-      const el = ref.current;
-      if (!el || !isOpen) return;
-
-      if (isMaximized) {
-        const currentX = gsap.getProperty(el, "x");
-        const currentY = gsap.getProperty(el, "y");
-        const rect = el.getBoundingClientRect();
-        preMaxState.current = { width: el.offsetWidth, height: el.offsetHeight, x: currentX, y: currentY };
-        if (dragInstance.current) dragInstance.current.disable();
-        resizeInstances.current.forEach(i => i.disable());
-        gsap.to(el, { x: currentX - rect.left, y: currentY - rect.top, width: "100vw", height: "100vh", maxWidth: "none", maxHeight: "none",  borderRadius: "0px", duration: 0.5, ease: "expo.inOut" });
-      } else if (preMaxState.current) {
-        if (dragInstance.current) dragInstance.current.enable();
-        resizeInstances.current.forEach(i => i.enable());
-        gsap.to(el, { x: preMaxState.current.x, y: preMaxState.current.y, width: preMaxState.current.width, height: preMaxState.current.height, borderRadius: "12px", duration: 0.5, ease: "expo.inOut", onComplete: () => dragInstance.current.update() });
-      }
-    }, [isMaximized, isMobile]);
-
-    useGSAP(() => {
-      const el = ref.current;
-      if (!el) return;
-
-      if (isMobile) return;
-
-      [dragInstance.current] = Draggable.create(el, {
-        trigger: el.querySelector("#window-header") || el,
-        bounds: "main",
+const App = () => {
+  const [isBooted, setIsBooted] = useState(false);
+  useEffect(() => {
+    if (isBooted) {
+      loader.init().then(() => {
+        console.log("%c[System] ZED Code Engine preloaded in the background.", "color: #a6e3a1; background: #1e1e2e; padding: 2px 6px; border-radius: 4px;");
+      }).catch((err) => {
+        console.warn("Failed to preload Monaco Editor", err);
       });
+    }
+  }, [isBooted]);
 
-      resizeInstances.current =[];
-
-      const minW = 350;
-      const minH = 250;
-      const handleConfigs =[
-        { cls: ".resizer-n", type: "n" }, { cls: ".resizer-s", type: "s" },
-        { cls: ".resizer-e", type: "e" }, { cls: ".resizer-w", type: "w" },
-        { cls: ".resizer-nw", type: "nw" }, { cls: ".resizer-ne", type: "ne" },
-        { cls: ".resizer-sw", type: "sw" }, { cls: ".resizer-se", type: "se" },
-      ];
-
-      handleConfigs.forEach(({ cls, type }) => {
-        const hEl = el.querySelector(cls);
-        if (!hEl) return;
-        const [instance] = Draggable.create(hEl, {
-          type: "x,y",
-          onPress: function(e) {
-            e.stopPropagation();
-            focusWindow(windowKey);
-            this.startW = el.offsetWidth;
-            this.startH = el.offsetHeight;
-            this.startX = gsap.getProperty(el, "x");
-            this.startY = gsap.getProperty(el, "y");
-            this.startPointerX = this.pointerX;
-            this.startPointerY = this.pointerY;
-          },
-          onDrag: function() {
-            gsap.set(this.target, { x: 0, y: 0 });
-            const deltaX = this.pointerX - this.startPointerX;
-            const deltaY = this.pointerY - this.startPointerY;
-            let w = this.startW, h = this.startH, x = this.startX, y = this.startY;
-            if (type.includes("e")) w = this.startW + deltaX;
-            if (type.includes("w")) {
-              const constrainedDelta = Math.min(deltaX, this.startW - minW);
-              w = this.startW - constrainedDelta;
-              x = this.startX + constrainedDelta;
-            }
-            if (type.includes("s")) h = this.startH + deltaY;
-            if (type.includes("n")) {
-              const constrainedDelta = Math.min(deltaY, this.startH - minH);
-              h = this.startH - constrainedDelta;
-              y = this.startY + constrainedDelta;
-            }
-            gsap.set(el, { width: Math.max(w, minW), height: Math.max(h, minH), x, y });
-          },
-          onDragEnd: function() {
-            gsap.set(this.target, { x: 0, y: 0 });
-            dragInstance.current.update();
-          }
-        });
-        resizeInstances.current.push(instance);
-      });
-
-      return () => {
-        dragInstance.current?.kill();
-        resizeInstances.current.forEach(i => i.kill());
-      };
-    }, [isMobile]);
-
-    return (
-      <section
-        id={windowKey}
-        ref={ref}
-        onPointerDownCapture={() => focusWindow(windowKey)}
-        className="os-window absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none max-md:bg-white"
-        style={{
-            zIndex,
-            display: isActuallyVisible ? "flex" : "none",
-            willChange: "transform, width, height, opacity",
-            transform: "translate3d(0,0,0)",
-        }}
+  return (
+    <>
+      {!isBooted && <BootSequence onComplete={() => setIsBooted(true)} />}
+      <div 
+        className={`fixed inset-0 w-full h-full transition-opacity duration-1000 ease-in-out z-0 ${
+          isBooted ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
       >
-        {hasLaunched && <Component {...props} />}
-
-        {isMobile && (
-          <div className="absolute bottom-0 left-0 w-full h-8 z-[2000] flex justify-center items-end pb-2 pointer-events-none">
-            <div className="w-[130px] h-1.5 bg-black/40 rounded-full" />
-          </div>
-        )}
-
-        {/* Kept mounted to not destroy GSAP hooks, simply hidden via CSS when maximized */}
-        {!isMobile && (
-          <div className={isMaximized ? "hidden pointer-events-none" : ""}>
-            <div className="resizer-n absolute top-0 left-0 w-full h-1.5 cursor-ns-resize z-50" />
-            <div className="resizer-s absolute bottom-0 left-0 w-full h-1.5 cursor-ns-resize z-50" />
-            <div className="resizer-w absolute top-0 left-0 h-full w-1.5 cursor-ew-resize z-50" />
-            <div className="resizer-e absolute top-0 right-0 h-full w-1.5 cursor-ew-resize z-50" />
-            <div className="resizer-nw absolute top-0 left-0 size-4 cursor-nwse-resize z-[60]" />
-            <div className="resizer-ne absolute top-0 right-0 size-4 cursor-nesw-resize z-[60]" />
-            <div className="resizer-sw absolute bottom-0 left-0 size-4 cursor-nesw-resize z-[60]" />
-            <div className="resizer-se absolute bottom-0 right-0 size-4 cursor-nwse-resize z-[60]" />
-          </div>
-        )}
-      </section>
-    );
-  });
-
-  Wrapped.displayName = `WindowWrapper(${Component.displayName || Component.name || "Component"})`;
-  return Wrapped;
+        <Suspense fallback={null}>
+          <main className="w-full h-full">
+            <div className="ios-home-indicator" />
+            <Navbar />
+            <Welcome />
+            <Home />
+            <ContextMenu />
+            <Spotlight />
+            <SpotlightHint isBooted={isBooted} />
+            <Dock />
+            <Terminal />
+            <ZenBrowser />
+            <Resume />
+            <Finder />
+            <Text />
+            <Image />
+            <Contact />
+            <Photos />
+            <CodeEditor /> 
+          </main>
+        </Suspense>
+      </div>
+    </>
+  );
 };
 
-export default WindowWrapper;
+export default App;
 </file>
 
 <file path="src/windows/CodeEditor.jsx">
@@ -3399,6 +3611,279 @@ const CodeEditor = memo(() => {
 
 const CodeEditorWindow = WindowWrapper(CodeEditor, "vscode");
 export default CodeEditorWindow;
+</file>
+
+<file path="src/hoc/WindowWrapper.jsx">
+import useWindowStore from "#store/window.js";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+import { Draggable } from "gsap/Draggable";
+import { useRef, useState, useEffect, memo } from "react";
+import useSound from "use-sound";
+import useSettingsStore from "#store/settings.js";
+
+let openPitchCounter = 0;
+const PITCH_LEVELS =[1.0, 1.05, 1.1, 1.15];
+
+const WindowWrapper = (Component, windowKey) => {
+  const Wrapped = memo((props) => {
+    const isOpen = useWindowStore((s) => s.windows[windowKey].isOpen);
+    const zIndex = useWindowStore((s) => s.windows[windowKey].zIndex);
+    const isMaximized = useWindowStore((s) => s.windows[windowKey].isMaximized);
+    const dataId = useWindowStore((s) => s.windows[windowKey].data?.id);
+    const launchPos = useWindowStore((s) => s.windows[windowKey].launchPos);
+    const focusWindow = useWindowStore((s) => s.focusWindow);
+    const[hasLaunched, setHasLaunched] = useState(isOpen);
+    const { volume, isMuted } = useSettingsStore();
+    const[playOpen, { sound }] = useSound("/sounds/oxygen_open.ogg", { 
+      volume: isMuted ? 0 : volume 
+    });
+
+    const ref = useRef(null);
+    const dragInstance = useRef(null);
+    const resizeInstances = useRef([]);
+    const [isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
+    const preMaxState = useRef(null);
+    const[isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
+
+    useEffect(() => {
+      if (isOpen) {
+        if (sound) {
+            sound.rate(PITCH_LEVELS[openPitchCounter % PITCH_LEVELS.length]);
+            playOpen();
+            openPitchCounter++;
+        }
+        if (!hasLaunched) setHasLaunched(true);
+        setIsActuallyVisible(true);
+      }
+    },[isOpen, sound, playOpen, hasLaunched]);
+    
+    useEffect(() => {
+      const checkMobile = () => setIsMobile(window.innerWidth < 768);
+      checkMobile();
+      window.addEventListener("resize", checkMobile, { passive: true });
+      return () => window.removeEventListener("resize", checkMobile);
+    },[]);
+    
+    useEffect(() => {
+      if (isOpen && !hasLaunched) setHasLaunched(true);
+    },[isOpen, hasLaunched]);
+
+    // 1. OPEN / CLOSE ANIMATIONS
+    useGSAP(() => {
+      const el = ref.current;
+      if (!el) return;
+      if (isOpen) {
+        setIsActuallyVisible(true);
+        if (isMobile) {
+          if (launchPos) {
+            gsap.fromTo(el,
+              { opacity: 0, scale: 0.8, transformOrigin: `${launchPos.x}px ${launchPos.y}px`, borderRadius: "32px", x: 0, y: 0 },
+              { opacity: 1, scale: 1, borderRadius: "0px", duration: 0.35, ease: "power3.out", overwrite: "auto", x: 0, y: 0 }
+            );
+          } else {
+            gsap.fromTo(el, { yPercent: 100, opacity: 1, x: 0, y: 0 }, { yPercent: 0, duration: 0.35, ease: "power3.out", overwrite: "auto", x: 0, y: 0 });
+          }
+        } else {
+          gsap.fromTo(el, { scale: 0.9, opacity: 0, yPercent: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)", overwrite: "auto" });
+        }
+      } else {
+        if (isMobile) {
+          gsap.to(el, { opacity: 0, scale: 0.9, duration: 0.25, ease: "power3.in", overwrite: "auto", onComplete: () => setIsActuallyVisible(false) });
+        } else {
+          gsap.to(el, { scale: 0.8, opacity: 0, duration: 0.25, ease: "power2.in", overwrite: "auto", onComplete: () => setIsActuallyVisible(false) });
+        }
+      }
+    },[isOpen, dataId, isMobile]);
+
+    // 2. MAXIMIZE ANIMATIONS
+    const { contextSafe } = useGSAP();
+
+    useEffect(() => {
+      if (isMobile) return;
+      const el = ref.current;
+      if (!el || !isOpen) return;
+
+      const handleMaximize = contextSafe(() => {
+        if (isMaximized) {
+          const currentX = gsap.getProperty(el, "x");
+          const currentY = gsap.getProperty(el, "y");
+          const rect = el.getBoundingClientRect();
+          preMaxState.current = { width: el.offsetWidth, height: el.offsetHeight, x: currentX, y: currentY };
+          
+          gsap.to(el, { 
+            x: currentX - rect.left, 
+            y: currentY - rect.top, 
+            width: "100vw", 
+            height: "100vh", 
+            maxWidth: "none", 
+            maxHeight: "none",  
+            borderRadius: "0px", 
+            duration: 0.5, 
+            ease: "expo.inOut", 
+            overwrite: true 
+          });
+        } else if (preMaxState.current) {
+          gsap.to(el, { 
+            x: preMaxState.current.x, 
+            y: preMaxState.current.y, 
+            width: preMaxState.current.width, 
+            height: preMaxState.current.height, 
+            borderRadius: "12px", 
+            duration: 0.5, 
+            ease: "expo.inOut", 
+            overwrite: true, 
+            onComplete: () => dragInstance.current?.update() 
+          });
+        }
+      });
+      handleMaximize();
+    }, [isMaximized, isMobile, isOpen]);
+
+    // 3. DRAG & RESIZE SETUP (With Lazy-Load MutationObserver Fix)
+    useGSAP(() => {
+      const el = ref.current;
+      if (!el || isMobile) return;
+
+      let drag;
+
+      // EXPERT FIX: Function to bind Draggable specifically to the header
+      const setupDraggable = () => {
+        const header = el.querySelector("#window-header");
+        if (header && !drag) {
+          drag = Draggable.create(el, {
+            trigger: header, // <--- Strictly binds dragging to the header ONLY!
+            bounds: "main",
+            dragClickables: true,
+            allowEventDefault: true,
+            onDragStart: function() {
+              if (useWindowStore.getState().windows[windowKey].isMaximized) return false;
+            }
+          })[0];
+          dragInstance.current = drag;
+        }
+      };
+
+      // Try running it immediately
+      setupDraggable();
+
+      // If the component is Suspended/Lazy-loading, watch the DOM until the header drops in
+      const observer = new MutationObserver(() => {
+        if (!drag && el.querySelector("#window-header")) {
+          setupDraggable();
+          observer.disconnect(); // Kill the observer once hooked
+        }
+      });
+      observer.observe(el, { childList: true, subtree: true });
+
+      // Force cleanup of GSAP's aggressive touch-action properties on the container
+      gsap.set(el, { clearProps: "userSelect,touchAction" });
+      el.style.userSelect = "auto";
+      el.style.touchAction = "auto";
+
+      resizeInstances.current =[];
+      const minW = 350;
+      const minH = 250;
+      const handleConfigs =[
+        { cls: ".resizer-n", type: "n" }, { cls: ".resizer-s", type: "s" },
+        { cls: ".resizer-e", type: "e" }, { cls: ".resizer-w", type: "w" },
+        { cls: ".resizer-nw", type: "nw" }, { cls: ".resizer-ne", type: "ne" },
+        { cls: ".resizer-sw", type: "sw" }, { cls: ".resizer-se", type: "se" },
+      ];
+
+      handleConfigs.forEach(({ cls, type }) => {
+        const hEl = el.querySelector(cls);
+        if (!hEl) return;
+        const[instance] = Draggable.create(hEl, {
+          type: "x,y",
+          allowEventDefault: true,
+          onPress: function(e) {
+            if (useWindowStore.getState().windows[windowKey].isMaximized) return false;
+            e.stopPropagation();
+            focusWindow(windowKey);
+            this.startW = el.offsetWidth;
+            this.startH = el.offsetHeight;
+            this.startX = gsap.getProperty(el, "x");
+            this.startY = gsap.getProperty(el, "y");
+            this.startPointerX = this.pointerX;
+            this.startPointerY = this.pointerY;
+          },
+          onDrag: function() {
+            gsap.set(this.target, { x: 0, y: 0 });
+            const deltaX = this.pointerX - this.startPointerX;
+            const deltaY = this.pointerY - this.startPointerY;
+            let w = this.startW, h = this.startH, x = this.startX, y = this.startY;
+            if (type.includes("e")) w = this.startW + deltaX;
+            if (type.includes("w")) {
+              const constrainedDelta = Math.min(deltaX, this.startW - minW);
+              w = this.startW - constrainedDelta;
+              x = this.startX + constrainedDelta;
+            }
+            if (type.includes("s")) h = this.startH + deltaY;
+            if (type.includes("n")) {
+              const constrainedDelta = Math.min(deltaY, this.startH - minH);
+              h = this.startH - constrainedDelta;
+              y = this.startY + constrainedDelta;
+            }
+            gsap.set(el, { width: Math.max(w, minW), height: Math.max(h, minH), x, y });
+          },
+          onDragEnd: function() {
+            gsap.set(this.target, { x: 0, y: 0 });
+            dragInstance.current?.update();
+          }
+        });
+        resizeInstances.current.push(instance);
+      });
+
+      return () => {
+        dragInstance.current?.kill();
+        resizeInstances.current.forEach(i => i.kill());
+        observer.disconnect();
+      };
+    }, [isMobile]);
+
+    return (
+      <section
+        id={windowKey}
+        ref={ref}
+        onPointerDownCapture={() => focusWindow(windowKey)}
+        className="os-window absolute flex flex-col overflow-hidden group bg-white/30 backdrop-blur-xl rounded-xl shadow-2xl transition-none max-md:bg-white"
+        style={{
+            zIndex,
+            display: isActuallyVisible ? "flex" : "none",
+            willChange: "transform, width, height, opacity",
+            transform: "translate3d(0,0,0)",
+        }}
+      >
+        {hasLaunched && <Component {...props} />}
+
+        {isMobile && (
+          <div className="absolute bottom-0 left-0 w-full h-8 z-[2000] flex justify-center items-end pb-2 pointer-events-none">
+            <div className="w-[130px] h-1.5 bg-black/40 rounded-full" />
+          </div>
+        )}
+
+        {!isMobile && (
+          <div className={isMaximized ? "hidden pointer-events-none" : ""}>
+            <div className="resizer-n absolute top-0 left-0 w-full h-1.5 cursor-ns-resize z-50" />
+            <div className="resizer-s absolute bottom-0 left-0 w-full h-1.5 cursor-ns-resize z-50" />
+            <div className="resizer-w absolute top-0 left-0 h-full w-1.5 cursor-ew-resize z-50" />
+            <div className="resizer-e absolute top-0 right-0 h-full w-1.5 cursor-ew-resize z-50" />
+            <div className="resizer-nw absolute top-0 left-0 size-4 cursor-nwse-resize z-[60]" />
+            <div className="resizer-ne absolute top-0 right-0 size-4 cursor-nesw-resize z-[60]" />
+            <div className="resizer-sw absolute bottom-0 left-0 size-4 cursor-nesw-resize z-[60]" />
+            <div className="resizer-se absolute bottom-0 right-0 size-4 cursor-nwse-resize z-[60]" />
+          </div>
+        )}
+      </section>
+    );
+  });
+
+  Wrapped.displayName = `WindowWrapper(${Component.displayName || Component.name || "Component"})`;
+  return Wrapped;
+};
+
+export default WindowWrapper;
 </file>
 
 <file path="src/components/BootSequence.jsx">
@@ -3844,349 +4329,6 @@ const BootSequence = ({ onComplete }) => {
 };
 
 export default BootSequence;
-</file>
-
-<file path="src/components/Home.jsx">
-import { locations, dockApps } from "#constants";
-import clsx from "clsx";
-import { useGSAP } from "@gsap/react";
-import Draggable from "gsap/Draggable";
-import { Flip } from "gsap/Flip";
-import gsap from "gsap";
-import SpotifyWidget from "./SpotifyWidget.jsx";
-import { useWebHaptics } from "web-haptics/react";
-import useWindowStore from "#store/window.js";
-import useLocationStore from "#store/location.js";
-import useSettingsStore from "#store/settings.js";
-import { useState, useEffect, useRef, useLayoutEffect } from "react";
-import { flushSync } from "react-dom";
-import { RefreshCw, Moon, Sun } from "lucide-react";
-import dayjs from "dayjs";
-
-gsap.registerPlugin(Draggable, Flip);
-
-const Home = () => {
-  const { trigger } = useWebHaptics();
-  const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
-  const openWindow = useWindowStore((s) => s.openWindow);
-  const { isDarkMode, toggleDarkMode } = useSettingsStore();
-  
-  const [time, setTime] = useState(dayjs());
-  const [isEditMode, setIsEditMode] = useState(false);
-  
-  // Base set for recovery
-  const getInitialItems = () => {
-    const apps = dockApps.map(app => 
-      app.id === "trash" ? { ...app, id: "resume", name: "Resume", icon: "pdf.png", canOpen: true } : app
-    );
-    const projects = locations.work?.children || [];
-    return [...apps, ...projects];
-  };
-
-  const [mobileItems, setMobileItems] = useState(getInitialItems);
-
-  const flipStateRef = useRef(null);
-  const longPressTimer = useRef(null);
-  const pointerPos = useRef({ x: 0, y: 0 });
-  const rippleRef = useRef(null);
-
-  useEffect(() => {
-    const timer = setInterval(() => setTime(dayjs()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // 1. Reorder Logic (Keeping your preferred "Dock" logic)
-  const moveItem = (id1, id2) => {
-    if (id1 === id2) return;
-    const next = [...mobileItems];
-    const idx1 = next.findIndex((i) => (i.id || i.name) === id1);
-    const idx2 = next.findIndex((i) => (i.id || i.name) === id2);
-    if (idx1 === -1 || idx2 === -1) return;
-    
-    const [movedItem] = next.splice(idx1, 1);
-    next.splice(idx2, 0, movedItem);
-    setMobileItems(next);
-  };
-
-  // 2. Liquid Theme Toggle Logic
-  const handleThemeToggle = (e) => {
-    e.stopPropagation();
-    trigger("selection");
-
-    const x = e.clientX || (e.touches && e.touches[0].clientX);
-    const y = e.clientY || (e.touches && e.touches[0].clientY);
-
-    const ripple = rippleRef.current;
-    gsap.set(ripple, { 
-        left: x, 
-        top: y, 
-        scale: 0, 
-        opacity: 1, 
-        backgroundColor: isDarkMode ? "#ffffff" : "#000000" 
-    });
-
-    gsap.to(ripple, {
-      scale: 60,
-      duration: 0.8,
-      ease: "expo.inOut",
-      onComplete: () => {
-        toggleDarkMode();
-        gsap.to(ripple, { opacity: 0, duration: 0.4 });
-      }
-    });
-  };
-
-  // 3. System Restore Logic
-  const restoreSystem = () => {
-    trigger("success");
-    const state = Flip.getState(".mobile-app-item");
-    setMobileItems(getInitialItems());
-    
-    setTimeout(() => {
-      Flip.from(state, {
-        duration: 0.6,
-        ease: "back.out(1.2)",
-        stagger: 0.04,
-        onEnter: (elements) => gsap.from(elements, { y: 100, opacity: 0, stagger: 0.04 })
-      });
-    }, 50);
-  };
-
-  // 4. Flip Effect (Triggered by state changes)
-  useLayoutEffect(() => {
-    if (flipStateRef.current) {
-      Flip.from(flipStateRef.current, {
-        targets: ".mobile-app-item:not(.is-dragging)",
-        duration: 0.4,
-        ease: "back.out(1.2)",
-        absolute: false,
-        onEnter: (elements) => gsap.fromTo(elements, { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3 }),
-        onLeave: (elements) => gsap.to(elements, { scale: 0, opacity: 0, duration: 0.3 })
-      });
-      flipStateRef.current = null;
-    }
-  }, [mobileItems]);
-
-  // 5. Draggable Setup (Keeping your preferred logic)
-  useGSAP(() => {
-    if (!isEditMode) return;
-
-    Draggable.create(".mobile-app-item", {
-      type: "x,y",
-      onDragStart: function() {
-        this.target.classList.add("is-dragging");
-        gsap.to(this.target, { scale: 1.15, zIndex: 1000, duration: 0.2 });
-      },
-      onDrag: function() {
-        const el = this.target;
-        const id = el.getAttribute("data-id");
-        const items = Array.from(document.querySelectorAll(".mobile-app-item:not(.is-dragging)"));
-
-        for (const item of items) {
-          if (this.hitTest(item, "50%")) {
-            const targetId = item.getAttribute("data-id");
-
-            const rectBefore = el.getBoundingClientRect();
-            flipStateRef.current = Flip.getState(".mobile-app-item:not(.is-dragging)");
-
-            flushSync(() => {
-              moveItem(id, targetId);
-            });
-
-            const rectAfter = el.getBoundingClientRect();
-            const dx = rectAfter.left - rectBefore.left;
-            const dy = rectAfter.top - rectBefore.top;
-
-            const currentX = gsap.getProperty(el, "x");
-            const currentY = gsap.getProperty(el, "y");
-
-            gsap.set(el, { x: currentX - dx, y: currentY - dy });
-            this.update();
-            break;
-          }
-        }
-      },
-      onDragEnd: function() {
-        this.target.classList.remove("is-dragging");
-        gsap.to(this.target, { x: 0, y: 0, scale: 1, zIndex: 30, duration: 0.4, ease: "back.out(1.5)" });
-      }
-    });
-  }, [isEditMode, mobileItems.length]);
-
-  const handleRemove = (e, targetId) => {
-    e.stopPropagation();
-    trigger("success");
-    
-    flipStateRef.current = Flip.getState(".mobile-app-item");
-    flushSync(() => {
-      setMobileItems(prev => prev.filter(item => (item.id || item.name) !== targetId));
-    });
-  };
-
-  const handlePointerDown = (e) => {
-    pointerPos.current = { x: e.clientX, y: e.clientY };
-    longPressTimer.current = setTimeout(() => {
-      setIsEditMode(true);
-      trigger("selection");
-    }, 600);
-  };
-
-  const handlePointerUp = (e, item) => {
-    clearTimeout(longPressTimer.current);
-    const dx = Math.abs(e.clientX - pointerPos.current.x);
-    const dy = Math.abs(e.clientY - pointerPos.current.y);
-
-    if (dx < 5 && dy < 5 && !isEditMode) {
-      trigger("nudge");
-      const rect = e.currentTarget.getBoundingClientRect();
-      const launchPos = {
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2,
-        width: rect.width,
-        height: rect.height,
-      };
-
-      if (item.kind === "folder") {
-        setActiveLocation(item);
-        openWindow("finder", null, launchPos);
-      } else {
-        openWindow(item.id, null, launchPos);
-      }
-    }
-  };
-
-  return (
-    <section 
-      id="home" 
-      className="absolute inset-0 w-full h-full z-0 overflow-hidden"
-      onPointerDown={(e) => e.target === e.currentTarget && setIsEditMode(false)}
-    >
-      <SpotifyWidget /> 
-
-      {/* RIPPLE EFFECT LAYER */}
-      <div ref={rippleRef} className="fixed size-10 rounded-full pointer-events-none z-[9999] opacity-0 -translate-x-1/2 -translate-y-1/2 will-change-transform" />
-
-      {/* CLOCK AREA (Dark mode trigger) */}
-      <div 
-        className="absolute top-[12vh] left-0 w-full flex flex-col items-center justify-center md:hidden text-white drop-shadow-xl z-20 select-none cursor-pointer"
-        onClick={handleThemeToggle}
-      >
-        <h1 className="text-[5.5rem] font-light tracking-tight leading-none text-center active:scale-95 transition-transform">
-          {time.format("h:mm")}
-        </h1>
-        <p className="text-[1.2rem] font-medium mt-2 tracking-wide text-center opacity-80">
-          {time.format("dddd, MMMM D")}
-        </p>
-        <div className="mt-4 p-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
-            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-        </div>
-      </div>
-      
-      {/* PC View Folders */}
-      <ul className="desktop-projects w-full h-full max-md:hidden">
-        {locations.work.children.map((project) => (
-          <li
-            key={project.id}
-            className={clsx("group folder", project.windowPosition)}
-            onPointerUp={() => { setActiveLocation(project); openWindow("finder"); }}
-          >
-            <img src="/images/folder.png" alt={project.name} width={64} height={60} />
-            <p>{project.name}</p>
-          </li>
-        ))}
-      </ul>
-
-      {/* Mobile Grid */}
-      <ul className="hidden max-md:grid grid-cols-4 gap-x-2 gap-y-6 px-5 relative z-30 w-full box-border mt-[38vh]">
-        {mobileItems.map((item) => {
-          const id = item.id || item.name;
-          return (
-            <li 
-              key={id}
-              data-id={id}
-              data-flip-id={id}
-              onPointerDown={(e) => handlePointerDown(e, item)}
-              onPointerUp={(e) => handlePointerUp(e, item)}
-              className={clsx(
-                "mobile-app-item flex flex-col items-center gap-[6px] cursor-pointer touch-none select-none",
-                isEditMode && "is-wiggling"
-              )}
-            >
-              <div className="relative icon-container">
-                <img 
-                  src={item.icon.startsWith('/') ? item.icon : `/images/${item.icon}`} 
-                  alt={item.name} 
-                  className={clsx(
-                    "w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover pointer-events-none shadow-lg rounded-[14px]",
-                    !item.canOpen && "opacity-60"
-                  )}
-                />
-                
-                {isEditMode && (
-                  <button 
-                    className="absolute -top-2 -left-2 size-6 bg-white dark:bg-gray-700 backdrop-blur-md rounded-full flex items-center justify-center shadow-md z-[1100] border border-black/10 active:scale-90 transition-transform"
-                    onPointerDown={(e) => handleRemove(e, id)}
-                  >
-                    <div className="w-2.5 h-[2.5px] bg-black dark:bg-white rounded-full" />
-                  </button>
-                )}
-              </div>
-              <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
-                {item.name}
-              </p>
-            </li>
-          );
-        })}
-
-        {/* Restore System (Only if empty) */}
-        {mobileItems.length === 0 && (
-          <li className="col-span-4 flex flex-col items-center justify-center py-20 gap-4">
-              <RefreshCw size={32} className="text-white/40 animate-spin-slow" />
-              <button 
-                onClick={restoreSystem} 
-                className="px-8 py-3 bg-white text-black font-bold rounded-2xl shadow-2xl active:scale-95 transition-transform"
-              >
-                Restore System
-              </button>
-          </li>
-        )}
-      </ul>
-
-      {/* Done Button */}
-      {isEditMode && (
-          <button 
-            onClick={() => setIsEditMode(false)} 
-            className="fixed top-14 right-5 z-[5000] px-4 py-1.5 bg-white/20 backdrop-blur-xl border border-white/30 rounded-full text-white text-sm font-bold animate-in fade-in slide-in-from-top-4"
-          >
-            Done
-          </button>
-      )}
-
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes wiggle {
-          0% { transform: rotate(-1.5deg); }
-          50% { transform: rotate(1.5deg); }
-          100% { transform: rotate(-1.5deg); }
-        }
-        .is-wiggling .icon-container {
-          animation: wiggle 0.25s ease-in-out infinite;
-        }
-        .is-dragging .icon-container {
-          animation: none !important;
-        }
-        .animate-spin-slow {
-          animation: spin 4s linear infinite;
-        }
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}} />
-    </section>
-  );
-};
-
-export default Home;
 </file>
 
 <file path="src/windows/Terminal.jsx">
@@ -4971,6 +5113,491 @@ const Terminal = () => {
 
 const TerminalWindow = WindowWrapper(Terminal, "terminal");
 export default TerminalWindow;
+</file>
+
+<file path="src/components/Home.jsx">
+import { locations, dockApps } from "#constants";
+import clsx from "clsx";
+import { useGSAP } from "@gsap/react";
+import Draggable from "gsap/Draggable";
+import { Flip } from "gsap/Flip";
+import gsap from "gsap";
+import SpotifyWidget from "./SpotifyWidget.jsx";
+import { useWebHaptics } from "web-haptics/react";
+import useWindowStore from "#store/window.js";
+import useLocationStore from "#store/location.js";
+import useSettingsStore from "#store/settings.js";
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { flushSync } from "react-dom";
+import { RefreshCw, Moon, Sun } from "lucide-react";
+import dayjs from "dayjs";
+
+gsap.registerPlugin(Draggable, Flip);
+
+const Home = () => {
+  const { trigger } = useWebHaptics();
+  const setActiveLocation = useLocationStore((s) => s.setActiveLocation);
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const { isDarkMode, toggleDarkMode } = useSettingsStore();
+  
+  const [time, setTime] = useState(dayjs());
+  const [isEditMode, setIsEditMode] = useState(false);
+  
+  const getInitialItems = () => {
+    const apps = dockApps.map(app => 
+      app.id === "trash" ? { ...app, id: "resume", name: "Resume", icon: "pdf.png", canOpen: true } : app
+    );
+    const projects = locations.work?.children ||[];
+    return [...apps, ...projects];
+  };
+
+  const [mobileItems, setMobileItems] = useState(getInitialItems);
+
+  const flipStateRef = useRef(null);
+  const longPressTimer = useRef(null);
+  const pointerPos = useRef({ x: 0, y: 0 });
+  const rippleRef = useRef(null);
+  const desktopGhostRef = useRef(null); // Reference for the Grid Ghost Box
+  const touchStart = useRef(0);
+ 
+   const handleTouchStart = (e) => {
+     touchStart.current = e.touches[0].clientY;
+   };
+ 
+   const handleTouchEnd = (e) => {
+     const touchEnd = e.changedTouches[0].clientY;
+     const distance = touchEnd - touchStart.current;
+ 
+     if (distance > 50 && !isEditMode) {
+       window.dispatchEvent(new CustomEvent('toggle-spotlight'));
+       trigger("selection");
+     }
+   };
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(dayjs()), 1000);
+    return () => clearInterval(timer);
+  },[]);
+
+  const moveItem = (id1, id2) => {
+    if (id1 === id2) return;
+    const next =[...mobileItems];
+    const idx1 = next.findIndex((i) => (i.id || i.name) === id1);
+    const idx2 = next.findIndex((i) => (i.id || i.name) === id2);
+    if (idx1 === -1 || idx2 === -1) return;
+    
+    const [movedItem] = next.splice(idx1, 1);
+    next.splice(idx2, 0, movedItem);
+    setMobileItems(next);
+  };
+
+  const handleThemeToggle = (e) => {
+    e.stopPropagation();
+    trigger("selection");
+
+    const x = e.clientX || (e.touches && e.touches[0].clientX);
+    const y = e.clientY || (e.touches && e.touches[0].clientY);
+
+    const ripple = rippleRef.current;
+    gsap.set(ripple, { 
+        left: x, 
+        top: y, 
+        scale: 0, 
+        opacity: 1, 
+        backgroundColor: isDarkMode ? "#ffffff" : "#000000" 
+    });
+
+    gsap.to(ripple, {
+      scale: 60,
+      duration: 0.8,
+      ease: "expo.inOut",
+      onComplete: () => {
+        toggleDarkMode();
+        gsap.to(ripple, { opacity: 0, duration: 0.4 });
+      }
+    });
+  };
+
+  const restoreSystem = () => {
+    trigger("success");
+    const state = Flip.getState(".mobile-app-item");
+    setMobileItems(getInitialItems());
+    
+    setTimeout(() => {
+      Flip.from(state, {
+        duration: 0.6,
+        ease: "back.out(1.2)",
+        stagger: 0.04,
+        onEnter: (elements) => gsap.from(elements, { y: 100, opacity: 0, stagger: 0.04 })
+      });
+    }, 50);
+  };
+
+  useLayoutEffect(() => {
+    if (flipStateRef.current) {
+      Flip.from(flipStateRef.current, {
+        targets: ".mobile-app-item:not(.is-dragging)",
+        duration: 0.4,
+        ease: "back.out(1.2)",
+        absolute: false,
+        onEnter: (elements) => gsap.fromTo(elements, { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3 }),
+        onLeave: (elements) => gsap.to(elements, { scale: 0, opacity: 0, duration: 0.3 })
+      });
+      flipStateRef.current = null;
+    }
+  }, [mobileItems]);
+
+  // -------------------------------------------------------------
+  // EXPERT FEATURE: Desktop Grid Snapping with Ghost Collision!
+  // -------------------------------------------------------------
+  useGSAP(() => {
+    const GRID_W = 120; // Grid Cell Width
+    const GRID_H = 140; // Grid Cell Height
+    const ghost = desktopGhostRef.current;
+
+    const draggables = Draggable.create(".desktop-projects .folder", {
+      type: "x,y",
+      bounds: "main",
+      dragClickables: true,
+      onPress: function () {
+        // Record where the item was originally placed in the DOM vs its current GSAP transform
+        const currentX = gsap.getProperty(this.target, "x");
+        const currentY = gsap.getProperty(this.target, "y");
+        const rect = this.target.getBoundingClientRect();
+        
+        this.baseGlobalX = rect.left - currentX;
+        this.baseGlobalY = rect.top - currentY;
+        this.startX = currentX;
+        this.startY = currentY;
+      },
+      onDragStart: function () {
+        this.target.classList.add("is-dragging-desktop");
+        gsap.to(this.target, { scale: 1.05, opacity: 0.9, duration: 0.2 });
+
+        // 1. Gather positions of all OTHER folders to detect collisions
+        this.occupied =[];
+        const allFolders = document.querySelectorAll(".desktop-projects .folder");
+        allFolders.forEach(f => {
+          if (f === this.target) return;
+          const r = f.getBoundingClientRect();
+          const cx = r.left + r.width / 2;
+          const cy = r.top + r.height / 2;
+          const gridX = Math.round(cx / GRID_W) * GRID_W;
+          const gridY = Math.round(cy / GRID_H) * GRID_H;
+          this.occupied.push({ x: gridX, y: gridY });
+        });
+
+        // 2. Setup the Ghost Box
+        const iconWidth = this.target.offsetWidth;
+        const iconHeight = this.target.offsetHeight;
+        ghost.style.display = "block";
+        ghost.style.width = `${iconWidth + 24}px`;
+        ghost.style.height = `${iconHeight + 24}px`;
+        
+        // Pop in animation for the Ghost Box
+        gsap.set(ghost, { scale: 0.8, opacity: 0 });
+        gsap.to(ghost, { scale: 1, opacity: 1, duration: 0.2, ease: "back.out(2)" });
+      },
+      onDrag: function () {
+        const rect = this.target.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+
+        // Calculate the snapped grid intersection point
+        const snapGlobalX = Math.round(cx / GRID_W) * GRID_W;
+        const snapGlobalY = Math.round(cy / GRID_H) * GRID_H;
+
+        // Position the ghost box centered on the intersection
+        const ghostWidth = this.target.offsetWidth + 24;
+        const ghostHeight = this.target.offsetHeight + 24;
+        const ghostLeft = snapGlobalX - ghostWidth / 2;
+        const ghostTop = snapGlobalY - ghostHeight / 2;
+
+        // Check if another icon is already sitting in this slot
+        const isColliding = this.occupied.some(pos => pos.x === snapGlobalX && pos.y === snapGlobalY);
+        
+        this.isValidDrop = !isColliding;
+        
+        // Calculate where the dragged icon SHOULD glide to if released
+        this.snapLocalX = (snapGlobalX - this.target.offsetWidth / 2) - this.baseGlobalX;
+        this.snapLocalY = (snapGlobalY - this.target.offsetHeight / 2) - this.baseGlobalY;
+
+        // Animate Ghost box snapping
+        gsap.to(ghost, { x: ghostLeft, y: ghostTop, duration: 0.15, ease: "power2.out" });
+
+        // Update Ghost colors based on collision status
+        if (isColliding) {
+          ghost.className = "fixed z-0 pointer-events-none rounded-2xl border-[3px] transition-colors duration-150 border-red-500/80 bg-red-500/30 backdrop-blur-md";
+        } else {
+          ghost.className = "fixed z-0 pointer-events-none rounded-2xl border-[3px] transition-colors duration-150 border-white/40 bg-white/10 dark:border-white/20 dark:bg-white/5 backdrop-blur-md";
+        }
+      },
+      onDragEnd: function () {
+        this.target.classList.remove("is-dragging-desktop");
+        
+        // Hide Ghost box
+        gsap.to(ghost, { scale: 0.8, opacity: 0, duration: 0.2, onComplete: () => ghost.style.display = "none" });
+
+        if (this.isValidDrop) {
+          trigger("success"); // Haptic pop
+          gsap.to(this.target, {
+            x: this.snapLocalX,
+            y: this.snapLocalY,
+            scale: 1,
+            opacity: 1,
+            duration: 0.4,
+            ease: "back.out(1.2)"
+          });
+        } else {
+          trigger("error"); // Haptic buzz/error
+          // Reject Drop: Fly back to where you started
+          gsap.to(this.target, {
+            x: this.startX,
+            y: this.startY,
+            scale: 1,
+            opacity: 1,
+            duration: 0.5,
+            ease: "elastic.out(1, 0.5)"
+          });
+        }
+      }
+    });
+
+    return () => {
+      draggables.forEach(d => d.kill());
+    };
+  },[]);
+
+  // -------------------------------------------------------------
+  // Mobile App Grid Draggable
+  // -------------------------------------------------------------
+  useGSAP(() => {
+    if (!isEditMode) return;
+
+    const draggables = Draggable.create(".mobile-app-item", {
+      type: "x,y",
+      dragClickables: true, 
+      onDragStart: function() {
+        this.target.classList.add("is-dragging");
+        gsap.to(this.target, { scale: 1.15, zIndex: 1000, duration: 0.2 });
+      },
+      onDrag: function() {
+        const el = this.target;
+        const id = el.getAttribute("data-id");
+        const items = Array.from(document.querySelectorAll(".mobile-app-item:not(.is-dragging)"));
+
+        for (const item of items) {
+          if (this.hitTest(item, "50%")) {
+            const targetId = item.getAttribute("data-id");
+
+            const rectBefore = el.getBoundingClientRect();
+            flipStateRef.current = Flip.getState(".mobile-app-item:not(.is-dragging)");
+
+            flushSync(() => moveItem(id, targetId));
+
+            const rectAfter = el.getBoundingClientRect();
+            const dx = rectAfter.left - rectBefore.left;
+            const dy = rectAfter.top - rectBefore.top;
+
+            const currentX = gsap.getProperty(el, "x");
+            const currentY = gsap.getProperty(el, "y");
+
+            gsap.set(el, { x: currentX - dx, y: currentY - dy });
+            this.update();
+            break;
+          }
+        }
+      },
+      onDragEnd: function() {
+        this.target.classList.remove("is-dragging");
+        gsap.to(this.target, { x: 0, y: 0, scale: 1, zIndex: 30, duration: 0.4, ease: "back.out(1.5)" });
+      }
+    });
+
+    return () => draggables.forEach(d => d.kill());
+  },[isEditMode, mobileItems.length]);
+
+  const handleRemove = (e, targetId) => {
+    e.stopPropagation();
+    trigger("success");
+    flipStateRef.current = Flip.getState(".mobile-app-item");
+    flushSync(() => setMobileItems(prev => prev.filter(item => (item.id || item.name) !== targetId)));
+  };
+
+  const handlePointerDown = (e) => {
+    pointerPos.current = { x: e.clientX, y: e.clientY };
+    longPressTimer.current = setTimeout(() => {
+      setIsEditMode(true);
+      trigger("selection");
+    }, 600);
+  };
+
+  const handlePointerUp = (e, item) => {
+    clearTimeout(longPressTimer.current);
+    const dx = Math.abs(e.clientX - pointerPos.current.x);
+    const dy = Math.abs(e.clientY - pointerPos.current.y);
+
+    if (dx < 5 && dy < 5 && !isEditMode) {
+      trigger("nudge");
+      const rect = e.currentTarget.getBoundingClientRect();
+      const launchPos = {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+        width: rect.width,
+        height: rect.height,
+      };
+
+      if (item.kind === "folder") {
+        setActiveLocation(item);
+        openWindow("finder", null, launchPos);
+      } else {
+        openWindow(item.id, null, launchPos);
+      }
+    }
+  };
+
+  return (
+    <section 
+      id="home" 
+      className="absolute inset-0 w-full h-full z-0 overflow-hidden"
+      onPointerDown={(e) => e.target === e.currentTarget && setIsEditMode(false)}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      <SpotifyWidget /> 
+
+      {/* Ripple Effect Layer */}
+      <div ref={rippleRef} className="fixed size-10 rounded-full pointer-events-none z-[9999] opacity-0 -translate-x-1/2 -translate-y-1/2 will-change-transform" />
+
+      {/* Desktop Grid Ghost Indicator */}
+      <div 
+        ref={desktopGhostRef} 
+        className="fixed z-0 pointer-events-none rounded-2xl border-2 hidden"
+      />
+
+      {/* Clock Area (Dark mode trigger) */}
+      <div 
+        className="absolute top-[12vh] left-0 w-full flex flex-col items-center justify-center md:hidden text-white drop-shadow-xl z-20 select-none cursor-pointer"
+        onClick={handleThemeToggle}
+      >
+        <h1 className="text-[5.5rem] font-light tracking-tight leading-none text-center active:scale-95 transition-transform">
+          {time.format("h:mm")}
+        </h1>
+        <p className="text-[1.2rem] font-medium mt-2 tracking-wide text-center opacity-80">
+          {time.format("dddd, MMMM D")}
+        </p>
+        <div className="mt-4 p-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+        </div>
+      </div>
+      
+      {/* PC View Folders */}
+      <ul className="desktop-projects w-full h-full max-md:hidden">
+        {locations.work.children.map((project) => (
+          <li
+            key={project.id}
+            className={clsx("group folder", project.windowPosition)}
+            onDoubleClick={() => { 
+              trigger("selection");
+              setActiveLocation(project); 
+              openWindow("finder"); 
+            }}
+          >
+            <img src="/images/folder.png" alt={project.name} width={64} height={60} className="pointer-events-none" />
+            <p className="pointer-events-none">{project.name}</p>
+          </li>
+        ))}
+      </ul>
+
+      {/* Mobile Grid */}
+      <ul className="hidden max-md:grid grid-cols-4 gap-x-2 gap-y-6 px-5 relative z-30 w-full box-border mt-[38vh]">
+        {mobileItems.map((item) => {
+          const id = item.id || item.name;
+          return (
+            <li 
+              key={id}
+              data-id={id}
+              data-flip-id={id}
+              onPointerDown={(e) => handlePointerDown(e, item)}
+              onPointerUp={(e) => handlePointerUp(e, item)}
+              className={clsx(
+                "mobile-app-item flex flex-col items-center gap-[6px] cursor-pointer touch-none select-none",
+                isEditMode && "is-wiggling"
+              )}
+            >
+              <div className="relative icon-container pointer-events-none">
+                <img 
+                  src={item.icon.startsWith('/') ? item.icon : `/images/${item.icon}`} 
+                  alt={item.name} 
+                  className={clsx(
+                    "w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover shadow-lg rounded-[14px]",
+                    !item.canOpen && "opacity-60"
+                  )}
+                />
+                
+                {isEditMode && (
+                  <button 
+                    className="absolute -top-2 -left-2 size-6 bg-white dark:bg-gray-700 backdrop-blur-md rounded-full flex items-center justify-center shadow-md z-[1100] border border-black/10 active:scale-90 transition-transform pointer-events-auto"
+                    onPointerDown={(e) => handleRemove(e, id)}
+                  >
+                    <div className="w-2.5 h-[2.5px] bg-black dark:bg-white rounded-full" />
+                  </button>
+                )}
+              </div>
+              <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1 pointer-events-none">
+                {item.name}
+              </p>
+            </li>
+          );
+        })}
+
+        {mobileItems.length === 0 && (
+          <li className="col-span-4 flex flex-col items-center justify-center py-20 gap-4">
+              <RefreshCw size={32} className="text-white/40 animate-spin-slow" />
+              <button 
+                onClick={restoreSystem} 
+                className="px-8 py-3 bg-white text-black font-bold rounded-2xl shadow-2xl active:scale-95 transition-transform"
+              >
+                Restore System
+              </button>
+          </li>
+        )}
+      </ul>
+
+      {isEditMode && (
+          <button 
+            onClick={() => setIsEditMode(false)} 
+            className="fixed top-14 right-5 z-[5000] px-4 py-1.5 bg-white/20 backdrop-blur-xl border border-white/30 rounded-full text-white text-sm font-bold animate-in fade-in slide-in-from-top-4"
+          >
+            Done
+          </button>
+      )}
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes wiggle {
+          0% { transform: rotate(-1.5deg); }
+          50% { transform: rotate(1.5deg); }
+          100% { transform: rotate(-1.5deg); }
+        }
+        .is-wiggling .icon-container {
+          animation: wiggle 0.25s ease-in-out infinite;
+        }
+        .is-dragging .icon-container {
+          animation: none !important;
+        }
+        .animate-spin-slow {
+          animation: spin 4s linear infinite;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}} />
+    </section>
+  );
+};
+
+export default Home;
 </file>
 
 <file path="src/index.css">
