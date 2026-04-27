@@ -25,12 +25,11 @@ const Home = () => {
   const [time, setTime] = useState(dayjs());
   const [isEditMode, setIsEditMode] = useState(false);
   
-  // Base set for recovery
   const getInitialItems = () => {
     const apps = dockApps.map(app => 
       app.id === "trash" ? { ...app, id: "resume", name: "Resume", icon: "pdf.png", canOpen: true } : app
     );
-    const projects = locations.work?.children || [];
+    const projects = locations.work?.children ||[];
     return [...apps, ...projects];
   };
 
@@ -40,16 +39,16 @@ const Home = () => {
   const longPressTimer = useRef(null);
   const pointerPos = useRef({ x: 0, y: 0 });
   const rippleRef = useRef(null);
+  const desktopGhostRef = useRef(null); // Reference for the Grid Ghost Box
 
   useEffect(() => {
     const timer = setInterval(() => setTime(dayjs()), 1000);
     return () => clearInterval(timer);
-  }, []);
+  },[]);
 
-  // 1. Reorder Logic (Keeping your preferred "Dock" logic)
   const moveItem = (id1, id2) => {
     if (id1 === id2) return;
-    const next = [...mobileItems];
+    const next =[...mobileItems];
     const idx1 = next.findIndex((i) => (i.id || i.name) === id1);
     const idx2 = next.findIndex((i) => (i.id || i.name) === id2);
     if (idx1 === -1 || idx2 === -1) return;
@@ -59,7 +58,6 @@ const Home = () => {
     setMobileItems(next);
   };
 
-  // 2. Liquid Theme Toggle Logic
   const handleThemeToggle = (e) => {
     e.stopPropagation();
     trigger("selection");
@@ -87,7 +85,6 @@ const Home = () => {
     });
   };
 
-  // 3. System Restore Logic
   const restoreSystem = () => {
     trigger("success");
     const state = Flip.getState(".mobile-app-item");
@@ -103,7 +100,6 @@ const Home = () => {
     }, 50);
   };
 
-  // 4. Flip Effect (Triggered by state changes)
   useLayoutEffect(() => {
     if (flipStateRef.current) {
       Flip.from(flipStateRef.current, {
@@ -118,12 +114,136 @@ const Home = () => {
     }
   }, [mobileItems]);
 
-  // 5. Draggable Setup (Keeping your preferred logic)
+  // -------------------------------------------------------------
+  // EXPERT FEATURE: Desktop Grid Snapping with Ghost Collision!
+  // -------------------------------------------------------------
+  useGSAP(() => {
+    const GRID_W = 120; // Grid Cell Width
+    const GRID_H = 140; // Grid Cell Height
+    const ghost = desktopGhostRef.current;
+
+    const draggables = Draggable.create(".desktop-projects .folder", {
+      type: "x,y",
+      bounds: "main",
+      dragClickables: true,
+      onPress: function () {
+        // Record where the item was originally placed in the DOM vs its current GSAP transform
+        const currentX = gsap.getProperty(this.target, "x");
+        const currentY = gsap.getProperty(this.target, "y");
+        const rect = this.target.getBoundingClientRect();
+        
+        this.baseGlobalX = rect.left - currentX;
+        this.baseGlobalY = rect.top - currentY;
+        this.startX = currentX;
+        this.startY = currentY;
+      },
+      onDragStart: function () {
+        this.target.classList.add("is-dragging-desktop");
+        gsap.to(this.target, { scale: 1.05, opacity: 0.9, duration: 0.2 });
+
+        // 1. Gather positions of all OTHER folders to detect collisions
+        this.occupied =[];
+        const allFolders = document.querySelectorAll(".desktop-projects .folder");
+        allFolders.forEach(f => {
+          if (f === this.target) return;
+          const r = f.getBoundingClientRect();
+          const cx = r.left + r.width / 2;
+          const cy = r.top + r.height / 2;
+          const gridX = Math.round(cx / GRID_W) * GRID_W;
+          const gridY = Math.round(cy / GRID_H) * GRID_H;
+          this.occupied.push({ x: gridX, y: gridY });
+        });
+
+        // 2. Setup the Ghost Box
+        const iconWidth = this.target.offsetWidth;
+        const iconHeight = this.target.offsetHeight;
+        ghost.style.display = "block";
+        ghost.style.width = `${iconWidth + 24}px`;
+        ghost.style.height = `${iconHeight + 24}px`;
+        
+        // Pop in animation for the Ghost Box
+        gsap.set(ghost, { scale: 0.8, opacity: 0 });
+        gsap.to(ghost, { scale: 1, opacity: 1, duration: 0.2, ease: "back.out(2)" });
+      },
+      onDrag: function () {
+        const rect = this.target.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+
+        // Calculate the snapped grid intersection point
+        const snapGlobalX = Math.round(cx / GRID_W) * GRID_W;
+        const snapGlobalY = Math.round(cy / GRID_H) * GRID_H;
+
+        // Position the ghost box centered on the intersection
+        const ghostWidth = this.target.offsetWidth + 24;
+        const ghostHeight = this.target.offsetHeight + 24;
+        const ghostLeft = snapGlobalX - ghostWidth / 2;
+        const ghostTop = snapGlobalY - ghostHeight / 2;
+
+        // Check if another icon is already sitting in this slot
+        const isColliding = this.occupied.some(pos => pos.x === snapGlobalX && pos.y === snapGlobalY);
+        
+        this.isValidDrop = !isColliding;
+        
+        // Calculate where the dragged icon SHOULD glide to if released
+        this.snapLocalX = (snapGlobalX - this.target.offsetWidth / 2) - this.baseGlobalX;
+        this.snapLocalY = (snapGlobalY - this.target.offsetHeight / 2) - this.baseGlobalY;
+
+        // Animate Ghost box snapping
+        gsap.to(ghost, { x: ghostLeft, y: ghostTop, duration: 0.15, ease: "power2.out" });
+
+        // Update Ghost colors based on collision status
+        if (isColliding) {
+          ghost.className = "fixed z-0 pointer-events-none rounded-2xl border-[3px] transition-colors duration-150 border-red-500/80 bg-red-500/30 backdrop-blur-md";
+        } else {
+          ghost.className = "fixed z-0 pointer-events-none rounded-2xl border-[3px] transition-colors duration-150 border-white/40 bg-white/10 dark:border-white/20 dark:bg-white/5 backdrop-blur-md";
+        }
+      },
+      onDragEnd: function () {
+        this.target.classList.remove("is-dragging-desktop");
+        
+        // Hide Ghost box
+        gsap.to(ghost, { scale: 0.8, opacity: 0, duration: 0.2, onComplete: () => ghost.style.display = "none" });
+
+        if (this.isValidDrop) {
+          trigger("success"); // Haptic pop
+          gsap.to(this.target, {
+            x: this.snapLocalX,
+            y: this.snapLocalY,
+            scale: 1,
+            opacity: 1,
+            duration: 0.4,
+            ease: "back.out(1.2)"
+          });
+        } else {
+          trigger("error"); // Haptic buzz/error
+          // Reject Drop: Fly back to where you started
+          gsap.to(this.target, {
+            x: this.startX,
+            y: this.startY,
+            scale: 1,
+            opacity: 1,
+            duration: 0.5,
+            ease: "elastic.out(1, 0.5)"
+          });
+        }
+      }
+    });
+
+    return () => {
+      draggables.forEach(d => d.kill());
+    };
+  },[]);
+
+  // -------------------------------------------------------------
+  // Mobile App Grid Draggable
+  // -------------------------------------------------------------
   useGSAP(() => {
     if (!isEditMode) return;
 
-    Draggable.create(".mobile-app-item", {
+    const draggables = Draggable.create(".mobile-app-item", {
       type: "x,y",
+      dragClickables: true, 
       onDragStart: function() {
         this.target.classList.add("is-dragging");
         gsap.to(this.target, { scale: 1.15, zIndex: 1000, duration: 0.2 });
@@ -140,9 +260,7 @@ const Home = () => {
             const rectBefore = el.getBoundingClientRect();
             flipStateRef.current = Flip.getState(".mobile-app-item:not(.is-dragging)");
 
-            flushSync(() => {
-              moveItem(id, targetId);
-            });
+            flushSync(() => moveItem(id, targetId));
 
             const rectAfter = el.getBoundingClientRect();
             const dx = rectAfter.left - rectBefore.left;
@@ -162,16 +280,15 @@ const Home = () => {
         gsap.to(this.target, { x: 0, y: 0, scale: 1, zIndex: 30, duration: 0.4, ease: "back.out(1.5)" });
       }
     });
-  }, [isEditMode, mobileItems.length]);
+
+    return () => draggables.forEach(d => d.kill());
+  },[isEditMode, mobileItems.length]);
 
   const handleRemove = (e, targetId) => {
     e.stopPropagation();
     trigger("success");
-    
     flipStateRef.current = Flip.getState(".mobile-app-item");
-    flushSync(() => {
-      setMobileItems(prev => prev.filter(item => (item.id || item.name) !== targetId));
-    });
+    flushSync(() => setMobileItems(prev => prev.filter(item => (item.id || item.name) !== targetId)));
   };
 
   const handlePointerDown = (e) => {
@@ -214,10 +331,16 @@ const Home = () => {
     >
       <SpotifyWidget /> 
 
-      {/* RIPPLE EFFECT LAYER */}
+      {/* Ripple Effect Layer */}
       <div ref={rippleRef} className="fixed size-10 rounded-full pointer-events-none z-[9999] opacity-0 -translate-x-1/2 -translate-y-1/2 will-change-transform" />
 
-      {/* CLOCK AREA (Dark mode trigger) */}
+      {/* Desktop Grid Ghost Indicator */}
+      <div 
+        ref={desktopGhostRef} 
+        className="fixed z-0 pointer-events-none rounded-2xl border-2 hidden"
+      />
+
+      {/* Clock Area (Dark mode trigger) */}
       <div 
         className="absolute top-[12vh] left-0 w-full flex flex-col items-center justify-center md:hidden text-white drop-shadow-xl z-20 select-none cursor-pointer"
         onClick={handleThemeToggle}
@@ -239,10 +362,14 @@ const Home = () => {
           <li
             key={project.id}
             className={clsx("group folder", project.windowPosition)}
-            onPointerUp={() => { setActiveLocation(project); openWindow("finder"); }}
+            onDoubleClick={() => { 
+              trigger("selection");
+              setActiveLocation(project); 
+              openWindow("finder"); 
+            }}
           >
-            <img src="/images/folder.png" alt={project.name} width={64} height={60} />
-            <p>{project.name}</p>
+            <img src="/images/folder.png" alt={project.name} width={64} height={60} className="pointer-events-none" />
+            <p className="pointer-events-none">{project.name}</p>
           </li>
         ))}
       </ul>
@@ -263,33 +390,32 @@ const Home = () => {
                 isEditMode && "is-wiggling"
               )}
             >
-              <div className="relative icon-container">
+              <div className="relative icon-container pointer-events-none">
                 <img 
                   src={item.icon.startsWith('/') ? item.icon : `/images/${item.icon}`} 
                   alt={item.name} 
                   className={clsx(
-                    "w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover pointer-events-none shadow-lg rounded-[14px]",
+                    "w-[16vw] max-w-[64px] h-[16vw] max-h-[64px] object-cover shadow-lg rounded-[14px]",
                     !item.canOpen && "opacity-60"
                   )}
                 />
                 
                 {isEditMode && (
                   <button 
-                    className="absolute -top-2 -left-2 size-6 bg-white dark:bg-gray-700 backdrop-blur-md rounded-full flex items-center justify-center shadow-md z-[1100] border border-black/10 active:scale-90 transition-transform"
+                    className="absolute -top-2 -left-2 size-6 bg-white dark:bg-gray-700 backdrop-blur-md rounded-full flex items-center justify-center shadow-md z-[1100] border border-black/10 active:scale-90 transition-transform pointer-events-auto"
                     onPointerDown={(e) => handleRemove(e, id)}
                   >
                     <div className="w-2.5 h-[2.5px] bg-black dark:bg-white rounded-full" />
                   </button>
                 )}
               </div>
-              <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1">
+              <p className="text-[12px] font-medium text-white drop-shadow-md text-center leading-tight w-full truncate px-1 pointer-events-none">
                 {item.name}
               </p>
             </li>
           );
         })}
 
-        {/* Restore System (Only if empty) */}
         {mobileItems.length === 0 && (
           <li className="col-span-4 flex flex-col items-center justify-center py-20 gap-4">
               <RefreshCw size={32} className="text-white/40 animate-spin-slow" />
@@ -303,7 +429,6 @@ const Home = () => {
         )}
       </ul>
 
-      {/* Done Button */}
       {isEditMode && (
           <button 
             onClick={() => setIsEditMode(false)} 

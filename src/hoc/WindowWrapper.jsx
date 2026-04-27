@@ -7,7 +7,7 @@ import useSound from "use-sound";
 import useSettingsStore from "#store/settings.js";
 
 let openPitchCounter = 0;
-const PITCH_LEVELS = [1.0, 1.05, 1.1, 1.15];
+const PITCH_LEVELS =[1.0, 1.05, 1.1, 1.15];
 
 const WindowWrapper = (Component, windowKey) => {
   const Wrapped = memo((props) => {
@@ -17,47 +17,43 @@ const WindowWrapper = (Component, windowKey) => {
     const dataId = useWindowStore((s) => s.windows[windowKey].data?.id);
     const launchPos = useWindowStore((s) => s.windows[windowKey].launchPos);
     const focusWindow = useWindowStore((s) => s.focusWindow);
-    const [hasLaunched, setHasLaunched] = useState(isOpen);
+    const[hasLaunched, setHasLaunched] = useState(isOpen);
     const { volume, isMuted } = useSettingsStore();
-        const [playOpen, { sound }] = useSound("/sounds/oxygen_open.ogg", { 
-          volume: isMuted ? 0 : volume 
-        });
+    const[playOpen, { sound }] = useSound("/sounds/oxygen_open.ogg", { 
+      volume: isMuted ? 0 : volume 
+    });
 
     const ref = useRef(null);
     const dragInstance = useRef(null);
     const resizeInstances = useRef([]);
     const [isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
     const preMaxState = useRef(null);
-    const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
+    const[isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
 
     useEffect(() => {
-         if (isOpen) {
-           if (sound) {
-               
-               sound.rate(PITCH_LEVELS[openPitchCounter % PITCH_LEVELS.length]);
-               playOpen();
-               openPitchCounter++;
-           }
-           
-           if (!hasLaunched) setHasLaunched(true);
-           setIsActuallyVisible(true);
-         }
-       }, [isOpen, sound, playOpen, hasLaunched]);
+      if (isOpen) {
+        if (sound) {
+            sound.rate(PITCH_LEVELS[openPitchCounter % PITCH_LEVELS.length]);
+            playOpen();
+            openPitchCounter++;
+        }
+        if (!hasLaunched) setHasLaunched(true);
+        setIsActuallyVisible(true);
+      }
+    },[isOpen, sound, playOpen, hasLaunched]);
     
     useEffect(() => {
       const checkMobile = () => setIsMobile(window.innerWidth < 768);
       checkMobile();
       window.addEventListener("resize", checkMobile, { passive: true });
       return () => window.removeEventListener("resize", checkMobile);
-    }, []);
+    },[]);
     
     useEffect(() => {
-      if (isOpen && !hasLaunched) {
-        setHasLaunched(true);
-      }
-    }, [isOpen, hasLaunched]);
+      if (isOpen && !hasLaunched) setHasLaunched(true);
+    },[isOpen, hasLaunched]);
 
-
+    // 1. OPEN / CLOSE ANIMATIONS
     useGSAP(() => {
       const el = ref.current;
       if (!el) return;
@@ -66,89 +62,110 @@ const WindowWrapper = (Component, windowKey) => {
         if (isMobile) {
           if (launchPos) {
             gsap.fromTo(el,
-              {
-                opacity: 0,
-                scale: 0.8,
-                transformOrigin: `${launchPos.x}px ${launchPos.y}px`,
-                borderRadius: "32px",
-                x: 0,
-                y: 0
-              },
-              {
-                opacity: 1,
-                scale: 1,
-                borderRadius: "0px",
-                duration: 0.35,
-                ease: "power3.out",
-                overwrite: "auto",
-                x: 0,
-                y: 0
-              }
+              { opacity: 0, scale: 0.8, transformOrigin: `${launchPos.x}px ${launchPos.y}px`, borderRadius: "32px", x: 0, y: 0 },
+              { opacity: 1, scale: 1, borderRadius: "0px", duration: 0.35, ease: "power3.out", overwrite: "auto", x: 0, y: 0 }
             );
           } else {
-            gsap.fromTo(el,
-              { yPercent: 100, opacity: 1, x: 0, y: 0 },
-              { yPercent: 0, duration: 0.35, ease: "power3.out", overwrite: "auto", x: 0, y: 0 }
-            );
+            gsap.fromTo(el, { yPercent: 100, opacity: 1, x: 0, y: 0 }, { yPercent: 0, duration: 0.35, ease: "power3.out", overwrite: "auto", x: 0, y: 0 });
           }
         } else {
-          gsap.fromTo(el,
-            { scale: 0.9, opacity: 0, yPercent: 0 },
-            { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)", overwrite: "auto" }
-          );
+          gsap.fromTo(el, { scale: 0.9, opacity: 0, yPercent: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)", overwrite: "auto" });
         }
       } else {
         if (isMobile) {
-          gsap.to(el, {
-            opacity: 0,
-            scale: 0.9,
-            duration: 0.25,
-            ease: "power3.in",
-            overwrite: "auto",
-            onComplete: () => setIsActuallyVisible(false),
-          });
+          gsap.to(el, { opacity: 0, scale: 0.9, duration: 0.25, ease: "power3.in", overwrite: "auto", onComplete: () => setIsActuallyVisible(false) });
         } else {
-          gsap.to(el, {
-            scale: 0.8, opacity: 0, duration: 0.25, ease: "power2.in", overwrite: "auto",
-            onComplete: () => setIsActuallyVisible(false),
-          });
+          gsap.to(el, { scale: 0.8, opacity: 0, duration: 0.25, ease: "power2.in", overwrite: "auto", onComplete: () => setIsActuallyVisible(false) });
         }
       }
-    }, [isOpen, dataId, isMobile]);
+    },[isOpen, dataId, isMobile]);
 
-    useGSAP(() => {
+    // 2. MAXIMIZE ANIMATIONS
+    const { contextSafe } = useGSAP();
+
+    useEffect(() => {
       if (isMobile) return;
       const el = ref.current;
       if (!el || !isOpen) return;
 
-      if (isMaximized) {
-        const currentX = gsap.getProperty(el, "x");
-        const currentY = gsap.getProperty(el, "y");
-        const rect = el.getBoundingClientRect();
-        preMaxState.current = { width: el.offsetWidth, height: el.offsetHeight, x: currentX, y: currentY };
-        if (dragInstance.current) dragInstance.current.disable();
-        resizeInstances.current.forEach(i => i.disable());
-        gsap.to(el, { x: currentX - rect.left, y: currentY - rect.top, width: "100vw", height: "100vh", maxWidth: "none", maxHeight: "none",  borderRadius: "0px", duration: 0.5, ease: "expo.inOut" });
-      } else if (preMaxState.current) {
-        if (dragInstance.current) dragInstance.current.enable();
-        resizeInstances.current.forEach(i => i.enable());
-        gsap.to(el, { x: preMaxState.current.x, y: preMaxState.current.y, width: preMaxState.current.width, height: preMaxState.current.height, borderRadius: "12px", duration: 0.5, ease: "expo.inOut", onComplete: () => dragInstance.current.update() });
-      }
-    }, [isMaximized, isMobile]);
+      const handleMaximize = contextSafe(() => {
+        if (isMaximized) {
+          const currentX = gsap.getProperty(el, "x");
+          const currentY = gsap.getProperty(el, "y");
+          const rect = el.getBoundingClientRect();
+          preMaxState.current = { width: el.offsetWidth, height: el.offsetHeight, x: currentX, y: currentY };
+          
+          gsap.to(el, { 
+            x: currentX - rect.left, 
+            y: currentY - rect.top, 
+            width: "100vw", 
+            height: "100vh", 
+            maxWidth: "none", 
+            maxHeight: "none",  
+            borderRadius: "0px", 
+            duration: 0.5, 
+            ease: "expo.inOut", 
+            overwrite: true 
+          });
+        } else if (preMaxState.current) {
+          gsap.to(el, { 
+            x: preMaxState.current.x, 
+            y: preMaxState.current.y, 
+            width: preMaxState.current.width, 
+            height: preMaxState.current.height, 
+            borderRadius: "12px", 
+            duration: 0.5, 
+            ease: "expo.inOut", 
+            overwrite: true, 
+            onComplete: () => dragInstance.current?.update() 
+          });
+        }
+      });
+      handleMaximize();
+    }, [isMaximized, isMobile, isOpen]);
 
+    // 3. DRAG & RESIZE SETUP (With Lazy-Load MutationObserver Fix)
     useGSAP(() => {
       const el = ref.current;
-      if (!el) return;
+      if (!el || isMobile) return;
 
-      if (isMobile) return;
+      let drag;
 
-      [dragInstance.current] = Draggable.create(el, {
-        trigger: el.querySelector("#window-header") || el,
-        bounds: "main",
+      // EXPERT FIX: Function to bind Draggable specifically to the header
+      const setupDraggable = () => {
+        const header = el.querySelector("#window-header");
+        if (header && !drag) {
+          drag = Draggable.create(el, {
+            trigger: header, // <--- Strictly binds dragging to the header ONLY!
+            bounds: "main",
+            dragClickables: true,
+            allowEventDefault: true,
+            onDragStart: function() {
+              if (useWindowStore.getState().windows[windowKey].isMaximized) return false;
+            }
+          })[0];
+          dragInstance.current = drag;
+        }
+      };
+
+      // Try running it immediately
+      setupDraggable();
+
+      // If the component is Suspended/Lazy-loading, watch the DOM until the header drops in
+      const observer = new MutationObserver(() => {
+        if (!drag && el.querySelector("#window-header")) {
+          setupDraggable();
+          observer.disconnect(); // Kill the observer once hooked
+        }
       });
+      observer.observe(el, { childList: true, subtree: true });
+
+      // Force cleanup of GSAP's aggressive touch-action properties on the container
+      gsap.set(el, { clearProps: "userSelect,touchAction" });
+      el.style.userSelect = "auto";
+      el.style.touchAction = "auto";
 
       resizeInstances.current =[];
-
       const minW = 350;
       const minH = 250;
       const handleConfigs =[
@@ -161,9 +178,11 @@ const WindowWrapper = (Component, windowKey) => {
       handleConfigs.forEach(({ cls, type }) => {
         const hEl = el.querySelector(cls);
         if (!hEl) return;
-        const [instance] = Draggable.create(hEl, {
+        const[instance] = Draggable.create(hEl, {
           type: "x,y",
+          allowEventDefault: true,
           onPress: function(e) {
+            if (useWindowStore.getState().windows[windowKey].isMaximized) return false;
             e.stopPropagation();
             focusWindow(windowKey);
             this.startW = el.offsetWidth;
@@ -194,7 +213,7 @@ const WindowWrapper = (Component, windowKey) => {
           },
           onDragEnd: function() {
             gsap.set(this.target, { x: 0, y: 0 });
-            dragInstance.current.update();
+            dragInstance.current?.update();
           }
         });
         resizeInstances.current.push(instance);
@@ -203,6 +222,7 @@ const WindowWrapper = (Component, windowKey) => {
       return () => {
         dragInstance.current?.kill();
         resizeInstances.current.forEach(i => i.kill());
+        observer.disconnect();
       };
     }, [isMobile]);
 
@@ -227,7 +247,6 @@ const WindowWrapper = (Component, windowKey) => {
           </div>
         )}
 
-        {/* Kept mounted to not destroy GSAP hooks, simply hidden via CSS when maximized */}
         {!isMobile && (
           <div className={isMaximized ? "hidden pointer-events-none" : ""}>
             <div className="resizer-n absolute top-0 left-0 w-full h-1.5 cursor-ns-resize z-50" />

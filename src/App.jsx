@@ -1,7 +1,8 @@
-import React, { Suspense, lazy, useState } from "react";
+import React, { Suspense, lazy, useState, useEffect } from "react";
 import gsap from "gsap";
 import { Draggable } from "gsap/Draggable";
 import BootSequence from "#components/BootSequence.jsx";
+import { loader } from "@monaco-editor/react";
 const Navbar = lazy(() => import("#components/Navbar.jsx"));
 const Welcome = lazy(() => import("#components/Welcome.jsx"));
 const Dock = lazy(() => import("#components/Dock.jsx"));
@@ -30,6 +31,16 @@ if (typeof window !== "undefined") {
 
 const App = () => {
   const [isBooted, setIsBooted] = useState(false);
+  useEffect(() => {
+    if (isBooted) {
+      loader.init().then(() => {
+        console.log("%c[System] ZED Code Engine preloaded in the background.", "color: #a6e3a1; background: #1e1e2e; padding: 2px 6px; border-radius: 4px;");
+      }).catch((err) => {
+        console.warn("Failed to preload Monaco Editor", err);
+      });
+    }
+  }, [isBooted]);
+
   return (
     <>
       {!isBooted && <BootSequence onComplete={() => setIsBooted(true)} />}
