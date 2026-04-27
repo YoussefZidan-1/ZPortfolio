@@ -7,5 +7,17 @@ import BootSequence from "#components/BootSequence.jsx";
 import ControlCenter from "#components/ControlCenter.jsx";
 import ContextMenu from "#components/ContextMenu.jsx";
 import Spotlight from "#components/Spotlight.jsx";
+import SpotlightHint from "#components/SpotlightHint.jsx";
 
-export { Navbar, Welcome, Dock, WindowControls, Home, BootSequence, ControlCenter, ContextMenu, Spotlight };
+export { 
+  Navbar, 
+  Welcome, 
+  Dock, 
+  WindowControls, 
+  Home, 
+  BootSequence, 
+  ControlCenter, 
+  ContextMenu, 
+  Spotlight, 
+  SpotlightHint,
+};
