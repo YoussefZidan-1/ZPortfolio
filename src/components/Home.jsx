@@ -174,7 +174,7 @@ const Home = () => {
     });
   };
 
-  const handlePointerDown = (e, item) => {
+  const handlePointerDown = (e) => {
     pointerPos.current = { x: e.clientX, y: e.clientY };
     longPressTimer.current = setTimeout(() => {
       setIsEditMode(true);
