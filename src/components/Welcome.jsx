@@ -1,4 +1,4 @@
-import { ProximityText } from "../proximity-engine/ProximityText.jsx";
+import { ProximityText } from "z-proximity-engine";
 
 const Welcome = () => {
   return (

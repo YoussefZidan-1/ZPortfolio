@@ -11,7 +11,7 @@ import { useWebHaptics } from "web-haptics/react";
 import { memo, useRef, useLayoutEffect } from "react";
 import { flushSync } from "react-dom";
 import { Tooltip } from "react-tooltip";
-import { Proximity } from "../proximity-engine/Proximity.jsx";
+import { Proximity } from "z-proximity-engine";
 
 gsap.registerPlugin(Draggable, Flip);
 

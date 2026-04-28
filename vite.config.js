@@ -40,6 +40,7 @@ export default defineConfig({
               if (id.includes('@monaco-editor')) return 'editor';
               if (id.includes('react-pdf') || id.includes('pdfjs-dist')) return 'pdf';
               if (id.includes('gsap')) return 'gsap';
+              if (id.includes('z-proximity-rngine')) return 'z-proximity-rngine';
               if (id.includes('react') || id.includes('zustand') || id.includes('immer')) return 'vendor';
             }
           }
