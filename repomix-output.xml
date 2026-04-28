@@ -105,9 +105,6 @@ src/constants/index.js
 src/hoc/WindowWrapper.jsx
 src/index.css
 src/main.jsx
-src/proximity-engine/Proximity.jsx
-src/proximity-engine/ProximityContext.jsx
-src/proximity-engine/ProximityText.jsx
 src/store/location.js
 src/store/settings.js
 src/store/window.js
@@ -573,111 +570,6 @@ const ControlCenter = memo(({ isOpen }) => {
 export default ControlCenter;
 </file>
 
-<file path="src/proximity-engine/ProximityContext.jsx">
-import { createContext, useContext } from "react";
-
-const ProximityContext = createContext({
-  defaultFont: "'Georama', sans-serif",
-});
-
-export const ProximityProvider = ({ children, config }) => {
-  return (
-    <ProximityContext.Provider value={{ ...config }}>
-      {children}
-    </ProximityContext.Provider>
-  );
-};
-
-export const useProximityConfig = () => useContext(ProximityContext);
-</file>
-
-<file path="src/proximity-engine/ProximityText.jsx">
-import { Fragment, useMemo } from "react";
-import { Proximity } from "./Proximity";
-import { useProximityConfig } from "./ProximityContext";
-export const ProximityText = ({
-  text,
-  splitBy = "letter",
-  className = "",
-  textClassName = "",
-  fontFamily,
-  lineHeight = 1.2,
-  letterSpacing = 0,
-  wordSpacing = 0.25,
-  clipFix = "0.2em",
-  ...proximityProps
-}) => {
-  const globalConfig = useProximityConfig();
-  const actualFontFamily = fontFamily || globalConfig.defaultFont;
-
-  const containerStyle = useMemo(() => {
-    const base = { 
-      display: "flex", 
-      fontFamily: actualFontFamily,
-      lineHeight: lineHeight,
-      letterSpacing: `${letterSpacing}em`,
-      textAlign: "center",
-      justifyContent: "center"
-    };
-    if (splitBy === "word") return { ...base, flexWrap: "wrap", columnGap: `${wordSpacing}em`, rowGap: "0.1em" };
-    if (splitBy === "line") return { ...base, display: "block" };
-    return { ...base, flexWrap: "wrap" };
-  }, [splitBy, actualFontFamily, lineHeight, letterSpacing, wordSpacing]);
-
-  const renderedContent = useMemo(() => {
-    const itemStyle = {
-      display: "inline-block",
-      userSelect: "none",
-      willChange: "transform, filter, opacity",
-      padding: clipFix,
-      margin: clipFix ? `-${clipFix}` : "0",
-    };
-
-    const formattedText = text;
-
-    if (splitBy === "word") {
-      return formattedText.split("\n").map((line, lineIdx) => (
-        <Fragment key={lineIdx}>
-          {line.split(" ").map((word, i) => (
-            <span key={i} aria-hidden="true" className={`prox-part ${textClassName}`} style={itemStyle}>{word}</span>
-          ))}
-          {lineIdx < formattedText.split("\n").length - 1 && <div style={{ width: "100%" }} />}
-        </Fragment>
-      ));
-    }
-
-    if (splitBy === "line") {
-      return formattedText.split("\n").map((line, i) => (
-        <Fragment key={i}>
-          <span aria-hidden="true" className={`prox-part ${textClassName}`} style={itemStyle}>{line}</span>
-          {i < formattedText.split("\n").length - 1 && <br />}
-        </Fragment>
-      ));
-    }
-
-    return [...formattedText].map((char, i) => {
-      if (char === "\n") {
-        return <div key={i} style={{ width: "100%", height: 0 }} />;
-      }
-      return (
-        <span aria-hidden="true" key={i} className={`prox-part ${textClassName}`} style={{ ...itemStyle, whiteSpace: char === " " ? "pre" : "normal" }}>
-          {char}
-        </span>
-      );
-    });
-
-  },[text, splitBy, textClassName, clipFix]);
-
-  return (
-    <Proximity selector=".prox-part" className={className} {...proximityProps}>
-      <div aria-label={text} role="img" style={containerStyle}>
-        {renderedContent}
-      </div>
-    </Proximity>
-  );
-};
-</file>
-
 <file path="src/store/location.js">
 import { locations } from "#constants";
 import { create } from "zustand";
@@ -1037,53 +929,6 @@ const Search = ({ size, className }) => (
 );
 
 export default SpotlightHint;
-</file>
-
-<file path="src/components/Welcome.jsx">
-import { ProximityText } from "../proximity-engine/ProximityText.jsx";
-
-const Welcome = () => {
-  return (
-    <section id="welcome" className="max-md:hidden pointer-events-none w-full">
-      <ProximityText
-        text="Hey, I'm Yousef Zedan! Welcome to my"
-        preset="opacity-y"
-        splitBy="letter"
-        global={true}
-        ignoreSelectors={[".os-window"]}
-        config={{
-          duration: 1.5,
-          resetDuration: 1.5,
-          ease: "elastic",
-          resetEase: "elastic"
-        }}
-        reach={0.6}
-        falloff={2}
-        className="cursor-default text-center px-4"
-        textClassName="text-[5vw] sm:text-2xl md:text-3xl font-georama font-[150]"
-      />
-      <ProximityText
-        text="ZPortfolio"
-        preset="weight"
-        global={true}
-        ignoreSelectors={[".os-window"]}
-        config={{
-          duration: 1,
-          resetDuration: 1,
-          weight: [400, 900],
-          ease: "elastic",
-          resetEase: "elastic"
-        }}
-        reach={0.5}
-        falloff={2}
-        className="mt-4 md:mt-7 cursor-default text-center"
-        textClassName="text-[10.5vw] sm:text-7xl md:text-9xl italic font-georama"
-      />
-    </section>
-  );
-};
-
-export default Welcome;
 </file>
 
 <file path="src/store/settings.js">
@@ -1611,6 +1456,53 @@ const Spotlight = () => {
 export default Spotlight;
 </file>
 
+<file path="src/components/Welcome.jsx">
+import { ProximityText } from "z-proximity-engine";
+
+const Welcome = () => {
+  return (
+    <section id="welcome" className="max-md:hidden pointer-events-none w-full">
+      <ProximityText
+        text="Hey, I'm Yousef Zedan! Welcome to my"
+        preset="opacity-y"
+        splitBy="letter"
+        global={true}
+        ignoreSelectors={[".os-window"]}
+        config={{
+          duration: 1.5,
+          resetDuration: 1.5,
+          ease: "elastic",
+          resetEase: "elastic"
+        }}
+        reach={0.6}
+        falloff={2}
+        className="cursor-default text-center px-4"
+        textClassName="text-[5vw] sm:text-2xl md:text-3xl font-georama font-[150]"
+      />
+      <ProximityText
+        text="ZPortfolio"
+        preset="weight"
+        global={true}
+        ignoreSelectors={[".os-window"]}
+        config={{
+          duration: 1,
+          resetDuration: 1,
+          weight: [400, 900],
+          ease: "elastic",
+          resetEase: "elastic"
+        }}
+        reach={0.5}
+        falloff={2}
+        className="mt-4 md:mt-7 cursor-default text-center"
+        textClassName="text-[10.5vw] sm:text-7xl md:text-9xl italic font-georama"
+      />
+    </section>
+  );
+};
+
+export default Welcome;
+</file>
+
 <file path="src/windows/Finder.jsx">
 import { useState } from "react";
 import { WindowControls } from "#components";
@@ -1713,115 +1605,6 @@ const Finder = () => {
 const FinderWindow = WindowWrapper(Finder, "finder");
 
 export default FinderWindow;
-</file>
-
-<file path="vite.config.js">
-import { defineConfig, normalizePath } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import { resolve, dirname, join } from 'path'
-import { fileURLToPath } from 'url'
-import { viteStaticCopy } from 'vite-plugin-static-copy'
-import { createRequire } from 'node:module'
-
-const require = createRequire(import.meta.url)
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const pdfjsDistPath = dirname(require.resolve('pdfjs-dist/package.json'))
-const cMapsDir = normalizePath(join(pdfjsDistPath, 'cmaps'))
-const standardFontsDir = normalizePath(join(pdfjsDistPath, 'standard_fonts'))
-
-export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-    viteStaticCopy({
-      targets: [
-        { src: cMapsDir, dest: '' },
-        { src: standardFontsDir, dest: '' }
-      ],
-    }),
-  ],
-  resolve: {
-    alias: {
-      '#components': resolve(__dirname, 'src/components'),
-      '#constants': resolve(__dirname, 'src/constants'),
-      '#store': resolve(__dirname, 'src/store'),
-      '#hoc': resolve(__dirname, 'src/hoc'),
-      '#windows': resolve(__dirname, 'src/windows'),
-    },
-  },
-  build: {
-      rollupOptions: {
-        output: {
-          manualChunks(id) {
-            if (id.includes('node_modules')) {
-              if (id.includes('@monaco-editor')) return 'editor';
-              if (id.includes('react-pdf') || id.includes('pdfjs-dist')) return 'pdf';
-              if (id.includes('gsap')) return 'gsap';
-              if (id.includes('react') || id.includes('zustand') || id.includes('immer')) return 'vendor';
-            }
-          }
-        }
-      },
-      modulePreload: {
-        resolveDependencies: (filename, deps) => {
-          return deps.filter(dep => !dep.includes('pdf') && !dep.includes('editor'));
-        }
-      }
-  }
-})
-</file>
-
-<file path="package.json">
-{
-  "name": "zportfolio",
-  "private": false,
-  "version": "1.0.0",
-  "author": "Yousef Zedan (ZED Studios) <zedstudios.devs@gmail.com>",
-  "license": "MIT",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@fontsource-variable/geist": "^5.2.8",
-    "@gsap/react": "^2.1.2",
-    "@monaco-editor/react": "^4.7.0",
-    "@tailwindcss/vite": "^4.2.2",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "dayjs": "^1.11.20",
-    "gsap": "^3.14.2",
-    "immer": "^11.1.4",
-    "lucide-react": "^1.7.0",
-    "monaco-editor": "^0.53.0",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-pdf": "^10.4.1",
-    "react-tooltip": "^5.30.0",
-    "tailwind-merge": "^3.5.0",
-    "tailwindcss": "^4.2.2",
-    "tw-animate-css": "^1.4.0",
-    "use-sound": "^5.0.0",
-    "web-haptics": "^0.0.6",
-    "zustand": "^5.0.12"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.4",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
-    "eslint": "^9.39.4",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
-    "globals": "^17.4.0",
-    "vite": "^8.0.1",
-    "vite-plugin-static-copy": "^4.0.0"
-  }
-}
 </file>
 
 <file path="src/components/ContextMenu.jsx">
@@ -2475,6 +2258,117 @@ export {
 };
 </file>
 
+<file path="vite.config.js">
+import { defineConfig, normalizePath } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+import { resolve, dirname, join } from 'path'
+import { fileURLToPath } from 'url'
+import { viteStaticCopy } from 'vite-plugin-static-copy'
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const pdfjsDistPath = dirname(require.resolve('pdfjs-dist/package.json'))
+const cMapsDir = normalizePath(join(pdfjsDistPath, 'cmaps'))
+const standardFontsDir = normalizePath(join(pdfjsDistPath, 'standard_fonts'))
+
+export default defineConfig({
+  plugins: [
+    react(),
+    tailwindcss(),
+    viteStaticCopy({
+      targets: [
+        { src: cMapsDir, dest: '' },
+        { src: standardFontsDir, dest: '' }
+      ],
+    }),
+  ],
+  resolve: {
+    alias: {
+      '#components': resolve(__dirname, 'src/components'),
+      '#constants': resolve(__dirname, 'src/constants'),
+      '#store': resolve(__dirname, 'src/store'),
+      '#hoc': resolve(__dirname, 'src/hoc'),
+      '#windows': resolve(__dirname, 'src/windows'),
+    },
+  },
+  build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('@monaco-editor')) return 'editor';
+              if (id.includes('react-pdf') || id.includes('pdfjs-dist')) return 'pdf';
+              if (id.includes('gsap')) return 'gsap';
+              if (id.includes('z-proximity-rngine')) return 'z-proximity-rngine';
+              if (id.includes('react') || id.includes('zustand') || id.includes('immer')) return 'vendor';
+            }
+          }
+        }
+      },
+      modulePreload: {
+        resolveDependencies: (filename, deps) => {
+          return deps.filter(dep => !dep.includes('pdf') && !dep.includes('editor'));
+        }
+      }
+  }
+})
+</file>
+
+<file path="package.json">
+{
+  "name": "zportfolio",
+  "private": false,
+  "version": "1.0.0",
+  "author": "Yousef Zedan (ZED Studios) <zedstudios.devs@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.2.8",
+    "@gsap/react": "^2.1.2",
+    "@monaco-editor/react": "^4.7.0",
+    "@tailwindcss/vite": "^4.2.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "dayjs": "^1.11.20",
+    "gsap": "^3.15.0",
+    "immer": "^11.1.4",
+    "lucide-react": "^1.7.0",
+    "monaco-editor": "^0.53.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-pdf": "^10.4.1",
+    "react-tooltip": "^5.30.0",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.2",
+    "tw-animate-css": "^1.4.0",
+    "use-sound": "^5.0.0",
+    "web-haptics": "^0.0.6",
+    "z-proximity-engine": "^1.0.3",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.4.0",
+    "vite": "^8.0.1",
+    "vite-plugin-static-copy": "^4.0.0"
+  }
+}
+</file>
+
 <file path="src/components/index.js">
 import Navbar from "#components/Navbar.jsx";
 import Welcome from "#components/Welcome.jsx";
@@ -2794,348 +2688,6 @@ const WindowControls = ({ target }) => {
 }
 
 export default WindowControls;
-</file>
-
-<file path="src/proximity-engine/Proximity.jsx">
-import { useRef } from "react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
-
-const PRESET_DEFAULTS = {
-  scale: [1, 1.5],
-  y:[0, -30],
-  opacity:[0.2, 1],
-  blur: [8, 0],
-  rotate:[0, 90],
-  weight:[100, 900],
-};
-
-const EASE_MAP = {
-  smooth: "power1.inOut",
-  heavy: "power4.out",
-  sharp: "expo.out",
-  fluid: "circ.inOut",
-  bouncy: "back.out(1.7)",
-  elastic: "elastic.out(1, 0.3)",
-  jello: "elastic.out(1.5, 0.2)",
-  bounce: "bounce.out",
-  swing: "back.inOut(3)",
-  vibrate: "rough({ strength: 2, points: 20, template: 'none', taper: 'none', randomize: true })",
-  robot: "steps(8)",
-  ghost: "slow(0.6, 0.8, false)",
-  expo: "expo.inOut",
-  circus: "back.out(4)",
-  glitch: "rough({ template: 'none', strength: 3, points: 50, taper: 'both', randomize: true })",
-  slowmo: "slow(0.7, 0.7, false)"
-};
-
-const debounce = (func, wait) => {
-  let timeout;
-  return (...args) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
-};
-
-const calculatePresetValues = (presetString, intensity, userConfig = {}, isReset = false) => {
-  const props = presetString.split("-");
-  const result = {};
-
-  props.forEach((prop) => {
-    const bounds = userConfig[prop] || PRESET_DEFAULTS[prop];
-    if (!bounds) return;
-
-    const [base, max] = bounds;
-    const currentValue = isReset ? base : base + (max - base) * intensity;
-
-    if (prop === "blur") {
-      result.filter = `blur(${currentValue}px)`;
-    } else if (prop === "weight") {
-      const weightVal = Math.round(currentValue);
-      result.fontWeight = weightVal;
-      result.fontVariationSettings = `'wght' ${weightVal}`;
-    } else if (prop === "rotate") {
-      result.rotation = currentValue;
-    } else {
-      result[prop] = currentValue;
-    }
-  });
-
-  return result;
-};
-
-export const Proximity = ({
-  children,
-  selector = ".prox-item",
-  config = {},
-  preset = "",
-  reach = 2,
-  falloff = 2.4,
-  duration = 0.2,
-  resetDuration = 0.4,
-  global = false,
-  onCalculate,
-  onReset,
-  ease,
-  resetEase,
-  scale,
-  y,
-  opacity,
-  blur,
-  rotate,
-  weight,
-  ignoreSelectors =[], 
-  className = "",
-  style = {},
-  ...restProps
-}) => {
-  const containerRef = useRef(null);
-
-  const activeReach = config.reach ?? reach;
-  const activeFalloff = config.falloff ?? falloff;
-  const activeDuration = config.duration ?? duration;
-  const activeResetDuration = config.resetDuration ?? resetDuration;
-  const activeGlobal = config.global ?? global;
-  const activePreset = config.preset ?? preset;
-  const activeOnCalculate = config.onCalculate ?? onCalculate;
-  const activeOnReset = config.onReset ?? onReset;
-
-  const rawEase = config.ease ?? ease ?? "power1.out";
-  const targetEase = EASE_MAP[rawEase] || rawEase;
-
-  const rawResetEase = config.resetEase ?? resetEase ?? "power2.out";
-  const targetResetEase = EASE_MAP[rawResetEase] || rawResetEase;
-
-  const mergedBounds = {
-    scale: config.scale ?? scale,
-    y: config.y ?? y,
-    opacity: config.opacity ?? opacity,
-    blur: config.blur ?? blur,
-    rotate: config.rotate ?? rotate,
-    weight: config.weight ?? weight,
-  };
-
-  useGSAP(() => {
-      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-     if (prefersReducedMotion) return;
-      const container = containerRef.current;
-      if (!container) return;
-    
-      let items = [];
-      let states = [];
-      let centers = [];
-      let setters =[];
-      let animationFrameId;
-      const updateCenters = () => {
-        centers = items.map((item) => {
-          const rect = item.getBoundingClientRect();
-          return {
-            left: rect.left + window.scrollX,
-            right: rect.right + window.scrollX,
-            top: rect.top + window.scrollY,
-            bottom: rect.bottom + window.scrollY,
-            x: rect.left + window.scrollX + rect.width / 2,
-            y: rect.top + window.scrollY + rect.height / 2,
-          };
-        });
-      };
-  
-      const debouncedUpdateCenters = debounce(updateCenters, 200);
-  
-      const setInitialState = () => {
-        let initialProps = activeOnReset ? activeOnReset() : (activePreset ? calculatePresetValues(activePreset, 0, mergedBounds, true) : {});
-        initialProps.willChange = "transform, filter, opacity, font-variation-settings";
-        if (Object.keys(initialProps).length > 0 && items.length > 0) gsap.set(items, initialProps);
-      };
-  
-      const initItems = () => {
-              if (items.length > 0) gsap.killTweensOf(items);
-              items = Array.from(container.querySelectorAll(selector));
-              states = items.map(() => ({ isOutside: true }));
-              setters = items.map(item => ({
-                intensity: gsap.quickSetter(item, "--prox-intensity"),
-                dx: gsap.quickSetter(item, "--prox-dx", "px"),
-                dy: gsap.quickSetter(item, "--prox-dy", "px")
-              }));
-              requestAnimationFrame(() => {
-                updateCenters();
-                setInitialState();
-              });
-            };
-  
-      if (document.fonts) {
-        document.fonts.ready.then(initItems);
-      } else {
-        initItems();
-      }
-
-      const observer = new MutationObserver((mutationsList) => {
-        if (!container) return;
-      
-        let needsReinit = false;
-      
-        for (const mutation of mutationsList) {
-          if (mutation.type === "childList") {
-            const hasRelevantAdditions = Array.from(mutation.addedNodes).some(
-              (node) =>
-                node.nodeType === 1 &&
-                (node.matches(selector) || node.querySelector(selector))
-            );
-      
-            const hasRelevantRemovals = Array.from(mutation.removedNodes).some(
-              (node) =>
-                node.nodeType === 1 &&
-                (node.matches(selector) || node.querySelector(selector))
-            );
-      
-            if (hasRelevantAdditions || hasRelevantRemovals) {
-              needsReinit = true;
-              break;
-            }
-          }
-        }
-      
-        if (needsReinit) {
-          initItems();
-        }
-      });
-      
-      observer.observe(container, { childList: true, subtree: true });
-  
-      window.addEventListener("resize", debouncedUpdateCenters);
-  
-      const actualSpread = activeReach * 10000;
-      const maxDistance = activeReach * 200;
-  
-      const handlePointerMove = (e) => {
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
-        animationFrameId = requestAnimationFrame(() => {
-          const mouseX = e.pageX;
-          const mouseY = e.pageY;
-  
-          const isBlocked = ignoreSelectors.length > 0 && ignoreSelectors.some((sel) => e.target?.closest?.(sel));
-  
-          items.forEach((item, i) => {
-            const bounds = centers[i];
-            if (!bounds) return;
-            
-            let distance;
-  
-            if (isBlocked) {
-              distance = Infinity;
-            } else {
-              const dxEdge = Math.max(bounds.left - mouseX, 0, mouseX - bounds.right);
-              const dyEdge = Math.max(bounds.top - mouseY, 0, mouseY - bounds.bottom);
-              distance = Math.sqrt(dxEdge * dxEdge + dyEdge * dyEdge);
-            }
-  
-            if (distance > maxDistance) {
-              if (!states[i].isOutside) {
-                const resetProps = activeOnReset ? activeOnReset() : (activePreset ? calculatePresetValues(activePreset, 0, mergedBounds, true) : {});
-                gsap.to(item, {
-                  ...resetProps,
-                  "--prox-intensity": 0,
-                  duration: activeResetDuration,
-                  overwrite: true,
-                  ease: targetResetEase,
-                });
-                states[i].isOutside = true;
-              }
-              return;
-            }
-  
-            const intensity = Math.exp(-(Math.pow(distance, activeFalloff)) / actualSpread);
-  
-            setters[i].intensity(intensity.toFixed(3));
-            setters[i].dx(mouseX - bounds.x);
-            setters[i].dy(mouseY - bounds.y);
-  
-            const animationProps = activeOnCalculate ? activeOnCalculate(intensity, distance) : (activePreset ? calculatePresetValues(activePreset, intensity, mergedBounds, false) : {});
-  
-            gsap.to(item, {
-              ...animationProps,
-              duration: activeDuration,
-              overwrite: true,
-              ease: targetEase,
-            });
-            
-            states[i].isOutside = false;
-          });
-        });
-      };
-  
-      const handlePointerLeave = () => {
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
-        const resetProps = activeOnReset ? activeOnReset() : (activePreset ? calculatePresetValues(activePreset, 0, mergedBounds, true) : {});
-        
-        const activeItems =[];
-        items.forEach((item, i) => {
-          if (!states[i].isOutside) {
-            activeItems.push(item);
-            states[i].isOutside = true;
-          }
-        });
-  
-        if (activeItems.length > 0) {
-          gsap.to(activeItems, {
-            ...resetProps,
-            "--prox-intensity": 0,
-            duration: activeResetDuration,
-            overwrite: true,
-            ease: targetResetEase,
-          });
-        }
-      };
-  
-      const handleTouchMove = (e) => {
-        if (e.touches && e.touches.length > 0) {
-          handlePointerMove({ pageX: e.touches[0].pageX, pageY: e.touches[0].pageY, target: e.target });
-        }
-      };
-  
-      const targetElement = activeGlobal ? window : container;
-      targetElement.addEventListener("pointermove", handlePointerMove);
-      targetElement.addEventListener("pointerleave", handlePointerLeave);
-      targetElement.addEventListener("pointerup", handlePointerLeave);
-      targetElement.addEventListener("pointercancel", handlePointerLeave);
-      targetElement.addEventListener("touchmove", handleTouchMove, { passive: true });
-      targetElement.addEventListener("touchstart", handleTouchMove, { passive: true });
-      targetElement.addEventListener("touchend", handlePointerLeave);
-      targetElement.addEventListener("touchcancel", handlePointerLeave);
-  
-      return () => {
-        observer.disconnect(); // 5. Clean up the observer!
-        window.removeEventListener("resize", debouncedUpdateCenters);
-        targetElement.removeEventListener("pointermove", handlePointerMove);
-        targetElement.removeEventListener("pointerleave", handlePointerLeave);
-        targetElement.removeEventListener("pointerup", handlePointerLeave);
-        targetElement.removeEventListener("pointercancel", handlePointerLeave);
-        targetElement.removeEventListener("touchmove", handleTouchMove);
-        targetElement.removeEventListener("touchstart", handleTouchMove);
-        targetElement.removeEventListener("touchend", handlePointerLeave);
-        targetElement.removeEventListener("touchcancel", handlePointerLeave);
-        gsap.killTweensOf(items); 
-      };
-    },[
-      selector, 
-      activePreset, 
-      activeReach, 
-      activeFalloff, 
-      activeDuration, 
-      activeResetDuration, 
-      activeGlobal, 
-      JSON.stringify(mergedBounds), 
-      ignoreSelectors.join(','),
-      targetEase,
-      targetResetEase
-    ]);
-
-  return (
-    <div ref={containerRef} className={className} style={{ position: 'relative', touchAction: 'none', ...style }} {...restProps}>
-      {children}
-    </div>
-  );
-};
 </file>
 
 <file path="src/App.jsx">
@@ -6010,7 +5562,7 @@ import { useWebHaptics } from "web-haptics/react";
 import { memo, useRef, useLayoutEffect } from "react";
 import { flushSync } from "react-dom";
 import { Tooltip } from "react-tooltip";
-import { Proximity } from "../proximity-engine/Proximity.jsx";
+import { Proximity } from "z-proximity-engine";
 
 gsap.registerPlugin(Draggable, Flip);
 
