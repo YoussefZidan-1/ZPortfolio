@@ -5,7 +5,7 @@ const Welcome = () => {
     <section id="welcome" className="max-md:hidden pointer-events-none w-full">
       <ProximityText
         text="Hey, I'm Yousef Zedan! Welcome to my"
-        preset="opacity-y"
+        preset="opacity-y-tiltCard"
         splitBy="letter"
         global={true}
         ignoreSelectors={[".os-window"]}
@@ -28,7 +28,7 @@ const Welcome = () => {
         config={{
           duration: 1,
           resetDuration: 1,
-          weight: [400, 900],
+          weight: [500, 900],
           ease: "elastic",
           resetEase: "elastic"
         }}
