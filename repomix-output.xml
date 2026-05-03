@@ -2316,85 +2316,6 @@ export default defineConfig({
 })
 </file>
 
-<file path="src/components/index.js">
-import Navbar from "#components/Navbar.jsx";
-import Welcome from "#components/Welcome.jsx";
-import Dock from "#components/Dock.jsx"
-import WindowControls from "#components/WindowControls.jsx";
-import Home from "#components/Home.jsx";
-import BootSequence from "#components/BootSequence.jsx";
-import ControlCenter from "#components/ControlCenter.jsx";
-import ContextMenu from "#components/ContextMenu.jsx";
-import Spotlight from "#components/Spotlight.jsx";
-import SpotlightHint from "#components/SpotlightHint.jsx";
-
-export { 
-  Navbar, 
-  Welcome, 
-  Dock, 
-  WindowControls, 
-  Home, 
-  BootSequence, 
-  ControlCenter, 
-  ContextMenu, 
-  Spotlight, 
-  SpotlightHint,
-};
-</file>
-
-<file path="package.json">
-{
-  "name": "zportfolio",
-  "private": false,
-  "version": "1.0.0",
-  "author": "Yousef Zedan (ZED Studios) <zedstudios.devs@gmail.com>",
-  "license": "MIT",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@fontsource-variable/geist": "^5.2.8",
-    "@gsap/react": "^2.1.2",
-    "@monaco-editor/react": "^4.7.0",
-    "@tailwindcss/vite": "^4.2.2",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "dayjs": "^1.11.20",
-    "gsap": "^3.15.0",
-    "immer": "^11.1.4",
-    "lucide-react": "^1.7.0",
-    "monaco-editor": "^0.53.0",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-pdf": "^10.4.1",
-    "react-tooltip": "^5.30.0",
-    "tailwind-merge": "^3.5.0",
-    "tailwindcss": "^4.2.2",
-    "tw-animate-css": "^1.4.0",
-    "use-sound": "^5.0.0",
-    "web-haptics": "^0.0.6",
-    "z-proximity-engine": "^1.5.1",
-    "zustand": "^5.0.12"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.4",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
-    "eslint": "^9.39.4",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
-    "globals": "^17.4.0",
-    "vite": "^8.0.1",
-    "vite-plugin-static-copy": "^4.0.0"
-  }
-}
-</file>
-
 <file path="README.md">
 # 💻 ZPortfolio — MacOS Inspired Creative Portfolio
 
@@ -2515,6 +2436,85 @@ src/
 ## 📝 License
 
 Distributed under the **MIT License**. See `LICENSE` for more information.
+</file>
+
+<file path="src/components/index.js">
+import Navbar from "#components/Navbar.jsx";
+import Welcome from "#components/Welcome.jsx";
+import Dock from "#components/Dock.jsx"
+import WindowControls from "#components/WindowControls.jsx";
+import Home from "#components/Home.jsx";
+import BootSequence from "#components/BootSequence.jsx";
+import ControlCenter from "#components/ControlCenter.jsx";
+import ContextMenu from "#components/ContextMenu.jsx";
+import Spotlight from "#components/Spotlight.jsx";
+import SpotlightHint from "#components/SpotlightHint.jsx";
+
+export { 
+  Navbar, 
+  Welcome, 
+  Dock, 
+  WindowControls, 
+  Home, 
+  BootSequence, 
+  ControlCenter, 
+  ContextMenu, 
+  Spotlight, 
+  SpotlightHint,
+};
+</file>
+
+<file path="package.json">
+{
+  "name": "zportfolio",
+  "private": false,
+  "version": "1.0.0",
+  "author": "Yousef Zedan (ZED Studios) <zedstudios.devs@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.2.8",
+    "@gsap/react": "^2.1.2",
+    "@monaco-editor/react": "^4.7.0",
+    "@tailwindcss/vite": "^4.2.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "dayjs": "^1.11.20",
+    "gsap": "^3.15.0",
+    "immer": "^11.1.4",
+    "lucide-react": "^1.7.0",
+    "monaco-editor": "^0.53.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-pdf": "^10.4.1",
+    "react-tooltip": "^5.30.0",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.2",
+    "tw-animate-css": "^1.4.0",
+    "use-sound": "^5.0.0",
+    "web-haptics": "^0.0.6",
+    "z-proximity-engine": "^1.5.1",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.4.0",
+    "vite": "^8.0.1",
+    "vite-plugin-static-copy": "^4.0.0"
+  }
+}
 </file>
 
 <file path="src/components/Navbar.jsx">
