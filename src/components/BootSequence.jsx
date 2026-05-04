@@ -283,7 +283,7 @@ const BootSequence = ({ onComplete }) => {
     } else {
       trigger("error");
       setErrorMsg(
-        "it's 1234 baka — i am a creative developer, for sure that's my bank password!"
+        "it's 1234 stupid! — i am a creative developer, for sure that's my bank password!"
       );
       gsap.fromTo(
         ".login-box",
@@ -379,11 +379,14 @@ const BootSequence = ({ onComplete }) => {
               <img
                 src="/images/yousef-5.webp"
                 alt="Yousef Zedan"
-                className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover shadow-2xl mb-5 border-[3px] border-white/20"
+                className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover shadow-2xl mb-5 mt-5 border-[3px] border-white/20"
               />
-              <h2 className="text-xl md:text-2xl font-bold mb-6 tracking-wide text-white drop-shadow-md font-georama">
+              <h2 className="text-xl md:text-2xl font-bold mb-6 mt-6 tracking-wide text-white drop-shadow-md font-georama">
                 Yousef Zedan
               </h2>
+              <h3 className="text-sm md:text-base mb-6 mt-6 tracking-wide text-gray-500 drop-shadow-md font-georama">
+                hint: 1234
+              </h3>
 
               <form
                 onSubmit={handleLogin}
@@ -392,7 +395,7 @@ const BootSequence = ({ onComplete }) => {
                 <input
                   type="password"
                   autoFocus
-                  placeholder="come on try don't be shy"
+                  placeholder="Type the password..."
                   className="w-full bg-white/10 border border-white/20 rounded-full px-5 py-3.5 text-center text-white placeholder:text-white/60 outline-none focus:bg-white/20 focus:border-white/40 backdrop-blur-xl transition-all shadow-xl font-georama text-[15px]"
                   value={password}
                   onChange={(e) => {
