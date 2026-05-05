@@ -162,10 +162,10 @@ const socials = [
   },
   {
     id: 3,
-    text: "X",
-    icon: "/icons/twitter.svg",
-    bg: "#000000",
-    link: "https://x.com/YousefZeda59629",
+    text: "Instagram",
+    icon: "/icons/instagram.svg",
+    bg: "#c822d4",
+    link: "https://www.instagram.com/yousef__zedan1/",
   },
   {
     id: 4,

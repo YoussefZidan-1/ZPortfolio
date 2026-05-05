@@ -25,6 +25,7 @@ const useWindowStore = create(
         const win = state.windows[windowKey];
         if (!win) return;
         win.isOpen = true;
+        win.isMaximized = false;
         win.zIndex = state.nextZIndex;
         win.data = data ?? win.data;
         win.launchPos = launchPos;

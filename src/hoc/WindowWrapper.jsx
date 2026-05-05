@@ -1,3 +1,5 @@
+// src/hoc/WindowWrapper.jsx
+
 import useWindowStore from "#store/window.js";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -26,8 +28,9 @@ const WindowWrapper = (Component, windowKey) => {
     const ref = useRef(null);
     const dragInstance = useRef(null);
     const resizeInstances = useRef([]);
-    const [isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
+    const[isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
     const preMaxState = useRef(null);
+    const prevMaximized = useRef(isMaximized); // Added to track intentional maximize clicks
     const[isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
 
     useEffect(() => {
@@ -72,13 +75,31 @@ const WindowWrapper = (Component, windowKey) => {
           gsap.fromTo(el, { scale: 0.9, opacity: 0, yPercent: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)", overwrite: "auto" });
         }
       } else {
+        // Grab the restore dimensions instantly when closing, then null it
+        const restoreState = preMaxState.current;
+        preMaxState.current = null;
+
         if (isMobile) {
           gsap.to(el, { opacity: 0, scale: 0.9, duration: 0.25, ease: "power3.in", overwrite: "auto", onComplete: () => setIsActuallyVisible(false) });
         } else {
-          gsap.to(el, { scale: 0.8, opacity: 0, duration: 0.25, ease: "power2.in", overwrite: "auto", onComplete: () => setIsActuallyVisible(false) });
+          gsap.to(el, { scale: 0.8, opacity: 0, duration: 0.25, ease: "power2.in", overwrite: "auto", onComplete: () => {
+             setIsActuallyVisible(false);
+             // Silently reset the dimensions to small size so it doesn't open fullscreen next time
+             if (restoreState) {
+               gsap.set(el, {
+                 x: restoreState.x,
+                 y: restoreState.y,
+                 width: restoreState.width,
+                 height: restoreState.height,
+                 borderRadius: "12px",
+                 maxWidth: "none",
+                 maxHeight: "none"
+               });
+             }
+          }});
         }
       }
-    },[isOpen, dataId, isMobile]);
+    }, [isOpen, dataId, isMobile]);
 
     // 2. MAXIMIZE ANIMATIONS
     const { contextSafe } = useGSAP();
@@ -86,7 +107,13 @@ const WindowWrapper = (Component, windowKey) => {
     useEffect(() => {
       if (isMobile) return;
       const el = ref.current;
-      if (!el || !isOpen) return;
+      
+      // Update ref to know if the value truly changed vs just re-rendering
+      const justChanged = prevMaximized.current !== isMaximized;
+      prevMaximized.current = isMaximized;
+
+      // Only run the animation if the user actively changed the maximized state
+      if (!el || !isOpen || !justChanged) return;
 
       const handleMaximize = contextSafe(() => {
         if (isMaximized) {
@@ -105,7 +132,7 @@ const WindowWrapper = (Component, windowKey) => {
             borderRadius: "0px", 
             duration: 0.5, 
             ease: "expo.inOut", 
-            overwrite: true 
+            overwrite: "auto" 
           });
         } else if (preMaxState.current) {
           gsap.to(el, { 
@@ -116,27 +143,25 @@ const WindowWrapper = (Component, windowKey) => {
             borderRadius: "12px", 
             duration: 0.5, 
             ease: "expo.inOut", 
-            overwrite: true, 
+            overwrite: "auto", 
             onComplete: () => dragInstance.current?.update() 
           });
         }
       });
       handleMaximize();
-    }, [isMaximized, isMobile, isOpen]);
+    },[isMaximized, isMobile, isOpen, contextSafe]);
 
-    // 3. DRAG & RESIZE SETUP (With Lazy-Load MutationObserver Fix)
+    // 3. DRAG & RESIZE SETUP
     useGSAP(() => {
       const el = ref.current;
       if (!el || isMobile) return;
 
       let drag;
-
-      // EXPERT FIX: Function to bind Draggable specifically to the header
       const setupDraggable = () => {
         const header = el.querySelector("#window-header");
         if (header && !drag) {
           drag = Draggable.create(el, {
-            trigger: header, // <--- Strictly binds dragging to the header ONLY!
+            trigger: header, 
             bounds: "main",
             dragClickables: true,
             allowEventDefault: true,
@@ -148,19 +173,16 @@ const WindowWrapper = (Component, windowKey) => {
         }
       };
 
-      // Try running it immediately
       setupDraggable();
 
-      // If the component is Suspended/Lazy-loading, watch the DOM until the header drops in
       const observer = new MutationObserver(() => {
         if (!drag && el.querySelector("#window-header")) {
           setupDraggable();
-          observer.disconnect(); // Kill the observer once hooked
+          observer.disconnect(); 
         }
       });
       observer.observe(el, { childList: true, subtree: true });
 
-      // Force cleanup of GSAP's aggressive touch-action properties on the container
       gsap.set(el, { clearProps: "userSelect,touchAction" });
       el.style.userSelect = "auto";
       el.style.touchAction = "auto";
