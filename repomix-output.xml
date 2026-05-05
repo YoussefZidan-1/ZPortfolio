@@ -954,62 +954,6 @@ const useSettingsStore = create((set) => ({
 export default useSettingsStore;
 </file>
 
-<file path="src/store/window.js">
-import { INITIAL_Z_INDEX, WINDOW_CONFIG, dockApps } from "#constants";
-import { create } from "zustand";
-import { immer } from "zustand/middleware/immer";
-
-const useWindowStore = create(
-  immer((set) => ({
-    windows: WINDOW_CONFIG,
-    dockItems: dockApps,
-    nextZIndex: INITIAL_Z_INDEX + 1,
-    removeDockItem: (id) => set((state) => {
-      if (id === 'finder' || id === 'trash') return;
-      state.dockItems = state.dockItems.filter(item => item.id !== id);
-    }),
-    moveDockItem: (id1, id2) => set((state) => {
-      const idx1 = state.dockItems.findIndex(i => i.id === id1);
-      const idx2 = state.dockItems.findIndex(i => i.id === id2);
-      if (idx1 === -1 || idx2 === -1 || idx1 === idx2) return;
-      
-      const temp = state.dockItems[idx1];
-      state.dockItems[idx1] = state.dockItems[idx2];
-      state.dockItems[idx2] = temp;
-    }),
-    openWindow: (windowKey, data = null, launchPos = null) =>
-      set((state) => {
-        const win = state.windows[windowKey];
-        if (!win) return;
-        win.isOpen = true;
-        win.zIndex = state.nextZIndex;
-        win.data = data ?? win.data;
-        win.launchPos = launchPos;
-        state.nextZIndex++;
-      }),
-    closeWindow: (windowKey) => set((state) => {
-      const win = state.windows[windowKey];
-      if (!win) return;
-      win.isOpen = false;
-      win.zIndex = INITIAL_Z_INDEX;
-      win.data = null;
-      win.launchPos = null;
-    }),
-    toggleMaximize: (windowKey) => set((state) => {
-      const win = state.windows[windowKey];
-      if (win) win.isMaximized = !win.isMaximized;
-    }),
-    focusWindow: (windowKey) => set((state) => {
-      const win = state.windows[windowKey];
-      if (!win) return;
-      win.zIndex = state.nextZIndex++;
-    }),
-  })),
-);
-
-export default useWindowStore;
-</file>
-
 <file path="src/windows/Photos.jsx">
 import { Mail, Search } from "lucide-react"
 import WindowWrapper from "#hoc/WindowWrapper"
@@ -1454,6 +1398,63 @@ const Spotlight = () => {
 };
 
 export default Spotlight;
+</file>
+
+<file path="src/store/window.js">
+import { INITIAL_Z_INDEX, WINDOW_CONFIG, dockApps } from "#constants";
+import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
+
+const useWindowStore = create(
+  immer((set) => ({
+    windows: WINDOW_CONFIG,
+    dockItems: dockApps,
+    nextZIndex: INITIAL_Z_INDEX + 1,
+    removeDockItem: (id) => set((state) => {
+      if (id === 'finder' || id === 'trash') return;
+      state.dockItems = state.dockItems.filter(item => item.id !== id);
+    }),
+    moveDockItem: (id1, id2) => set((state) => {
+      const idx1 = state.dockItems.findIndex(i => i.id === id1);
+      const idx2 = state.dockItems.findIndex(i => i.id === id2);
+      if (idx1 === -1 || idx2 === -1 || idx1 === idx2) return;
+      
+      const temp = state.dockItems[idx1];
+      state.dockItems[idx1] = state.dockItems[idx2];
+      state.dockItems[idx2] = temp;
+    }),
+    openWindow: (windowKey, data = null, launchPos = null) =>
+      set((state) => {
+        const win = state.windows[windowKey];
+        if (!win) return;
+        win.isOpen = true;
+        win.isMaximized = false;
+        win.zIndex = state.nextZIndex;
+        win.data = data ?? win.data;
+        win.launchPos = launchPos;
+        state.nextZIndex++;
+      }),
+    closeWindow: (windowKey) => set((state) => {
+      const win = state.windows[windowKey];
+      if (!win) return;
+      win.isOpen = false;
+      win.zIndex = INITIAL_Z_INDEX;
+      win.data = null;
+      win.launchPos = null;
+    }),
+    toggleMaximize: (windowKey) => set((state) => {
+      const win = state.windows[windowKey];
+      if (win) win.isMaximized = !win.isMaximized;
+    }),
+    focusWindow: (windowKey) => set((state) => {
+      const win = state.windows[windowKey];
+      if (!win) return;
+      win.zIndex = state.nextZIndex++;
+    }),
+  })),
+);
+
+export default useWindowStore;
 </file>
 
 <file path="src/windows/Finder.jsx">
@@ -1959,6 +1960,159 @@ const Welcome = () => {
 export default Welcome;
 </file>
 
+<file path="vite.config.js">
+import { defineConfig, normalizePath } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+import { resolve, dirname, join } from 'path'
+import { fileURLToPath } from 'url'
+import { viteStaticCopy } from 'vite-plugin-static-copy'
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const pdfjsDistPath = dirname(require.resolve('pdfjs-dist/package.json'))
+const cMapsDir = normalizePath(join(pdfjsDistPath, 'cmaps'))
+const standardFontsDir = normalizePath(join(pdfjsDistPath, 'standard_fonts'))
+
+export default defineConfig({
+  plugins: [
+    react(),
+    tailwindcss(),
+    viteStaticCopy({
+      targets: [
+        { src: cMapsDir, dest: '' },
+        { src: standardFontsDir, dest: '' }
+      ],
+    }),
+  ],
+  resolve: {
+    alias: {
+      '#components': resolve(__dirname, 'src/components'),
+      '#constants': resolve(__dirname, 'src/constants'),
+      '#store': resolve(__dirname, 'src/store'),
+      '#hoc': resolve(__dirname, 'src/hoc'),
+      '#windows': resolve(__dirname, 'src/windows'),
+    },
+  },
+  build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('@monaco-editor')) return 'editor';
+              if (id.includes('react-pdf') || id.includes('pdfjs-dist')) return 'pdf';
+              if (id.includes('gsap')) return 'gsap';
+              if (id.includes('z-proximity-rngine')) return 'z-proximity-rngine';
+              if (id.includes('react') || id.includes('zustand') || id.includes('immer')) return 'vendor';
+            }
+          }
+        }
+      },
+      modulePreload: {
+        resolveDependencies: (filename, deps) => {
+          return deps.filter(dep => !dep.includes('pdf') && !dep.includes('editor'));
+        }
+      }
+  }
+})
+</file>
+
+<file path="src/components/index.js">
+import Navbar from "#components/Navbar.jsx";
+import Welcome from "#components/Welcome.jsx";
+import Dock from "#components/Dock.jsx"
+import WindowControls from "#components/WindowControls.jsx";
+import Home from "#components/Home.jsx";
+import BootSequence from "#components/BootSequence.jsx";
+import ControlCenter from "#components/ControlCenter.jsx";
+import ContextMenu from "#components/ContextMenu.jsx";
+import Spotlight from "#components/Spotlight.jsx";
+import SpotlightHint from "#components/SpotlightHint.jsx";
+
+export { 
+  Navbar, 
+  Welcome, 
+  Dock, 
+  WindowControls, 
+  Home, 
+  BootSequence, 
+  ControlCenter, 
+  ContextMenu, 
+  Spotlight, 
+  SpotlightHint,
+};
+</file>
+
+<file path="src/components/WindowControls.jsx">
+import useWindowStore from "#store/window.js";
+import { ChevronDown } from "lucide-react";
+import { useWebHaptics } from "web-haptics/react";
+import useSettingsStore from "#store/settings.js";
+import useSound from "use-sound";
+let pitchCounter = 0;
+const PITCH_LEVELS =[1.0, 1.05, 1.1, 1.15]; 
+
+const WindowControls = ({ target }) => {
+  const closeWindow = useWindowStore((s) => s.closeWindow);
+  const toggleMaximize = useWindowStore((s) => s.toggleMaximize);
+  const { trigger } = useWebHaptics();
+  const { volume, isMuted } = useSettingsStore();
+  const effectiveVolume = isMuted ? 0 : volume;
+  const [playClose, { sound: closeSound }] = useSound("/sounds/oxygen_close.ogg", { volume: effectiveVolume });
+  const [playMinimize, { sound: minSound }] = useSound("/sounds/oxygen_minimize.ogg", { volume: effectiveVolume });
+  const[playMaximize, { sound: maxSound }] = useSound("/sounds/oxygen_maximize.ogg", { volume: effectiveVolume });
+  const playDynamicPitch = (playFn, soundObj) => {
+    if (soundObj) {
+      soundObj.rate(PITCH_LEVELS[pitchCounter % PITCH_LEVELS.length]);
+    }
+    playFn();
+    pitchCounter++;
+  };
+
+  return (
+    <div id="window-controls">
+      <button 
+        type="button"
+        className="close cursor-pointer" 
+        onPointerDown={(e) => { 
+            e.stopPropagation();
+            closeWindow(target);
+            trigger("nudge");
+            playDynamicPitch(playClose, closeSound);
+        }}
+      >
+        <ChevronDown className="hidden max-md:block text-gray-700 stroke-[3px] pointer-events-none" size={18} />
+      </button>
+      
+      <button 
+        type="button" 
+        className="minimize cursor-pointer" 
+        onPointerDown={(e) => {
+            e.stopPropagation();
+            closeWindow(target);
+            trigger("nudge");
+            playDynamicPitch(playMinimize, minSound);
+        }}
+      />
+      
+      <button 
+        type="button" 
+        className="maximize cursor-pointer" 
+        onPointerDown={(e) => {
+            e.stopPropagation();
+            toggleMaximize(target);
+            trigger("success");
+            playDynamicPitch(playMaximize, maxSound);
+        }} 
+      />
+    </div>
+  )
+}
+
+export default WindowControls;
+</file>
+
 <file path="src/constants/index.js">
 /**
  * 💻 ZPortfolio — MacOS Inspired Creative Portfolio
@@ -2124,10 +2278,10 @@ const socials = [
   },
   {
     id: 3,
-    text: "X",
-    icon: "/icons/twitter.svg",
-    bg: "#000000",
-    link: "https://x.com/YousefZeda59629",
+    text: "Instagram",
+    icon: "/icons/instagram.svg",
+    bg: "#c822d4",
+    link: "https://www.instagram.com/yousef__zedan1/",
   },
   {
     id: 4,
@@ -2378,159 +2532,6 @@ export {
   photosLinks,
   gallery
 };
-</file>
-
-<file path="vite.config.js">
-import { defineConfig, normalizePath } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import { resolve, dirname, join } from 'path'
-import { fileURLToPath } from 'url'
-import { viteStaticCopy } from 'vite-plugin-static-copy'
-import { createRequire } from 'node:module'
-
-const require = createRequire(import.meta.url)
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const pdfjsDistPath = dirname(require.resolve('pdfjs-dist/package.json'))
-const cMapsDir = normalizePath(join(pdfjsDistPath, 'cmaps'))
-const standardFontsDir = normalizePath(join(pdfjsDistPath, 'standard_fonts'))
-
-export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-    viteStaticCopy({
-      targets: [
-        { src: cMapsDir, dest: '' },
-        { src: standardFontsDir, dest: '' }
-      ],
-    }),
-  ],
-  resolve: {
-    alias: {
-      '#components': resolve(__dirname, 'src/components'),
-      '#constants': resolve(__dirname, 'src/constants'),
-      '#store': resolve(__dirname, 'src/store'),
-      '#hoc': resolve(__dirname, 'src/hoc'),
-      '#windows': resolve(__dirname, 'src/windows'),
-    },
-  },
-  build: {
-      rollupOptions: {
-        output: {
-          manualChunks(id) {
-            if (id.includes('node_modules')) {
-              if (id.includes('@monaco-editor')) return 'editor';
-              if (id.includes('react-pdf') || id.includes('pdfjs-dist')) return 'pdf';
-              if (id.includes('gsap')) return 'gsap';
-              if (id.includes('z-proximity-rngine')) return 'z-proximity-rngine';
-              if (id.includes('react') || id.includes('zustand') || id.includes('immer')) return 'vendor';
-            }
-          }
-        }
-      },
-      modulePreload: {
-        resolveDependencies: (filename, deps) => {
-          return deps.filter(dep => !dep.includes('pdf') && !dep.includes('editor'));
-        }
-      }
-  }
-})
-</file>
-
-<file path="src/components/index.js">
-import Navbar from "#components/Navbar.jsx";
-import Welcome from "#components/Welcome.jsx";
-import Dock from "#components/Dock.jsx"
-import WindowControls from "#components/WindowControls.jsx";
-import Home from "#components/Home.jsx";
-import BootSequence from "#components/BootSequence.jsx";
-import ControlCenter from "#components/ControlCenter.jsx";
-import ContextMenu from "#components/ContextMenu.jsx";
-import Spotlight from "#components/Spotlight.jsx";
-import SpotlightHint from "#components/SpotlightHint.jsx";
-
-export { 
-  Navbar, 
-  Welcome, 
-  Dock, 
-  WindowControls, 
-  Home, 
-  BootSequence, 
-  ControlCenter, 
-  ContextMenu, 
-  Spotlight, 
-  SpotlightHint,
-};
-</file>
-
-<file path="src/components/WindowControls.jsx">
-import useWindowStore from "#store/window.js";
-import { ChevronDown } from "lucide-react";
-import { useWebHaptics } from "web-haptics/react";
-import useSettingsStore from "#store/settings.js";
-import useSound from "use-sound";
-let pitchCounter = 0;
-const PITCH_LEVELS =[1.0, 1.05, 1.1, 1.15]; 
-
-const WindowControls = ({ target }) => {
-  const closeWindow = useWindowStore((s) => s.closeWindow);
-  const toggleMaximize = useWindowStore((s) => s.toggleMaximize);
-  const { trigger } = useWebHaptics();
-  const { volume, isMuted } = useSettingsStore();
-  const effectiveVolume = isMuted ? 0 : volume;
-  const [playClose, { sound: closeSound }] = useSound("/sounds/oxygen_close.ogg", { volume: effectiveVolume });
-  const [playMinimize, { sound: minSound }] = useSound("/sounds/oxygen_minimize.ogg", { volume: effectiveVolume });
-  const[playMaximize, { sound: maxSound }] = useSound("/sounds/oxygen_maximize.ogg", { volume: effectiveVolume });
-  const playDynamicPitch = (playFn, soundObj) => {
-    if (soundObj) {
-      soundObj.rate(PITCH_LEVELS[pitchCounter % PITCH_LEVELS.length]);
-    }
-    playFn();
-    pitchCounter++;
-  };
-
-  return (
-    <div id="window-controls">
-      <button 
-        type="button"
-        className="close cursor-pointer" 
-        onPointerDown={(e) => { 
-            e.stopPropagation();
-            closeWindow(target);
-            trigger("nudge");
-            playDynamicPitch(playClose, closeSound);
-        }}
-      >
-        <ChevronDown className="hidden max-md:block text-gray-700 stroke-[3px] pointer-events-none" size={18} />
-      </button>
-      
-      <button 
-        type="button" 
-        className="minimize cursor-pointer" 
-        onPointerDown={(e) => {
-            e.stopPropagation();
-            closeWindow(target);
-            trigger("nudge");
-            playDynamicPitch(playMinimize, minSound);
-        }}
-      />
-      
-      <button 
-        type="button" 
-        className="maximize cursor-pointer" 
-        onPointerDown={(e) => {
-            e.stopPropagation();
-            toggleMaximize(target);
-            trigger("success");
-            playDynamicPitch(playMaximize, maxSound);
-        }} 
-      />
-    </div>
-  )
-}
-
-export default WindowControls;
 </file>
 
 <file path="src/components/Navbar.jsx">
@@ -3950,6 +3951,8 @@ export default TerminalWindow;
 </file>
 
 <file path="src/hoc/WindowWrapper.jsx">
+// src/hoc/WindowWrapper.jsx
+
 import useWindowStore from "#store/window.js";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -3978,8 +3981,9 @@ const WindowWrapper = (Component, windowKey) => {
     const ref = useRef(null);
     const dragInstance = useRef(null);
     const resizeInstances = useRef([]);
-    const [isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
+    const[isActuallyVisible, setIsActuallyVisible] = useState(isOpen);
     const preMaxState = useRef(null);
+    const prevMaximized = useRef(isMaximized); // Added to track intentional maximize clicks
     const[isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
 
     useEffect(() => {
@@ -4024,13 +4028,31 @@ const WindowWrapper = (Component, windowKey) => {
           gsap.fromTo(el, { scale: 0.9, opacity: 0, yPercent: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)", overwrite: "auto" });
         }
       } else {
+        // Grab the restore dimensions instantly when closing, then null it
+        const restoreState = preMaxState.current;
+        preMaxState.current = null;
+
         if (isMobile) {
           gsap.to(el, { opacity: 0, scale: 0.9, duration: 0.25, ease: "power3.in", overwrite: "auto", onComplete: () => setIsActuallyVisible(false) });
         } else {
-          gsap.to(el, { scale: 0.8, opacity: 0, duration: 0.25, ease: "power2.in", overwrite: "auto", onComplete: () => setIsActuallyVisible(false) });
+          gsap.to(el, { scale: 0.8, opacity: 0, duration: 0.25, ease: "power2.in", overwrite: "auto", onComplete: () => {
+             setIsActuallyVisible(false);
+             // Silently reset the dimensions to small size so it doesn't open fullscreen next time
+             if (restoreState) {
+               gsap.set(el, {
+                 x: restoreState.x,
+                 y: restoreState.y,
+                 width: restoreState.width,
+                 height: restoreState.height,
+                 borderRadius: "12px",
+                 maxWidth: "none",
+                 maxHeight: "none"
+               });
+             }
+          }});
         }
       }
-    },[isOpen, dataId, isMobile]);
+    }, [isOpen, dataId, isMobile]);
 
     // 2. MAXIMIZE ANIMATIONS
     const { contextSafe } = useGSAP();
@@ -4038,7 +4060,13 @@ const WindowWrapper = (Component, windowKey) => {
     useEffect(() => {
       if (isMobile) return;
       const el = ref.current;
-      if (!el || !isOpen) return;
+      
+      // Update ref to know if the value truly changed vs just re-rendering
+      const justChanged = prevMaximized.current !== isMaximized;
+      prevMaximized.current = isMaximized;
+
+      // Only run the animation if the user actively changed the maximized state
+      if (!el || !isOpen || !justChanged) return;
 
       const handleMaximize = contextSafe(() => {
         if (isMaximized) {
@@ -4057,7 +4085,7 @@ const WindowWrapper = (Component, windowKey) => {
             borderRadius: "0px", 
             duration: 0.5, 
             ease: "expo.inOut", 
-            overwrite: true 
+            overwrite: "auto" 
           });
         } else if (preMaxState.current) {
           gsap.to(el, { 
@@ -4068,27 +4096,25 @@ const WindowWrapper = (Component, windowKey) => {
             borderRadius: "12px", 
             duration: 0.5, 
             ease: "expo.inOut", 
-            overwrite: true, 
+            overwrite: "auto", 
             onComplete: () => dragInstance.current?.update() 
           });
         }
       });
       handleMaximize();
-    }, [isMaximized, isMobile, isOpen]);
+    },[isMaximized, isMobile, isOpen, contextSafe]);
 
-    // 3. DRAG & RESIZE SETUP (With Lazy-Load MutationObserver Fix)
+    // 3. DRAG & RESIZE SETUP
     useGSAP(() => {
       const el = ref.current;
       if (!el || isMobile) return;
 
       let drag;
-
-      // EXPERT FIX: Function to bind Draggable specifically to the header
       const setupDraggable = () => {
         const header = el.querySelector("#window-header");
         if (header && !drag) {
           drag = Draggable.create(el, {
-            trigger: header, // <--- Strictly binds dragging to the header ONLY!
+            trigger: header, 
             bounds: "main",
             dragClickables: true,
             allowEventDefault: true,
@@ -4100,19 +4126,16 @@ const WindowWrapper = (Component, windowKey) => {
         }
       };
 
-      // Try running it immediately
       setupDraggable();
 
-      // If the component is Suspended/Lazy-loading, watch the DOM until the header drops in
       const observer = new MutationObserver(() => {
         if (!drag && el.querySelector("#window-header")) {
           setupDraggable();
-          observer.disconnect(); // Kill the observer once hooked
+          observer.disconnect(); 
         }
       });
       observer.observe(el, { childList: true, subtree: true });
 
-      // Force cleanup of GSAP's aggressive touch-action properties on the container
       gsap.set(el, { clearProps: "userSelect,touchAction" });
       el.style.userSelect = "auto";
       el.style.touchAction = "auto";
