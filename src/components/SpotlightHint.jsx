@@ -29,6 +29,18 @@ const SpotlightHint = ({ isBooted }) => {
     }
   }, [isBooted, volume, isMuted, trigger]);
 
+  const handleClose = contextSafe(() => {
+    gsap.to(notificationRef.current, {
+      x: 100,
+      opacity: 0,
+      scale: 0.9,
+      duration: 0.4,
+      ease: "power2.in",
+      onComplete: () => setIsVisible(false)
+    });
+  });
+  
+  const { contextSafe } = useGSAP();
   useGSAP(() => {
     if (isVisible) {
       gsap.fromTo(
@@ -48,19 +60,8 @@ const SpotlightHint = ({ isBooted }) => {
       return () => clearTimeout(hideTimer);
     }
   }, [isVisible]);
-
-  const { contextSafe } = useGSAP();
   
-  const handleClose = contextSafe(() => {
-    gsap.to(notificationRef.current, {
-      x: 100,
-      opacity: 0,
-      scale: 0.9,
-      duration: 0.4,
-      ease: "power2.in",
-      onComplete: () => setIsVisible(false)
-    });
-  });
+  
 
   const openSpotlight = () => {
     window.dispatchEvent(new CustomEvent('toggle-spotlight'));
