@@ -176,10 +176,10 @@ const Dock = memo(() => {
         config={{
           scale: [1, 1.3],
           y: [0, -30],
-          duration: 1,
-          resetDuration: 1,
-          ease: "elastic",
-          resetEase: "elastic",
+          duration: 0.1,
+          resetDuration: 0.3,
+          ease: "0.25, 0.1, 0.25, 1",
+          resetEase: "0.25, 0.1, 0.25, 1",
         }}
       >
         {dockItems.map(({ id, name, icon, canOpen }) => (
