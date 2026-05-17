@@ -341,6 +341,88 @@ const ImageWindow = WindowWrapper(Image, "imgfile");
 export default ImageWindow;
 </file>
 
+<file path="src/windows/Resume.jsx">
+import React, { useState, useMemo, memo, useEffect } from 'react';
+import { pdfjs, Document, Page } from 'react-pdf';
+import { WindowControls } from "#components/index.js";
+import WindowWrapper from "#hoc/WindowWrapper.jsx";
+import { Download } from "lucide-react";
+
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+
+const Resume = memo(() => {
+  const [numPages, setNumPages] = useState(null);
+  const [pdfWidth, setPdfWidth] = useState(
+    typeof window !== 'undefined' && window.innerWidth < 768 ? window.innerWidth - 32 : null
+  );
+
+  // Automatically adjust the PDF width when resizing the window
+  useEffect(() => {
+    const handleResize = () => {
+      setPdfWidth(window.innerWidth < 768 ? window.innerWidth - 32 : null);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  },[]);
+
+  const options = useMemo(() => ({
+    cMapUrl: '/cmaps/',
+    cMapPacked: true,
+    standardFontDataUrl: '/standard_fonts/',
+  }),[]);
+
+  function onDocumentLoadSuccess({ numPages }) {
+    setNumPages(numPages);
+  }
+
+  return (
+    <>
+      <div id="window-header">
+        <WindowControls target={"resume"} />
+        <h2>Resume.pdf</h2>
+        <a
+          href="files/resume.pdf"
+          download
+          className="cursor-pointer"
+          title="Download resume"
+        >
+          <Download className="icon"/>
+        </a>
+      </div>
+      
+      <div className="flex justify-center overflow-auto h-[calc(100%-40px)] p-4 bg-gray-100">
+        <Document 
+          file="files/resume.pdf" 
+          onLoadSuccess={onDocumentLoadSuccess}
+          options={options}
+          className="flex flex-col items-center"
+          loading={<p className="py-10 text-gray-400 font-medium">Loading PDF...</p>}
+        >
+          {Array.from(new Array(numPages), (el, index) => (
+            <Page 
+              key={`page_${index + 1}`} 
+              pageNumber={index + 1} 
+              renderTextLayer={true}
+              renderAnnotationLayer={true}
+              scale={pdfWidth ? 1 : 1}
+              width={pdfWidth || undefined}
+              className="mb-4 shadow-md max-md:mb-2"
+              loading=""
+            />
+          ))}
+        </Document>
+      </div>
+    </>
+  );
+});
+
+const ResumeWindow = WindowWrapper(Resume, "resume");
+export default ResumeWindow;
+</file>
+
 <file path="src/windows/Text.jsx">
 import WindowWrapper from "#hoc/WindowWrapper.jsx";
 import { WindowControls } from "#components";
@@ -642,6 +724,110 @@ const ContactWindow = WindowWrapper(Contact, 'contact');
 export default ContactWindow;
 </file>
 
+<file path="src/windows/Finder.jsx">
+import { useState } from "react";
+import { WindowControls } from "#components";
+import { locations } from "#constants";
+import WindowWrapper from "#hoc/WindowWrapper";
+import useLocationStore from "#store/location";
+import { Search, PanelLeft } from "lucide-react";
+import clsx from "clsx";
+import useWindowStore from "#store/window";
+
+const Finder = () => {
+  const { openWindow } = useWindowStore();
+  const { activeLocation, setActiveLocation } = useLocationStore();
+  const[showSidebar, setShowSidebar] = useState(false);
+
+  const openItem = (item) => {
+    if (item.fileType === "pdf") return openWindow("resume");
+    if (item.kind === "folder") return setActiveLocation(item);
+    if (["fig", "url"].includes(item.fileType) && item.href)
+      return window.open(item.href, "_blank");
+    openWindow(`${item.fileType}${item.kind}`, item);
+  };
+
+  const renderList = (name, items) => (
+    <div>
+      <h3>{name}</h3>
+      <ul>
+        {items.map((item) => (
+          <li
+            key={item.id}
+            onClick={() => {
+              setActiveLocation(item);
+              setShowSidebar(false);
+            }}
+            className={clsx(
+              item.id === activeLocation.id ? "active" : "not-active",
+            )}
+          >
+            <img src={item.icon} className="w-4" alt={item.name} />
+            <p className="text-sm font-medium truncate">{item.name}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
+  return (
+    <>
+      <div id="window-header">
+        <WindowControls target="finder" />
+        
+        <PanelLeft 
+          className="hidden max-md:block absolute left-15 bottom-3.5 text-blue-600 cursor-pointer z-50 transition-transform active:scale-95" 
+          size={22} 
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowSidebar(!showSidebar);
+          }} 
+        />
+        
+        <Search className="icon" />
+      </div>
+
+      <div className="flex h-full relative">
+        
+        <div 
+          className={clsx(
+            "hidden max-md:block absolute inset-0 bg-black/20 z-45 transition-opacity duration-300 ease-in-out",
+            showSidebar ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          )}
+          onClick={() => setShowSidebar(false)}
+        />
+        
+        <div className={clsx(
+          "sidebar",
+          "max-md:flex! max-md:absolute max-md:top-0 max-md:left-0 max-md:h-full max-md:z-50 max-md:w-60 max-md:shadow-2xl max-md:transition-transform max-md:duration-300 max-md:ease-in-out",
+          showSidebar ? "max-md:translate-x-0" : "max-md:-translate-x-full"
+        )}>
+          <ul>{renderList("Favourites", Object.values(locations))}</ul>
+          <ul>{renderList("Work", locations.work.children)}</ul>
+        </div>
+        
+        <ul className="content">
+          {activeLocation?.children.map((item) => (
+            <li
+              key={item.id}
+              className={clsx(item.position, "max-md:top-auto! max-md:left-auto!")}
+              onClick={() => openItem(item)}
+            >
+              <img src={item.icon} alt={item.name} />
+              <p>{item.name}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
+  );
+};
+
+const FinderWindow = WindowWrapper(Finder, "finder");
+
+export default FinderWindow;
+</file>
+
 <file path="src/windows/index.js">
 import Terminal from "#windows/Terminal.jsx";
 import ZenBrowser from "#windows/ZenBrowser.jsx";
@@ -653,88 +839,6 @@ import Contact from "#windows/Contact.jsx";
 import Photos from "#windows/Photos.jsx"
 import CodeEditor from "#windows/CodeEditor.jsx";
 export { Terminal, ZenBrowser, Resume, Finder, Text, Image, Contact, Photos, CodeEditor };
-</file>
-
-<file path="src/windows/Resume.jsx">
-import React, { useState, useMemo, memo, useEffect } from 'react';
-import { pdfjs, Document, Page } from 'react-pdf';
-import { WindowControls } from "#components/index.js";
-import WindowWrapper from "#hoc/WindowWrapper.jsx";
-import { Download } from "lucide-react";
-
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
-
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-
-const Resume = memo(() => {
-  const [numPages, setNumPages] = useState(null);
-  const [pdfWidth, setPdfWidth] = useState(
-    typeof window !== 'undefined' && window.innerWidth < 768 ? window.innerWidth - 32 : null
-  );
-
-  // Automatically adjust the PDF width when resizing the window
-  useEffect(() => {
-    const handleResize = () => {
-      setPdfWidth(window.innerWidth < 768 ? window.innerWidth - 32 : null);
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  },[]);
-
-  const options = useMemo(() => ({
-    cMapUrl: '/cmaps/',
-    cMapPacked: true,
-    standardFontDataUrl: '/standard_fonts/',
-  }),[]);
-
-  function onDocumentLoadSuccess({ numPages }) {
-    setNumPages(numPages);
-  }
-
-  return (
-    <>
-      <div id="window-header">
-        <WindowControls target={"resume"} />
-        <h2>Resume.pdf</h2>
-        <a
-          href="files/resume.pdf"
-          download
-          className="cursor-pointer"
-          title="Download resume"
-        >
-          <Download className="icon"/>
-        </a>
-      </div>
-      
-      <div className="flex justify-center overflow-auto h-[calc(100%-40px)] p-4 bg-gray-100">
-        <Document 
-          file="files/resume.pdf" 
-          onLoadSuccess={onDocumentLoadSuccess}
-          options={options}
-          className="flex flex-col items-center"
-          loading={<p className="py-10 text-gray-400 font-medium">Loading PDF...</p>}
-        >
-          {Array.from(new Array(numPages), (el, index) => (
-            <Page 
-              key={`page_${index + 1}`} 
-              pageNumber={index + 1} 
-              renderTextLayer={true}
-              renderAnnotationLayer={true}
-              scale={pdfWidth ? 1 : 1}
-              width={pdfWidth || undefined}
-              className="mb-4 shadow-md max-md:mb-2"
-              loading=""
-            />
-          ))}
-        </Document>
-      </div>
-    </>
-  );
-});
-
-const ResumeWindow = WindowWrapper(Resume, "resume");
-export default ResumeWindow;
 </file>
 
 <file path="src/windows/ZenBrowser.jsx">
@@ -793,142 +897,6 @@ const ZenBrowser = () => {
 
 const ZenWindow = WindowWrapper(ZenBrowser, 'safari')
 export default ZenWindow;
-</file>
-
-<file path="src/components/SpotlightHint.jsx">
-import { useState, useEffect, useRef } from "react";
-import { useGSAP } from "@gsap/react";
-import gsap from "gsap";
-import { Info, X, Command } from "lucide-react";
-import useSettingsStore from "#store/settings.js";
-import { useWebHaptics } from "web-haptics/react";
-
-const SpotlightHint = ({ isBooted }) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const { volume, isMuted } = useSettingsStore();
-  const { trigger } = useWebHaptics();
-  const notificationRef = useRef(null);
-
-  useEffect(() => {
-    if (isBooted) {
-      // Wait seconds after boot before showing the hint
-      const timer = setTimeout(() => {
-        setIsVisible(true);
-        
-        // Play the notification sound
-        const audio = new Audio("/sounds/oxygen_aurora.mp3");
-        audio.volume = isMuted ? 0 : volume;
-        audio.play().catch((e) => console.log("Sound play blocked:", e));
-        
-        trigger("notification");
-      }, 14500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [isBooted, volume, isMuted, trigger]);
-
-  useGSAP(() => {
-    if (isVisible) {
-      gsap.fromTo(
-        notificationRef.current,
-        { x: 400, opacity: 0, scale: 0.9 },
-        { 
-          x: 0, 
-          opacity: 1, 
-          scale: 1, 
-          duration: 0.8, 
-          ease: "elastic.out(1, 0.75)" 
-        }
-      );
-
-      // Auto-hide after 8 seconds
-      const hideTimer = setTimeout(() => handleClose(), 8000);
-      return () => clearTimeout(hideTimer);
-    }
-  }, [isVisible]);
-
-  const { contextSafe } = useGSAP();
-  
-  const handleClose = contextSafe(() => {
-    gsap.to(notificationRef.current, {
-      x: 100,
-      opacity: 0,
-      scale: 0.9,
-      duration: 0.4,
-      ease: "power2.in",
-      onComplete: () => setIsVisible(false)
-    });
-  });
-
-  const openSpotlight = () => {
-    window.dispatchEvent(new CustomEvent('toggle-spotlight'));
-    handleClose();
-  };
-
-  if (!isVisible) return null;
-
-  return (
-    <div 
-      ref={notificationRef}
-      className="fixed top-16 right-4 z-[999999] w-[320px] bg-white/70 dark:bg-[#1c1c1e]/80 backdrop-blur-2xl border border-white/40 dark:border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] p-4 cursor-pointer group select-none overflow-hidden"
-      onClick={openSpotlight}
-    >
-      {/* Glossy overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none" />
-      
-      <div className="flex items-start gap-3 relative z-10">
-        <div className="size-10 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0">
-          <Search size={22} className="text-white" />
-        </div>
-        
-        <div className="flex-1 flex flex-col gap-0.5">
-          <div className="flex items-center justify-between">
-            <span className="text-[13px] font-bold text-gray-900 dark:text-white uppercase tracking-tight opacity-50">System Intelligence</span>
-            <button 
-              onClick={(e) => { e.stopPropagation(); handleClose(); }}
-              className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors"
-            >
-              <X size={14} className="text-gray-500" />
-            </button>
-          </div>
-          <h4 className="text-[15px] font-semibold text-gray-900 dark:text-white leading-tight">Spotlight Search</h4>
-          <p className="text-[13px] text-gray-600 dark:text-gray-400 leading-snug mt-0.5">
-            {window.innerWidth < 768 ? (
-              "Swipe down on the home screen to search apps and files."
-            ) : (
-              <>
-                Press <span className="inline-flex items-center gap-0.5 bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded border border-black/5 dark:border-white/10 font-terminal text-[11px] font-bold text-gray-800 dark:text-gray-200">
-                  <Command size={10} /> K
-                </span> to quickly search.
-              </>
-            )}
-          </p>
-        </div>
-      </div>
-
-      {/* Progress bar timer */}
-      <div className="absolute bottom-0 left-0 h-1 bg-blue-500/30 w-full">
-        <div className="h-full bg-blue-500 animate-[progress_8s_linear_forwards]" />
-      </div>
-
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes progress {
-          from { width: 100%; }
-          to { width: 0%; }
-        }
-      `}} />
-    </div>
-  );
-};
-
-// Simple Search Icon internal to file
-const Search = ({ size, className }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-  </svg>
-);
-
-export default SpotlightHint;
 </file>
 
 <file path="src/store/settings.js">
@@ -1400,6 +1368,143 @@ const Spotlight = () => {
 export default Spotlight;
 </file>
 
+<file path="src/components/SpotlightHint.jsx">
+import { useState, useEffect, useRef } from "react";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { Info, X, Command } from "lucide-react";
+import useSettingsStore from "#store/settings.js";
+import { useWebHaptics } from "web-haptics/react";
+
+const SpotlightHint = ({ isBooted }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const { volume, isMuted } = useSettingsStore();
+  const { trigger } = useWebHaptics();
+  const notificationRef = useRef(null);
+
+  useEffect(() => {
+    if (isBooted) {
+      // Wait seconds after boot before showing the hint
+      const timer = setTimeout(() => {
+        setIsVisible(true);
+        
+        // Play the notification sound
+        const audio = new Audio("/sounds/oxygen_aurora.mp3");
+        audio.volume = isMuted ? 0 : volume;
+        audio.play().catch((e) => console.log("Sound play blocked:", e));
+        
+        trigger("notification");
+      }, 14500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isBooted, volume, isMuted, trigger]);
+
+  const handleClose = contextSafe(() => {
+    gsap.to(notificationRef.current, {
+      x: 100,
+      opacity: 0,
+      scale: 0.9,
+      duration: 0.4,
+      ease: "power2.in",
+      onComplete: () => setIsVisible(false)
+    });
+  });
+  
+  const { contextSafe } = useGSAP();
+  useGSAP(() => {
+    if (isVisible) {
+      gsap.fromTo(
+        notificationRef.current,
+        { x: 400, opacity: 0, scale: 0.9 },
+        { 
+          x: 0, 
+          opacity: 1, 
+          scale: 1, 
+          duration: 0.8, 
+          ease: "elastic.out(1, 0.75)" 
+        }
+      );
+
+      // Auto-hide after 8 seconds
+      const hideTimer = setTimeout(() => handleClose(), 8000);
+      return () => clearTimeout(hideTimer);
+    }
+  }, [isVisible]);
+  
+  
+
+  const openSpotlight = () => {
+    window.dispatchEvent(new CustomEvent('toggle-spotlight'));
+    handleClose();
+  };
+
+  if (!isVisible) return null;
+
+  return (
+    <div 
+      ref={notificationRef}
+      className="fixed top-16 right-4 z-[999999] w-[320px] bg-white/70 dark:bg-[#1c1c1e]/80 backdrop-blur-2xl border border-white/40 dark:border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] p-4 cursor-pointer group select-none overflow-hidden"
+      onClick={openSpotlight}
+    >
+      {/* Glossy overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none" />
+      
+      <div className="flex items-start gap-3 relative z-10">
+        <div className="size-10 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0">
+          <Search size={22} className="text-white" />
+        </div>
+        
+        <div className="flex-1 flex flex-col gap-0.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[13px] font-bold text-gray-900 dark:text-white uppercase tracking-tight opacity-50">System Intelligence</span>
+            <button 
+              onClick={(e) => { e.stopPropagation(); handleClose(); }}
+              className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors"
+            >
+              <X size={14} className="text-gray-500" />
+            </button>
+          </div>
+          <h4 className="text-[15px] font-semibold text-gray-900 dark:text-white leading-tight">Spotlight Search</h4>
+          <p className="text-[13px] text-gray-600 dark:text-gray-400 leading-snug mt-0.5">
+            {window.innerWidth < 768 ? (
+              "Swipe down on the home screen to search apps and files."
+            ) : (
+              <>
+                Press <span className="inline-flex items-center gap-0.5 bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded border border-black/5 dark:border-white/10 font-terminal text-[11px] font-bold text-gray-800 dark:text-gray-200">
+                  <Command size={10} /> K
+                </span> to quickly search.
+              </>
+            )}
+          </p>
+        </div>
+      </div>
+
+      {/* Progress bar timer */}
+      <div className="absolute bottom-0 left-0 h-1 bg-blue-500/30 w-full">
+        <div className="h-full bg-blue-500 animate-[progress_8s_linear_forwards]" />
+      </div>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes progress {
+          from { width: 100%; }
+          to { width: 0%; }
+        }
+      `}} />
+    </div>
+  );
+};
+
+// Simple Search Icon internal to file
+const Search = ({ size, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+  </svg>
+);
+
+export default SpotlightHint;
+</file>
+
 <file path="src/components/Welcome.jsx">
 import { ProximityText } from "z-proximity-engine";
 
@@ -1502,110 +1607,6 @@ const useWindowStore = create(
 );
 
 export default useWindowStore;
-</file>
-
-<file path="src/windows/Finder.jsx">
-import { useState } from "react";
-import { WindowControls } from "#components";
-import { locations } from "#constants";
-import WindowWrapper from "#hoc/WindowWrapper";
-import useLocationStore from "#store/location";
-import { Search, PanelLeft } from "lucide-react";
-import clsx from "clsx";
-import useWindowStore from "#store/window";
-
-const Finder = () => {
-  const { openWindow } = useWindowStore();
-  const { activeLocation, setActiveLocation } = useLocationStore();
-  const[showSidebar, setShowSidebar] = useState(false);
-
-  const openItem = (item) => {
-    if (item.fileType === "pdf") return openWindow("resume");
-    if (item.kind === "folder") return setActiveLocation(item);
-    if (["fig", "url"].includes(item.fileType) && item.href)
-      return window.open(item.href, "_blank");
-    openWindow(`${item.fileType}${item.kind}`, item);
-  };
-
-  const renderList = (name, items) => (
-    <div>
-      <h3>{name}</h3>
-      <ul>
-        {items.map((item) => (
-          <li
-            key={item.id}
-            onClick={() => {
-              setActiveLocation(item);
-              setShowSidebar(false);
-            }}
-            className={clsx(
-              item.id === activeLocation.id ? "active" : "not-active",
-            )}
-          >
-            <img src={item.icon} className="w-4" alt={item.name} />
-            <p className="text-sm font-medium truncate">{item.name}</p>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-
-  return (
-    <>
-      <div id="window-header">
-        <WindowControls target="finder" />
-        
-        <PanelLeft 
-          className="hidden max-md:block absolute left-15 bottom-3.5 text-blue-600 cursor-pointer z-50 transition-transform active:scale-95" 
-          size={22} 
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowSidebar(!showSidebar);
-          }} 
-        />
-        
-        <Search className="icon" />
-      </div>
-
-      <div className="flex h-full relative">
-        
-        <div 
-          className={clsx(
-            "hidden max-md:block absolute inset-0 bg-black/20 z-45 transition-opacity duration-300 ease-in-out",
-            showSidebar ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-          )}
-          onClick={() => setShowSidebar(false)}
-        />
-        
-        <div className={clsx(
-          "sidebar",
-          "max-md:flex! max-md:absolute max-md:top-0 max-md:left-0 max-md:h-full max-md:z-50 max-md:w-60 max-md:shadow-2xl max-md:transition-transform max-md:duration-300 max-md:ease-in-out",
-          showSidebar ? "max-md:translate-x-0" : "max-md:-translate-x-full"
-        )}>
-          <ul>{renderList("Favourites", Object.values(locations))}</ul>
-          <ul>{renderList("Work", locations.work.children)}</ul>
-        </div>
-        
-        <ul className="content">
-          {activeLocation?.children.map((item) => (
-            <li
-              key={item.id}
-              className={clsx(item.position, "max-md:top-auto! max-md:left-auto!")}
-              onClick={() => openItem(item)}
-            >
-              <img src={item.icon} alt={item.name} />
-              <p>{item.name}</p>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </>
-  );
-};
-
-const FinderWindow = WindowWrapper(Finder, "finder");
-
-export default FinderWindow;
 </file>
 
 <file path="README.md">
@@ -3422,89 +3423,6 @@ const TerminalWindow = WindowWrapper(Terminal, "terminal");
 export default TerminalWindow;
 </file>
 
-<file path="src/App.jsx">
-import React, { Suspense, lazy, useState, useEffect } from "react";
-import gsap from "gsap";
-import { Draggable } from "gsap/Draggable";
-import BootSequence from "#components/BootSequence.jsx";
-import { loader } from "@monaco-editor/react";
-const Navbar = lazy(() => import("#components/Navbar.jsx"));
-const Welcome = lazy(() => import("#components/Welcome.jsx"));
-const Dock = lazy(() => import("#components/Dock.jsx"));
-const Home = lazy(() => import("#components/Home.jsx"));
-const Terminal = lazy(() => import("#windows/Terminal.jsx"));
-const ZenBrowser = lazy(() => import("#windows/ZenBrowser.jsx"));
-const Resume = lazy(() => import("#windows/Resume.jsx"));
-const Finder = lazy(() => import("#windows/Finder.jsx"));
-const Text = lazy(() => import("#windows/Text.jsx"));
-const Image = lazy(() => import("#windows/Image.jsx"));
-const Contact = lazy(() => import("#windows/Contact.jsx"));
-const Photos = lazy(() => import("#windows/Photos.jsx"));
-const CodeEditor = lazy(() => import("#windows/CodeEditor.jsx"));
-const ContextMenu = lazy(() => import("#components/ContextMenu.jsx"));
-const Spotlight = lazy(() => import("#components/Spotlight.jsx"));
-const SpotlightHint = lazy(() => import("#components/SpotlightHint.jsx"));
-
-gsap.registerPlugin(Draggable);
-
-if (typeof window !== "undefined") {
-  console.log(
-    "%c 💻 ZPortfolio by ZED Studios %c Developed by Yousef Zedan %c https://github.com/YoussefZidan-1/zportfolio ",
-    "color: white; background: #000; padding: 5px 10px; border-radius: 5px 0 0 5px; font-weight: bold;",
-    "color: #fff; background: #007aff; padding: 5px 10px; font-weight: bold;",
-    "color: #000; background: #fff; padding: 5px 10px; border-radius: 0 5px 5px 0; border: 1px solid #000;"
-  );
-}
-
-const App = () => {
-  const [isBooted, setIsBooted] = useState(false);
-  useEffect(() => {
-    if (isBooted) {
-      loader.init().then(() => {
-        console.log("%c[System] ZED Code Engine preloaded in the background.", "color: #a6e3a1; background: #1e1e2e; padding: 2px 6px; border-radius: 4px;");
-      }).catch((err) => {
-        console.warn("Failed to preload Monaco Editor", err);
-      });
-    }
-  }, [isBooted]);
-
-  return (
-    <>
-      {!isBooted && <BootSequence onComplete={() => setIsBooted(true)} />}
-      <div 
-        className={`fixed inset-0 w-full h-full transition-opacity duration-1000 ease-in-out z-0 ${
-          isBooted ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-        }`}
-      >
-        <Suspense fallback={null}>
-          <main className="w-full h-full">
-            <div className="ios-home-indicator" />
-            <Navbar />
-            <Welcome />
-            <Home />
-            <ContextMenu />
-            <Spotlight />
-            <SpotlightHint isBooted={isBooted} />
-            <Dock />
-            <Terminal />
-            <ZenBrowser />
-            <Resume />
-            <Finder />
-            <Text />
-            <Image />
-            <Contact />
-            <Photos />
-            <CodeEditor /> 
-          </main>
-        </Suspense>
-      </div>
-    </>
-  );
-};
-
-export default App;
-</file>
-
 <file path="src/hoc/WindowWrapper.jsx">
 // src/hoc/WindowWrapper.jsx
 
@@ -3798,6 +3716,89 @@ const WindowWrapper = (Component, windowKey) => {
 };
 
 export default WindowWrapper;
+</file>
+
+<file path="src/App.jsx">
+import React, { Suspense, lazy, useState, useEffect } from "react";
+import gsap from "gsap";
+import { Draggable } from "gsap/Draggable";
+import BootSequence from "#components/BootSequence.jsx";
+import { loader } from "@monaco-editor/react";
+const Navbar = lazy(() => import("#components/Navbar.jsx"));
+const Welcome = lazy(() => import("#components/Welcome.jsx"));
+const Dock = lazy(() => import("#components/Dock.jsx"));
+const Home = lazy(() => import("#components/Home.jsx"));
+const Terminal = lazy(() => import("#windows/Terminal.jsx"));
+const ZenBrowser = lazy(() => import("#windows/ZenBrowser.jsx"));
+const Resume = lazy(() => import("#windows/Resume.jsx"));
+const Finder = lazy(() => import("#windows/Finder.jsx"));
+const Text = lazy(() => import("#windows/Text.jsx"));
+const Image = lazy(() => import("#windows/Image.jsx"));
+const Contact = lazy(() => import("#windows/Contact.jsx"));
+const Photos = lazy(() => import("#windows/Photos.jsx"));
+const CodeEditor = lazy(() => import("#windows/CodeEditor.jsx"));
+const ContextMenu = lazy(() => import("#components/ContextMenu.jsx"));
+const Spotlight = lazy(() => import("#components/Spotlight.jsx"));
+const SpotlightHint = lazy(() => import("#components/SpotlightHint.jsx"));
+
+gsap.registerPlugin(Draggable);
+
+if (typeof window !== "undefined") {
+  console.log(
+    "%c 💻 ZPortfolio by ZED Studios %c Developed by Yousef Zedan %c https://github.com/YoussefZidan-1/zportfolio ",
+    "color: white; background: #000; padding: 5px 10px; border-radius: 5px 0 0 5px; font-weight: bold;",
+    "color: #fff; background: #007aff; padding: 5px 10px; font-weight: bold;",
+    "color: #000; background: #fff; padding: 5px 10px; border-radius: 0 5px 5px 0; border: 1px solid #000;"
+  );
+}
+
+const App = () => {
+  const [isBooted, setIsBooted] = useState(false);
+  useEffect(() => {
+    if (isBooted) {
+      loader.init().then(() => {
+        console.log("%c[System] ZED Code Engine preloaded in the background.", "color: #a6e3a1; background: #1e1e2e; padding: 2px 6px; border-radius: 4px;");
+      }).catch((err) => {
+        console.warn("Failed to preload Monaco Editor", err);
+      });
+    }
+  }, [isBooted]);
+
+  return (
+    <>
+      {!isBooted && <BootSequence onComplete={() => setIsBooted(true)} />}
+      <div 
+        className={`fixed inset-0 w-full h-full transition-opacity duration-1000 ease-in-out z-0 ${
+          isBooted ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        <Suspense fallback={null}>
+          <main className="w-full h-full">
+            <div className="ios-home-indicator" />
+            <Navbar />
+            <Welcome />
+            <Home />
+            <ContextMenu />
+            <Spotlight />
+            <SpotlightHint isBooted={isBooted} />
+            <Dock />
+            <Terminal />
+            <ZenBrowser />
+            <Resume />
+            <Finder />
+            <Text />
+            <Image />
+            <Contact />
+            <Photos />
+            <CodeEditor /> 
+          </main>
+        </Suspense>
+      </div>
+    </>
+  );
+};
+
+export default App;
 </file>
 
 <file path="src/windows/CodeEditor.jsx">
@@ -4245,451 +4246,400 @@ export default CodeEditorWindow;
 }
 </file>
 
-<file path="src/components/BootSequence.jsx">
-import { useState, useEffect, useRef } from "react";
-import gsap from "gsap";
-import { Draggable } from "gsap/Draggable";
-import { useGSAP } from "@gsap/react";
-import dayjs from "dayjs";
-import { ChevronRight } from "lucide-react";
-import { useWebHaptics } from "web-haptics/react";
+<file path="src/index.css">
+@font-face {
+    font-family: "JetBrainsMonoNF";
+    src: url("/fonts/JetBrainsMono/JetBrainsMonoNerdFont-Regular.ttf") format("truetype");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
 
-// ─── GRUB boot lines ──────────────────────────────────────────────────────────
-const bootLines =[
-  "Starting GRUB bootloader...",
-  "Loading Linux linux-cachyos v7.0 ...",
-  "Loading initial ramdisk ...",
-  ":: running early hook [udev]",
-  "Starting systemd-udevd version 255.3-1-cachyos",
-  ":: running hook [udev]",
-  "Triggering uevents...",
-  "[  OK  ] Reached target Local File Systems (Pre).",
-  "[  OK  ] Reached target Local File Systems.",
-  "Mounting /sys/kernel/debug...",
-  "Mounting /sys/kernel/tracing...",
-  "[  OK  ] Started Create Static Device Nodes in /dev.",
-  "[  OK  ] Started Rule-based Manager for Device Events and Files.",
-  "[  OK  ] Found device /dev/disk/by-uuid/cachy-os-7.0",
-  "Mounting /boot/efi...",
-  "[  OK  ] Reached target Initrd Root Device.",
-  "Starting File System Check on /dev/disk/by-uuid/cachy-7.0...",
-  "[  OK  ] Reached target Initrd Root File System.",
-  "Starting Switch Root...",
-  "Switching root to Linux 7.0.",
-  "[  OK  ] Started Journal Service.",
-  "[  OK  ] Started Load Kernel Modules.",
-  "[  OK  ] Reached target Sound Card.",
-  "[  OK  ] Reached target Network.",
-  "Starting CachyOS Display Manager...",
-];
+@import "tailwindcss";
 
-// ─── All Images and Icons to preload ──────────────────────────────────────────
-const IMAGE_ASSETS =[
-  "/images/wallpaper.webp",
-  "/images/wallpaper-2.webp",
-  "/images/yousef-5.webp",
-  "/images/arch.webp",
-  "/images/folder.png",
-  "/images/finder.webp",
-  "/images/safari.webp",
-  "/images/photos.png",
-  "/images/contact.png",
-  "/images/terminal.webp",
-  "/images/vscode.png",
-  "/images/trash.webp",
-  "/images/yousef.webp",
-  "/images/yousef-2.webp",
-  "/images/yousef-3.webp",
-  "/images/yousef-4.webp",
-  "/images/logo.svg",
-  "/images/zcinema.png",
-  "/images/project-1.webp",
-  "/images/zproximity.svg",
-  "/images/project-2.JPG",
-  "/images/txt.png",
-  "/images/image.png",
-  "/images/pdf.png",
-  "/images/blog1.png",
-  "/images/blog2.png",
-  "/images/blog3.png",
-  "/images/trash-1.webp",
-  "/images/trash-2.webp",
-  "/icons/wifi.svg",
-  "/icons/search.svg",
-  "/icons/user.svg",
-  "/icons/mode.svg",
-  "/icons/github.svg",
-  "/icons/atom.svg",
-  "/icons/linkedin.svg",
-  "/icons/gicon1.svg",
-  "/icons/gicon2.svg",
-  "/icons/gicon4.svg",
-  "/icons/gicon5.svg",
-  "/icons/file.svg",
-  "/icons/info.svg",
-  "/icons/trash.svg",
-  "/icons/work.svg"
-];
+@custom-variant dark (&:is(.dark *));
 
-// ─── Lazy component chunks to preload (Using EXACT aliases from App.jsx) ──────
-const COMPONENT_IMPORTS =[
-  () => import("#components/Navbar.jsx"),
-  () => import("#components/Welcome.jsx"),
-  () => import("#components/Dock.jsx"),
-  () => import("#components/Home.jsx"),
-  () => import("#windows/Terminal.jsx"),
-  () => import("#windows/ZenBrowser.jsx"),
-  () => import("#windows/Resume.jsx"),
-  () => import("#windows/Finder.jsx"),
-  () => import("#windows/Text.jsx"),
-  () => import("#windows/Image.jsx"),
-  () => import("#windows/Contact.jsx"),
-  () => import("#windows/Photos.jsx"),
-  () => import("#windows/CodeEditor.jsx"), 
-];
+@theme {
+    --font-georama: "Georama", sans-serif;
+    --font-terminal: "JetBrainsMonoNF", monospace;
+    --terminal-bg: #0f1720;
+    --terminal-foreground: #cbd5e1;
+    --terminal-accent: #00a154;
+    --breakpoint-3xl: 1920px;
+}
 
-// ─── Sound assets ─────────────────────────────────────────────────────────────
-const SOUND_ASSETS =[
-  "/sounds/oxygen_boot.ogg",
-  "/sounds/oxygen_close.ogg",
-  "/sounds/oxygen_maximize.ogg",
-  "/sounds/oxygen_minimize.ogg",
-];
+@utility flex-center {
+    @apply flex items-center justify-center;
+}
 
-// Total task count for progress calculation
-const TOTAL_TASKS =
-  IMAGE_ASSETS.length + COMPONENT_IMPORTS.length + SOUND_ASSETS.length + 1; // +1 for fonts
+@utility col-center {
+    @apply flex flex-col items-center justify-center;
+}
 
-// ─── Component ────────────────────────────────────────────────────────────────
-const BootSequence = ({ onComplete }) => {
-  const [stage, setStage] = useState(0);       // 0=cursor 1=grub 2=arch-bar 3=login 4=fading
-  const [lines, setLines] = useState([]);
-  const [time, setTime] = useState(dayjs());
-  const[password, setPassword] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");
-  
-  // Split Real vs Displayed progress
-  const [loadedProgress, setLoadedProgress] = useState(0);
-  const [displayedProgress, setDisplayedProgress] = useState(0);
-  
-  const[everythingReady, setEverythingReady] = useState(false);
+@utility abs-center {
+    @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
+}
 
-  const containerRef = useRef(null);
-  const loginRef = useRef(null);
-  const hasStartedLoading = useRef(false);
-  const[completedCount, setCompletedCount] = useState(0);
-  const { trigger } = useWebHaptics();
+@layer base {
 
-  // ── clock ──────────────────────────────────────────────────────────────────
-  useEffect(() => {
-    const t = setInterval(() => setTime(dayjs()), 1000);
-    return () => clearInterval(t);
-  },[]);
-
-  useEffect(() => {
-    gsap.registerPlugin(Draggable);
-  },[]);
-
-  // ── Real asset / component loading ────────────────────────────────────────
-  useEffect(() => {
-    // Prevent React StrictMode from double-firing the preloader
-    if (hasStartedLoading.current) return;
-    hasStartedLoading.current = true;
-
-    let currentCount = 0;
-    
-    const tick = () => {
-      currentCount += 1;
-      setCompletedCount(currentCount); // Update the text in the UI
-      
-      const pct = Math.min(
-        Math.floor((currentCount / TOTAL_TASKS) * 100),
-        100
-      );
-      setLoadedProgress(pct);
-      
-      if (currentCount >= TOTAL_TASKS) {
-        setEverythingReady(true);
-      }
-    };
-
-    // 1. Preload Images
-    IMAGE_ASSETS.forEach((src) => {
-      const img = new Image();
-      img.src = src;
-      img.onload = tick;
-      img.onerror = tick;
-    });
-
-    // 2. Preload Components
-    COMPONENT_IMPORTS.forEach((importFn) => {
-      importFn().then(tick).catch(tick);
-    });
-
-    // 3. Preload Sounds
-    SOUND_ASSETS.forEach((src) => {
-      fetch(src)
-        .then((response) => response.blob())
-        .then(tick)
-        .catch((err) => {
-            console.warn(`Failed to preload audio: ${src}`, err);
-            tick(); 
-        });
-    });
-
-    // 4. Preload Fonts
-    if (document.fonts?.ready) {
-      document.fonts.ready.then(tick).catch(tick);
-    } else {
-      tick();
+    *, *::before, *::after {
+        @apply transition-colors duration-300;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     }
-  },[]);
-
-  // Stage 0 → 1
-  useEffect(() => {
-    if (stage !== 0) return;
-    const t = setTimeout(() => setStage(1), 100);
-    return () => clearTimeout(t);
-  },[stage]);
-
-  // Stage 1: GRUB text scroll
-  useEffect(() => {
-    if (stage !== 1) return;
-    let i = 0;
-    const interval = setInterval(() => {
-      setLines((prev) => [...prev, bootLines[i]]);
-      i++;
-      if (i >= bootLines.length) {
-        clearInterval(interval);
-        setStage(2); 
-      }
-    }, 60); 
-    return () => clearInterval(interval);
-  }, [stage]);
-
-  // Stage 2: Smooth / Minimum Time Progress Bar Animation
-  useEffect(() => {
-    if (stage !== 2) return;
-    
-    const interval = setInterval(() => {
-      setDisplayedProgress((prev) => {
-        if (prev >= 100) return 100;
+    html, body {
+        @apply w-full max-w-[100vw] h-[100dvh] overflow-hidden fixed top-0 left-0 bg-[url('/images/wallpaper.webp')] bg-cover bg-no-repeat bg-center max-md:bg-[url('/images/wallpaper-2.webp')];
         
-        // Target the real loaded percentage unless we're totally done
-        const target = everythingReady ? 100 : loadedProgress;
-        
-        // Add artificial delay per tick so the bar takes a minimum of ~1.5 - 2s to complete
-        let next = prev + (Math.random() * 5 + 3); 
-        
-        if (next > target) {
-            return target;
+        transition: background 0.8s cubic-bezier(0.4, 0, 0.2, 1), 
+                    background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    main {
+        @apply fixed inset-0 w-full h-full overflow-hidden w-dvw h-dvh;
+    }
+
+    nav {
+        @apply flex justify-between items-center bg-white/30 dark:bg-black/40 backdrop-blur-xl p-2 px-5 select-none max-md:p-0 max-md:px-0;
+        ul {
+            @apply flex items-center gap-5 max-sm:hidden;
+            p {
+                @apply p-1 rounded text-sm cursor-pointer hover:bg-blue-200 hover:text-blue-900 dark:text-white dark:hover:bg-white/10 transition-all;
+            }
         }
-        return next;
-      });
-    }, 120);
+        time {
+            @apply text-sm font-medium text-black dark:text-white;
+        }
+    }
+}
+
+@layer components {
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    .vscode-scroll::-webkit-scrollbar {
+            width: 14px;
+            height: 14px;
+        }
+        .vscode-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .vscode-scroll::-webkit-scrollbar-thumb {
+            background-color: #313244;
+            border-radius: 10px;
+            border: 4px solid #181825;
+            transition: 0.3s;
+        }
+        .vscode-scroll::-webkit-scrollbar-thumb:hover {
+            background-color: #45475a;
+        }
+        .vscode-scroll {
+            scrollbar-width: thin;
+            scrollbar-color: #313244 #181825;
+        }
+
+    input::selection {
+        background: rgba(236, 72, 153, 0.3);
+    }
+
+    .icon {
+        @apply p-1 hover:bg-gray-200 dark:hover:bg-white/10 text-blue-600 dark:text-blue-400 rounded hover:cursor-default;
+    }
+
+    #welcome {
+        @apply text-gray-200 flex flex-col justify-center items-center absolute top-[60vh] md:top-1/2 left-1/2 -translate-x-1/2 md:-translate-y-1/2 select-none w-full px-5 max-md:hidden;
+    }
+
+    #dock {
+        @apply absolute bottom-5 left-1/2 -translate-x-1/2 z-50 select-none max-md:hidden;
+        .dock-container {
+            @apply bg-white/20 dark:bg-black/40 backdrop-blur-2xl border border-white/20 dark:border-white/10 justify-between rounded-3xl p-2.5 flex items-end gap-2;
+        }
+        .tooltip {
+            @apply !py-1 !px-3 !w-fit !text-center !text-xs !rounded-md !bg-blue-200 !text-blue-900 dark:!bg-gray-800 dark:!text-white !shadow-2xl;
+        }
+        .dock-icon {
+            @apply size-14 3xl:size-20 cursor-pointer;
+            img {
+                @apply object-cover object-center;
+            }
+        }
+    }
+
+    #window-controls {
+        @apply flex gap-2 max-md:absolute max-md:left-4 max-md:bottom-2.5 max-md:gap-0;
+        .close {
+            @apply size-3.5 rounded-full bg-[#ff6157] cursor-pointer max-md:w-auto max-md:h-auto max-md:bg-transparent max-md:flex max-md:items-center max-md:justify-center max-md:rounded-none max-md:text-blue-600 dark:max-md:text-blue-400 max-md:font-medium max-md:p-2 max-md:-ml-2;
+            svg {
+                @apply max-md:stroke-blue-600 dark:max-md:stroke-blue-400 max-md:w-6 max-md:h-6 max-md:rotate-90;
+            }
+        }
+        .minimize {
+            @apply size-3.5 rounded-full bg-[#ffc030] max-md:hidden;
+        }
+        .maximize {
+            @apply size-3.5 rounded-full bg-[#2acb42] max-md:hidden;
+        }
+    }
+
+    #window-header {
+        @apply flex items-center justify-between px-4 py-3 rounded-t-lg bg-white/10 dark:bg-black/40 border-b border-white/20 dark:border-white/10 backdrop-blur-xl select-none text-sm text-indigo-500 max-md:pt-[56px] max-md:pb-3 max-md:bg-white/95 dark:max-md:bg-gray-900/95 max-md:backdrop-blur-3xl max-md:border-gray-200/80 dark:max-md:border-white/10 max-md:items-center max-md:justify-center max-md:relative max-md:rounded-none;
+        h2 {
+            @apply max-md:text-center max-md:font-semibold max-md:text-[17px] max-md:text-black dark:max-md:text-white max-md:w-full max-md:mx-auto max-md:truncate max-md:px-10;
+        }
+    }
+
+    .os-window {
+        @apply max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:z-[100];
+        > div:last-child {
+            @apply max-md:h-full max-md:overflow-y-auto max-md:overflow-x-hidden max-md:pb-12;
+        }
+    }
+
+    #safari {
+            @apply w-4xl absolute top-40 left-2/12 bg-white/30 dark:bg-black/40 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white dark:max-md:bg-black;
+            .search {
+                @apply flex items-center gap-3 w-2/3 bg-white/30 dark:bg-white/10 backdrop-blur-xl border border-gray-300 dark:border-white/10 rounded-lg px-3 py-2 max-md:flex-1 max-md:ml-0 max-md:h-10 max-md:bg-[#E3E3E6] dark:max-md:bg-white/10 max-md:rounded-xl max-md:px-3 max-md:justify-center max-md:border-none max-md:shadow-sm;
+                input {
+                    @apply placeholder:text-gray-500 dark:text-white max-md:text-center max-md:text-[15px] max-md:w-full max-md:bg-transparent outline-none;
+                }
+            }
+            .blog {
+                @apply dark:bg-[#1c1c1e]/30 w-full h-full max-md:h-full max-md:overflow-y-auto max-md:bg-white dark:max-md:bg-black;
+                .blog-container {
+                    @apply p-10 max-w-3xl mx-auto max-md:p-6 max-md:w-full max-md:max-w-full pb-20;
+                }
+                h2 {
+                    @apply text-xl font-bold text-black dark:text-white mb-10 max-md:text-2xl max-md:text-black dark:max-md:text-white max-md:mb-6 text-center max-md:text-center;
+                }
+                .blog-post {
+                    @apply relative grid grid-cols-12 space-x-5 max-md:flex max-md:flex-col max-md:gap-4 max-md:mb-10 max-md:ml-0 max-md:space-x-0 bg-white/50 dark:bg-white/40 max-md:bg-gray-50 dark:max-md:bg-white/5 max-md:p-3 rounded-3xl p-5 max-md:rounded-3xl shadow-sm transition-all duration-300;
+                    
+                    &::before {
+                        content: '';
+                        @apply absolute inset-0 bg-black/5 dark:bg-white/10 rounded-3xl opacity-0 transition-opacity duration-300 z-0;
+                    }
+                    &:hover::before {
+                        @apply opacity-100;
+                    }
+
+                    img {
+                        @apply relative z-10 size-full rounded-md object-cover max-md:w-full max-md:h-auto max-md:object-contain max-md:rounded-2xl max-md:bg-gray-200 dark:max-md:bg-gray-800 shadow-sm;
+                    }
+                    .content {
+                        @apply relative z-10 col-span-10 space-y-3 max-md:py-2;
+                        p {
+                            @apply text-xs text-indigo-600 dark:text-indigo-700 max-md:text-sm;
+                        }
+                        h3 {
+                            @apply font-semibold text-base text-gray-800 dark:text-white max-md:text-lg max-md:leading-tight;
+                        }
+                        a {
+                            @apply text-blue-600 text-xs hover:underline flex items-center gap-3 max-md:text-sm font-medium;
+                        }
+                    }
+                }
+            }
+            #window-header {
+                @apply max-md:pt-[52px] max-md:px-4 max-md:pb-3 max-md:bg-white/80 dark:max-md:bg-gray-900/80 max-md:backdrop-blur-md max-md:border-gray-100 dark:max-md:border-white/10;
+                > svg, > div:not(.search):not(#window-controls) {
+                    @apply max-md:hidden;
+                }
+            }
+        }
+
+    #terminal {
+        @apply w-xl absolute top-32 left-1/12 bg-black/30 dark:bg-black/60 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:!h-full max-md:rounded-none max-md:bg-[#0A0B1A];
+        h2 {
+            @apply font-bold text-sm text-center w-full max-md:text-white/50;
+        }
+    }
+
+    #contact {
+        @apply w-[650px] absolute top-60 left-5/12 bg-white/30 dark:bg-black/40 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-[#f2f2f7] dark:max-md:bg-black;
+        h2 {
+            @apply font-bold text-sm text-center w-full;
+        }
+        h3 {
+            @apply text-xl font-semibold max-md:text-black dark:max-md:text-white;
+        }
+        .p-5 {
+            @apply max-md:py-5 max-md:px-6 max-md:bg-white dark:max-md:bg-gray-900 max-md:m-4 max-md:rounded-2xl max-md:shadow-[0_1px_3px_rgba(0,0,0,0.05)];
+        }
+        p {
+            @apply max-md:text-gray-600 dark:max-md:text-gray-400;
+        }
+        ul {
+            @apply flex flex-wrap items-center gap-3 max-md:flex-col max-md:items-center max-md:p-0 max-md:mt-6;
+            li {
+                @apply flex-1 rounded-lg p-3 min-w-[100px] max-w-[400px] hover:-translate-y-0.5 hover:scale-105 origin-center transition-all duration-300 max-md:w-full max-md:mb-3 max-md:rounded-xl max-md:transform-none max-md:hover:scale-100;
+                a {
+                    @apply space-y-5;
+                }
+                p {
+                    @apply font-semibold text-sm text-white;
+                }
+            }
+        }
+    }
+
+    #photos {
+        @apply w-125 top-[20%] left-[20%] absolute bg-white/30 dark:bg-black/40 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white dark:max-md:bg-black;
+        .sidebar {
+            @apply w-3/12 flex-none border-r border-black/10 flex flex-col p-5 max-md:hidden;
+            h2 {
+                @apply text-xs font-medium text-black dark:text-white mb-1;
+            }
+            ul {
+                li {
+                    @apply flex space-y-1 items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors dark:text-gray-300;
+                    &:first-child {
+                        @apply bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200;
+                    }
+                    img {
+                        @apply w-4;
+                    }
+                    p {
+                        @apply text-sm font-medium;
+                    }
+                }
+            }
+        }
+        .gallery {
+            @apply p-5 bg-white dark:bg-[#1c1c1e] max-md:w-full max-md:overflow-y-auto max-md:bg-white dark:max-md:bg-black max-md:p-[2px];
+            ul {
+                @apply grid grid-cols-5 grid-rows-5 gap-2.5 max-md:grid-cols-3 max-md:gap-[2px] max-md:relative;
+                li {
+                    @apply max-md:relative max-md:col-auto max-md:row-auto;
+                    img {
+                        @apply size-full object-cover rounded-lg max-md:aspect-square max-md:w-full max-md:h-full max-md:rounded-none;
+                    }
+                    &:first-child {
+                        @apply row-start-1 row-span-3 col-start-1 col-span-3 max-md:row-auto max-md:col-auto;
+                    }
+                    &:nth-child(2) {
+                        @apply row-start-1 row-span-3 col-start-4 col-span-2 max-md:row-auto max-md:col-auto;
+                    }
+                    &:nth-child(3) {
+                        @apply row-start-4 row-span-2 col-start-3 col-span-3 max-md:row-auto max-md:col-auto;
+                    }
+                    &:last-child {
+                        @apply row-start-4 row-span-2 col-start-1 col-span-2 max-md:row-auto max-md:col-auto;
+                    }
+                }
+            }
+        }
+    }
+
+    #resume {
+        @apply w-fit h-fit absolute top-16 left-7/12 bg-white/30 dark:bg-black/40 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white dark:max-md:bg-black;
+        #window-header {
+            h2 {
+                @apply font-bold text-sm text-center flex-1;
+            }
+        }
+    }
+
+    #finder {
+        @apply backdrop-blur-xl absolute w-3xl left-40 top-20 shadow-2xl drop-shadow-2xl overflow-hidden rounded-xl max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none;
+        .sidebar {
+            @apply w-48  border-r border-gray-200 dark:border-white/10 flex flex-col p-5 space-y-3 max-md:hidden;
+            h3 {
+                @apply text-xs font-medium text-black  dark:text-white mb-1;
+            }
+            ul {
+                @apply space-y-1;
+                .active {
+                    @apply bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200;
+                }
+                .not-active {
+                    @apply text-gray-900 hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-white/10;
+                }
+                li {
+                    @apply flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors;
+                }
+            }
+        }
+        .content {
+            @apply flex-1 p-8 relative bg-white dark:bg-[#1c1c1e] max-md:block max-md:w-full max-md:p-4 max-md:bg-[#f2f2f7] dark:max-md:bg-black;
+            ul {
+                @apply max-md:flex max-md:flex-col max-md:overflow-hidden;
+            }
+            li {
+                            @apply absolute flex items-center flex-col gap-2 p-3 -m-3 cursor-pointer z-10 max-md:relative max-md:top-0 max-md:left-0 max-md:m-0 max-md:flex-row max-md:justify-start max-md:p-3 max-md:gap-4; 
+                            
+                            &::before {
+                                content: '';
+                                @apply absolute inset-0 bg-blue-500/15 rounded-2xl opacity-0 scale-75 transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-[-1] max-md:hidden;
+                            }
+                            
+                            &:hover::before {
+                                @apply opacity-100 scale-100;
+                            }
+                            
+                            &:active::before {
+                                @apply bg-black/10 dark:bg-white/20 scale-95 transition-all duration-150 ease-out;
+                            }
+            
+                            &:last-child {
+                                @apply max-md:border-b-0;
+                            }
+            
+                            img {
+                                @apply object-contain object-center size-16 relative z-10 transition-transform duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] max-md:w-10 max-md:h-10 max-md:rounded-lg;
+                            }
+            
+                            &:hover img {
+                                @apply scale-110;
+                            }
+            
+                            &:active img {
+                                @apply scale-95;
+                            }
+            
+                            p {
+                                @apply text-sm text-center font-medium w-40 text-gray-800 dark:text-gray-200 relative z-10 transition-colors duration-300 max-md:text-left max-md:w-full max-md:text-[17px] max-md:text-black dark:max-md:text-white max-md:font-normal;
+                            }
+                        }
+            h3 {
+                @apply max-md:hidden;
+            }
+        }
+    }
+
+    #txtfile {
+        @apply absolute bg-white dark:bg-[#1c1c1e] shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden top-[15%] left-[60%] w-[500px] h-[600px] transition-none max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white dark:max-md:bg-black;
+    }
+
+    #imgfile {
+        @apply absolute bg-white dark:bg-[#1c1c1e] shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden top-[20%] left-[20%] w-[650px] h-[500px] transition-none max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white dark:max-md:bg-black;
+    }
+
+    #home {
+        @apply relative z-0 w-full h-full;
+        .desktop-projects {
+            li {
+                @apply absolute z-0 select-none flex items-center flex-col cursor-pointer;
+                img {
+                    @apply group-hover:bg-gray-950/10 dark:group-hover:bg-white/10 p-1 rounded-md;
+                }
+                p {
+                    @apply text-sm text-white text-center px-1 rounded-md group-hover:bg-blue-500 transition-colors max-w-40;
+                }
+            }
+        }
+    }
     
-    return () => clearInterval(interval);
-  }, [stage, loadedProgress, everythingReady]);
+    #vscode {
+            @apply absolute bg-[#1e1e1e]/95 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden top-[12%] left-[15%] w-[850px] h-[600px] transition-none max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-[#1e1e1e];
+        }
 
-  // Stage 2 → 3: Wait until the Displayed bar visually hits 100%
-  useEffect(() => {
-    if (stage === 2 && displayedProgress >= 100) {
-      // Pause for half a second at 100% before flashing to the login screen
-      const t = setTimeout(() => setStage(3), 600); 
-      return () => clearTimeout(t);
+    .ios-home-indicator {
+        @apply fixed bottom-2 left-1/2 -translate-x-1/2 w-[130px] h-1.5 bg-white/60 dark:bg-white/30 rounded-full z-[100] pointer-events-none max-md:block hidden;
     }
-  }, [stage, displayedProgress]);
-
-  // ── Login screen fade-in ───────────────────────────────────────────────────
-  useGSAP(() => {
-    if (stage === 3 && loginRef.current) {
-      gsap.fromTo(
-        loginRef.current,
-        { opacity: 0, scale: 1.08 },
-        { opacity: 1, scale: 1, duration: 1.5, ease: "power2.out" }
-      );
-    }
-  }, [stage]);
-
-  // ── Login handler ─────────────────────────────────────────────────────────
-  const handleLogin = (e) => {
-    e?.preventDefault();
-    if (password === "1234") {
-      trigger("success");
-      const audio = new Audio("/sounds/oxygen_boot.ogg");
-      audio.volume = 1;
-      audio.play().catch(() => {});
-      setStage(4);
-      gsap.to(containerRef.current, {
-        opacity: 0,
-        scale: 1.05,
-        duration: 1.2,
-        ease: "power2.inOut",
-        onComplete: onComplete,
-      });
-    } else {
-      trigger("error");
-      setErrorMsg(
-        "it's 1234 stupid! — i am a creative developer, for sure that's my bank password!"
-      );
-      gsap.fromTo(
-        ".login-box",
-        { x: -10 },
-        { x: 10, yoyo: true, repeat: 5, duration: 0.05 }
-      );
-    }
-  };
-
-  const renderLine = (text) => {
-    if (!text || typeof text !== "string") return "";
-    if (text.includes("[  OK  ]")) {
-      return text.replace(
-        "[  OK  ]",
-        `<span class="text-green-500">[  OK  ]</span>`
-      );
-    }
-    return text;
-  };
-
-  return (
-    <div
-      ref={containerRef}
-      className="fixed inset-0 z-[9999] bg-[#000000] text-white flex flex-col font-terminal overflow-hidden select-none"
-    >
-      {stage === 0 && (
-        <div className="p-5 text-2xl font-bold">
-          <span className="cursor-blink">_</span>
-        </div>
-      )}
-
-      {stage === 1 && (
-        <div className="p-5 flex flex-col justify-start h-full overflow-hidden">
-          {lines.map((line, i) => (
-            <div
-              key={i}
-              className="text-sm md:text-base text-gray-300 leading-tight"
-              dangerouslySetInnerHTML={{ __html: renderLine(line) }}
-            />
-          ))}
-          <div className="mt-2 text-xs text-gray-600">
-            {!everythingReady
-              ? `[ Loading ZPortfolio assets... ${Math.round(loadedProgress)}% ]`
-              : `[ Assets loaded. Starting Display Manager... ]`}
-          </div>
-        </div>
-      )}
-
-      {stage === 2 && (
-        <div className="flex-1 flex flex-col items-center justify-center animate-in fade-in duration-700">
-          <img
-            src="/images/arch.webp"
-            alt="Arch Logo"
-            fetchPriority="high"
-            className="w-32 h-32 md:w-48 md:h-48 mb-10 object-contain"
-          />
-
-          <div className="w-64 h-1 bg-gray-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-[#1793d1] transition-all duration-200 ease-out"
-              style={{ width: `${displayedProgress}%` }}
-            />
-          </div>
-
-          <p className="mt-4 text-[#1793d1] font-terminal text-xs opacity-50">
-            {displayedProgress < 100
-              ? `${Math.round(displayedProgress)}% — loading components...`
-              : "Ready."}
-          </p>
-
-          <p className="mt-1 text-gray-700 font-terminal text-[10px]">
-            {completedCount} / {TOTAL_TASKS} tasks
-          </p>
-        </div>
-      )}
-
-      {(stage === 3 || stage === 4) && (
-        <div
-          ref={loginRef}
-          className="absolute inset-0 bg-[url('/images/wallpaper.webp')] max-md:bg-[url('/images/wallpaper-2.webp')] bg-cover bg-center"
-        >
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-3xl flex flex-col items-center">
-            <div className="mt-[12vh] md:mt-[15vh] text-center">
-              <h1 className="text-7xl md:text-9xl font-semibold tracking-tighter text-white drop-shadow-lg font-georama">
-                {time.format("h:mm")}
-              </h1>
-              <p className="text-xl md:text-3xl mt-2 font-medium text-white/90 drop-shadow-md font-georama">
-                {time.format("dddd, MMMM D")}
-              </p>
-            </div>
-
-            <div className="login-box mt-auto mb-[20vh] flex flex-col items-center z-10 w-full px-5">
-              <img
-                src="/images/yousef-5.webp"
-                alt="Yousef Zedan"
-                className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover shadow-2xl mb-5 mt-5 border-[3px] border-white/20"
-              />
-              <h2 className="text-xl md:text-2xl font-bold mb-6 mt-6 tracking-wide text-white drop-shadow-md font-georama">
-                Yousef Zedan
-              </h2>
-              <h3 className="text-sm md:text-base mb-6 mt-6 tracking-wide text-gray-500 drop-shadow-md font-georama">
-                hint: 1234
-              </h3>
-
-              <form
-                onSubmit={handleLogin}
-                className="relative w-full max-w-[300px]"
-              >
-                <input
-                  type="password"
-                  autoFocus
-                  placeholder="Type the password..."
-                  className="w-full bg-white/10 border border-white/20 rounded-full px-5 py-3.5 text-center text-white placeholder:text-white/60 outline-none focus:bg-white/20 focus:border-white/40 backdrop-blur-xl transition-all shadow-xl font-georama text-[15px]"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (errorMsg) setErrorMsg("");
-                  }}
-                />
-                {password.length > 0 && (
-                  <button
-                    type="submit"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors cursor-pointer flex items-center justify-center"
-                  >
-                    <ChevronRight size={18} />
-                  </button>
-                )}
-              </form>
-
-              <div className="h-16 mt-4 flex items-start justify-center">
-                {errorMsg && (
-                  <p className="text-red-300 text-[13px] md:text-sm font-medium max-w-sm text-center drop-shadow-md px-2 animate-in fade-in zoom-in-95 font-georama">
-                    {errorMsg}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-          @keyframes grub-blink {
-            0%, 49% { opacity: 1; }
-            50%, 100% { opacity: 0; }
-          }
-          .cursor-blink {
-            animation: grub-blink 0.8s step-end infinite;
-          }
-        `,
-        }}
-      />
-    </div>
-  );
-};
-
-export default BootSequence;
+}
 </file>
 
 <file path="src/components/Home.jsx">
@@ -5177,400 +5127,451 @@ const Home = () => {
 export default Home;
 </file>
 
-<file path="src/index.css">
-@font-face {
-    font-family: "JetBrainsMonoNF";
-    src: url("/fonts/JetBrainsMono/JetBrainsMonoNerdFont-Regular.ttf") format("truetype");
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
-}
+<file path="src/components/BootSequence.jsx">
+import { useState, useEffect, useRef } from "react";
+import gsap from "gsap";
+import { Draggable } from "gsap/Draggable";
+import { useGSAP } from "@gsap/react";
+import dayjs from "dayjs";
+import { ChevronRight } from "lucide-react";
+import { useWebHaptics } from "web-haptics/react";
 
-@import "tailwindcss";
+// ─── GRUB boot lines ──────────────────────────────────────────────────────────
+const bootLines =[
+  "Starting GRUB bootloader...",
+  "Loading Linux linux-cachyos v7.0 ...",
+  "Loading initial ramdisk ...",
+  ":: running early hook [udev]",
+  "Starting systemd-udevd version 255.3-1-cachyos",
+  ":: running hook [udev]",
+  "Triggering uevents...",
+  "[  OK  ] Reached target Local File Systems (Pre).",
+  "[  OK  ] Reached target Local File Systems.",
+  "Mounting /sys/kernel/debug...",
+  "Mounting /sys/kernel/tracing...",
+  "[  OK  ] Started Create Static Device Nodes in /dev.",
+  "[  OK  ] Started Rule-based Manager for Device Events and Files.",
+  "[  OK  ] Found device /dev/disk/by-uuid/cachy-os-7.0",
+  "Mounting /boot/efi...",
+  "[  OK  ] Reached target Initrd Root Device.",
+  "Starting File System Check on /dev/disk/by-uuid/cachy-7.0...",
+  "[  OK  ] Reached target Initrd Root File System.",
+  "Starting Switch Root...",
+  "Switching root to Linux 7.0.",
+  "[  OK  ] Started Journal Service.",
+  "[  OK  ] Started Load Kernel Modules.",
+  "[  OK  ] Reached target Sound Card.",
+  "[  OK  ] Reached target Network.",
+  "Starting CachyOS Display Manager...",
+];
 
-@custom-variant dark (&:is(.dark *));
+// ─── All Images and Icons to preload ──────────────────────────────────────────
+const IMAGE_ASSETS =[
+  "/images/wallpaper.webp",
+  "/images/wallpaper-2.webp",
+  "/images/yousef-5.webp",
+  "/images/arch.webp",
+  "/images/folder.png",
+  "/images/finder.webp",
+  "/images/safari.webp",
+  "/images/photos.png",
+  "/images/contact.png",
+  "/images/terminal.webp",
+  "/images/vscode.png",
+  "/images/trash.webp",
+  "/images/yousef.webp",
+  "/images/yousef-2.webp",
+  "/images/yousef-3.webp",
+  "/images/yousef-4.webp",
+  "/images/logo.svg",
+  "/images/zcinema.png",
+  "/images/project-1.webp",
+  "/images/zproximity.svg",
+  "/images/project-2.JPG",
+  "/images/txt.png",
+  "/images/image.png",
+  "/images/pdf.png",
+  "/images/blog1.png",
+  "/images/blog2.png",
+  "/images/blog3.png",
+  "/images/trash-1.webp",
+  "/images/trash-2.webp",
+  "/icons/wifi.svg",
+  "/icons/search.svg",
+  "/icons/user.svg",
+  "/icons/mode.svg",
+  "/icons/github.svg",
+  "/icons/atom.svg",
+  "/icons/linkedin.svg",
+  "/icons/gicon1.svg",
+  "/icons/gicon2.svg",
+  "/icons/gicon4.svg",
+  "/icons/gicon5.svg",
+  "/icons/file.svg",
+  "/icons/info.svg",
+  "/icons/trash.svg",
+  "/icons/work.svg"
+];
 
-@theme {
-    --font-georama: "Georama", sans-serif;
-    --font-terminal: "JetBrainsMonoNF", monospace;
-    --terminal-bg: #0f1720;
-    --terminal-foreground: #cbd5e1;
-    --terminal-accent: #00a154;
-    --breakpoint-3xl: 1920px;
-}
+// ─── Lazy component chunks to preload (Using EXACT aliases from App.jsx) ──────
+const COMPONENT_IMPORTS =[
+  () => import("#components/Navbar.jsx"),
+  () => import("#components/Welcome.jsx"),
+  () => import("#components/Dock.jsx"),
+  () => import("#components/Home.jsx"),
+  () => import("#windows/Terminal.jsx"),
+  () => import("#windows/ZenBrowser.jsx"),
+  () => import("#windows/Resume.jsx"),
+  () => import("#windows/Finder.jsx"),
+  () => import("#windows/Text.jsx"),
+  () => import("#windows/Image.jsx"),
+  () => import("#windows/Contact.jsx"),
+  () => import("#windows/Photos.jsx"),
+  () => import("#windows/CodeEditor.jsx"), 
+];
 
-@utility flex-center {
-    @apply flex items-center justify-center;
-}
+// ─── Sound assets ─────────────────────────────────────────────────────────────
+const SOUND_ASSETS =[
+  "/sounds/oxygen_boot.ogg",
+  "/sounds/oxygen_close.ogg",
+  "/sounds/oxygen_maximize.ogg",
+  "/sounds/oxygen_minimize.ogg",
+];
 
-@utility col-center {
-    @apply flex flex-col items-center justify-center;
-}
+// Total task count for progress calculation
+const TOTAL_TASKS =
+  IMAGE_ASSETS.length + COMPONENT_IMPORTS.length + SOUND_ASSETS.length + 1; // +1 for fonts
 
-@utility abs-center {
-    @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
-}
+// ─── Component ────────────────────────────────────────────────────────────────
+const BootSequence = ({ onComplete }) => {
+  const [stage, setStage] = useState(0);       // 0=cursor 1=grub 2=arch-bar 3=login 4=fading
+  const [lines, setLines] = useState([]);
+  const [time, setTime] = useState(dayjs());
+  const[password, setPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  
+  // Split Real vs Displayed progress
+  const [loadedProgress, setLoadedProgress] = useState(0);
+  const [displayedProgress, setDisplayedProgress] = useState(0);
+  
+  const[everythingReady, setEverythingReady] = useState(false);
 
-@layer base {
+  const containerRef = useRef(null);
+  const loginRef = useRef(null);
+  const hasStartedLoading = useRef(false);
+  const[completedCount, setCompletedCount] = useState(0);
+  const { trigger } = useWebHaptics();
 
-    *, *::before, *::after {
-        @apply transition-colors duration-300;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    html, body {
-        @apply w-full max-w-[100vw] h-[100dvh] overflow-hidden fixed top-0 left-0 bg-[url('/images/wallpaper.webp')] bg-cover bg-no-repeat bg-center max-md:bg-[url('/images/wallpaper-2.webp')];
-        
-        transition: background 0.8s cubic-bezier(0.4, 0, 0.2, 1), 
-                    background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-    }
+  // ── clock ──────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const t = setInterval(() => setTime(dayjs()), 1000);
+    return () => clearInterval(t);
+  },[]);
 
-    main {
-        @apply fixed inset-0 w-full h-full overflow-hidden w-dvw h-dvh;
-    }
+  useEffect(() => {
+    gsap.registerPlugin(Draggable);
+  },[]);
 
-    nav {
-        @apply flex justify-between items-center bg-white/30 dark:bg-black/40 backdrop-blur-xl p-2 px-5 select-none max-md:p-0 max-md:px-0;
-        ul {
-            @apply flex items-center gap-5 max-sm:hidden;
-            p {
-                @apply p-1 rounded text-sm cursor-pointer hover:bg-blue-200 hover:text-blue-900 dark:text-white dark:hover:bg-white/10 transition-all;
-            }
-        }
-        time {
-            @apply text-sm font-medium text-black dark:text-white;
-        }
-    }
-}
+  // ── Real asset / component loading ────────────────────────────────────────
+  useEffect(() => {
+    // Prevent React StrictMode from double-firing the preloader
+    if (hasStartedLoading.current) return;
+    hasStartedLoading.current = true;
 
-@layer components {
-    .scrollbar-hide::-webkit-scrollbar {
-        display: none;
-    }
-    .scrollbar-hide {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-    }
-    .vscode-scroll::-webkit-scrollbar {
-            width: 14px;
-            height: 14px;
-        }
-        .vscode-scroll::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .vscode-scroll::-webkit-scrollbar-thumb {
-            background-color: #313244;
-            border-radius: 10px;
-            border: 4px solid #181825;
-            transition: 0.3s;
-        }
-        .vscode-scroll::-webkit-scrollbar-thumb:hover {
-            background-color: #45475a;
-        }
-        .vscode-scroll {
-            scrollbar-width: thin;
-            scrollbar-color: #313244 #181825;
-        }
-
-    input::selection {
-        background: rgba(236, 72, 153, 0.3);
-    }
-
-    .icon {
-        @apply p-1 hover:bg-gray-200 dark:hover:bg-white/10 text-blue-600 dark:text-blue-400 rounded hover:cursor-default;
-    }
-
-    #welcome {
-        @apply text-gray-200 flex flex-col justify-center items-center absolute top-[60vh] md:top-1/2 left-1/2 -translate-x-1/2 md:-translate-y-1/2 select-none w-full px-5 max-md:hidden;
-    }
-
-    #dock {
-        @apply absolute bottom-5 left-1/2 -translate-x-1/2 z-50 select-none max-md:hidden;
-        .dock-container {
-            @apply bg-white/20 dark:bg-black/40 backdrop-blur-2xl border border-white/20 dark:border-white/10 justify-between rounded-3xl p-2.5 flex items-end gap-2;
-        }
-        .tooltip {
-            @apply !py-1 !px-3 !w-fit !text-center !text-xs !rounded-md !bg-blue-200 !text-blue-900 dark:!bg-gray-800 dark:!text-white !shadow-2xl;
-        }
-        .dock-icon {
-            @apply size-14 3xl:size-20 cursor-pointer;
-            img {
-                @apply object-cover object-center;
-            }
-        }
-    }
-
-    #window-controls {
-        @apply flex gap-2 max-md:absolute max-md:left-4 max-md:bottom-2.5 max-md:gap-0;
-        .close {
-            @apply size-3.5 rounded-full bg-[#ff6157] cursor-pointer max-md:w-auto max-md:h-auto max-md:bg-transparent max-md:flex max-md:items-center max-md:justify-center max-md:rounded-none max-md:text-blue-600 dark:max-md:text-blue-400 max-md:font-medium max-md:p-2 max-md:-ml-2;
-            svg {
-                @apply max-md:stroke-blue-600 dark:max-md:stroke-blue-400 max-md:w-6 max-md:h-6 max-md:rotate-90;
-            }
-        }
-        .minimize {
-            @apply size-3.5 rounded-full bg-[#ffc030] max-md:hidden;
-        }
-        .maximize {
-            @apply size-3.5 rounded-full bg-[#2acb42] max-md:hidden;
-        }
-    }
-
-    #window-header {
-        @apply flex items-center justify-between px-4 py-3 rounded-t-lg bg-white/10 dark:bg-black/40 border-b border-white/20 dark:border-white/10 backdrop-blur-xl select-none text-sm text-indigo-500 max-md:pt-[56px] max-md:pb-3 max-md:bg-white/95 dark:max-md:bg-gray-900/95 max-md:backdrop-blur-3xl max-md:border-gray-200/80 dark:max-md:border-white/10 max-md:items-center max-md:justify-center max-md:relative max-md:rounded-none;
-        h2 {
-            @apply max-md:text-center max-md:font-semibold max-md:text-[17px] max-md:text-black dark:max-md:text-white max-md:w-full max-md:mx-auto max-md:truncate max-md:px-10;
-        }
-    }
-
-    .os-window {
-        @apply max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:z-[100];
-        > div:last-child {
-            @apply max-md:h-full max-md:overflow-y-auto max-md:overflow-x-hidden max-md:pb-12;
-        }
-    }
-
-    #safari {
-            @apply w-4xl absolute top-40 left-2/12 bg-white/30 dark:bg-black/40 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white dark:max-md:bg-black;
-            .search {
-                @apply flex items-center gap-3 w-2/3 bg-white/30 dark:bg-white/10 backdrop-blur-xl border border-gray-300 dark:border-white/10 rounded-lg px-3 py-2 max-md:flex-1 max-md:ml-0 max-md:h-10 max-md:bg-[#E3E3E6] dark:max-md:bg-white/10 max-md:rounded-xl max-md:px-3 max-md:justify-center max-md:border-none max-md:shadow-sm;
-                input {
-                    @apply placeholder:text-gray-500 dark:text-white max-md:text-center max-md:text-[15px] max-md:w-full max-md:bg-transparent outline-none;
-                }
-            }
-            .blog {
-                @apply dark:bg-[#1c1c1e]/30 w-full h-full max-md:h-full max-md:overflow-y-auto max-md:bg-white dark:max-md:bg-black;
-                .blog-container {
-                    @apply p-10 max-w-3xl mx-auto max-md:p-6 max-md:w-full max-md:max-w-full pb-20;
-                }
-                h2 {
-                    @apply text-xl font-bold text-black dark:text-white mb-10 max-md:text-2xl max-md:text-black dark:max-md:text-white max-md:mb-6 text-center max-md:text-center;
-                }
-                .blog-post {
-                    @apply relative grid grid-cols-12 space-x-5 max-md:flex max-md:flex-col max-md:gap-4 max-md:mb-10 max-md:ml-0 max-md:space-x-0 bg-white/50 dark:bg-white/40 max-md:bg-gray-50 dark:max-md:bg-white/5 max-md:p-3 rounded-3xl p-5 max-md:rounded-3xl shadow-sm transition-all duration-300;
-                    
-                    &::before {
-                        content: '';
-                        @apply absolute inset-0 bg-black/5 dark:bg-white/10 rounded-3xl opacity-0 transition-opacity duration-300 z-0;
-                    }
-                    &:hover::before {
-                        @apply opacity-100;
-                    }
-
-                    img {
-                        @apply relative z-10 size-full rounded-md object-cover max-md:w-full max-md:h-auto max-md:object-contain max-md:rounded-2xl max-md:bg-gray-200 dark:max-md:bg-gray-800 shadow-sm;
-                    }
-                    .content {
-                        @apply relative z-10 col-span-10 space-y-3 max-md:py-2;
-                        p {
-                            @apply text-xs text-indigo-600 dark:text-indigo-700 max-md:text-sm;
-                        }
-                        h3 {
-                            @apply font-semibold text-base text-gray-800 dark:text-white max-md:text-lg max-md:leading-tight;
-                        }
-                        a {
-                            @apply text-blue-600 text-xs hover:underline flex items-center gap-3 max-md:text-sm font-medium;
-                        }
-                    }
-                }
-            }
-            #window-header {
-                @apply max-md:pt-[52px] max-md:px-4 max-md:pb-3 max-md:bg-white/80 dark:max-md:bg-gray-900/80 max-md:backdrop-blur-md max-md:border-gray-100 dark:max-md:border-white/10;
-                > svg, > div:not(.search):not(#window-controls) {
-                    @apply max-md:hidden;
-                }
-            }
-        }
-
-    #terminal {
-        @apply w-xl absolute top-32 left-1/12 bg-black/30 dark:bg-black/60 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:!h-full max-md:rounded-none max-md:bg-[#0A0B1A];
-        h2 {
-            @apply font-bold text-sm text-center w-full max-md:text-white/50;
-        }
-    }
-
-    #contact {
-        @apply w-[650px] absolute top-60 left-5/12 bg-white/30 dark:bg-black/40 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-[#f2f2f7] dark:max-md:bg-black;
-        h2 {
-            @apply font-bold text-sm text-center w-full;
-        }
-        h3 {
-            @apply text-xl font-semibold max-md:text-black dark:max-md:text-white;
-        }
-        .p-5 {
-            @apply max-md:py-5 max-md:px-6 max-md:bg-white dark:max-md:bg-gray-900 max-md:m-4 max-md:rounded-2xl max-md:shadow-[0_1px_3px_rgba(0,0,0,0.05)];
-        }
-        p {
-            @apply max-md:text-gray-600 dark:max-md:text-gray-400;
-        }
-        ul {
-            @apply flex flex-wrap items-center gap-3 max-md:flex-col max-md:items-center max-md:p-0 max-md:mt-6;
-            li {
-                @apply flex-1 rounded-lg p-3 min-w-[100px] max-w-[400px] hover:-translate-y-0.5 hover:scale-105 origin-center transition-all duration-300 max-md:w-full max-md:mb-3 max-md:rounded-xl max-md:transform-none max-md:hover:scale-100;
-                a {
-                    @apply space-y-5;
-                }
-                p {
-                    @apply font-semibold text-sm text-white;
-                }
-            }
-        }
-    }
-
-    #photos {
-        @apply w-125 top-[20%] left-[20%] absolute bg-white/30 dark:bg-black/40 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white dark:max-md:bg-black;
-        .sidebar {
-            @apply w-3/12 flex-none border-r border-black/10 flex flex-col p-5 max-md:hidden;
-            h2 {
-                @apply text-xs font-medium text-black dark:text-white mb-1;
-            }
-            ul {
-                li {
-                    @apply flex space-y-1 items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors dark:text-gray-300;
-                    &:first-child {
-                        @apply bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200;
-                    }
-                    img {
-                        @apply w-4;
-                    }
-                    p {
-                        @apply text-sm font-medium;
-                    }
-                }
-            }
-        }
-        .gallery {
-            @apply p-5 bg-white dark:bg-[#1c1c1e] max-md:w-full max-md:overflow-y-auto max-md:bg-white dark:max-md:bg-black max-md:p-[2px];
-            ul {
-                @apply grid grid-cols-5 grid-rows-5 gap-2.5 max-md:grid-cols-3 max-md:gap-[2px] max-md:relative;
-                li {
-                    @apply max-md:relative max-md:col-auto max-md:row-auto;
-                    img {
-                        @apply size-full object-cover rounded-lg max-md:aspect-square max-md:w-full max-md:h-full max-md:rounded-none;
-                    }
-                    &:first-child {
-                        @apply row-start-1 row-span-3 col-start-1 col-span-3 max-md:row-auto max-md:col-auto;
-                    }
-                    &:nth-child(2) {
-                        @apply row-start-1 row-span-3 col-start-4 col-span-2 max-md:row-auto max-md:col-auto;
-                    }
-                    &:nth-child(3) {
-                        @apply row-start-4 row-span-2 col-start-3 col-span-3 max-md:row-auto max-md:col-auto;
-                    }
-                    &:last-child {
-                        @apply row-start-4 row-span-2 col-start-1 col-span-2 max-md:row-auto max-md:col-auto;
-                    }
-                }
-            }
-        }
-    }
-
-    #resume {
-        @apply w-fit h-fit absolute top-16 left-7/12 bg-white/30 dark:bg-black/40 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white dark:max-md:bg-black;
-        #window-header {
-            h2 {
-                @apply font-bold text-sm text-center flex-1;
-            }
-        }
-    }
-
-    #finder {
-        @apply backdrop-blur-xl absolute w-3xl left-40 top-20 shadow-2xl drop-shadow-2xl overflow-hidden rounded-xl max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none;
-        .sidebar {
-            @apply w-48  border-r border-gray-200 dark:border-white/10 flex flex-col p-5 space-y-3 max-md:hidden;
-            h3 {
-                @apply text-xs font-medium text-black  dark:text-white mb-1;
-            }
-            ul {
-                @apply space-y-1;
-                .active {
-                    @apply bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200;
-                }
-                .not-active {
-                    @apply text-gray-900 hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-white/10;
-                }
-                li {
-                    @apply flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors;
-                }
-            }
-        }
-        .content {
-            @apply flex-1 p-8 relative bg-white dark:bg-[#1c1c1e] max-md:block max-md:w-full max-md:p-4 max-md:bg-[#f2f2f7] dark:max-md:bg-black;
-            ul {
-                @apply max-md:flex max-md:flex-col max-md:overflow-hidden;
-            }
-            li {
-                            @apply absolute flex items-center flex-col gap-2 p-3 -m-3 cursor-pointer z-10 max-md:relative max-md:top-0 max-md:left-0 max-md:m-0 max-md:flex-row max-md:justify-start max-md:p-3 max-md:gap-4; 
-                            
-                            &::before {
-                                content: '';
-                                @apply absolute inset-0 bg-blue-500/15 rounded-2xl opacity-0 scale-75 transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-[-1] max-md:hidden;
-                            }
-                            
-                            &:hover::before {
-                                @apply opacity-100 scale-100;
-                            }
-                            
-                            &:active::before {
-                                @apply bg-black/10 dark:bg-white/20 scale-95 transition-all duration-150 ease-out;
-                            }
-            
-                            &:last-child {
-                                @apply max-md:border-b-0;
-                            }
-            
-                            img {
-                                @apply object-contain object-center size-16 relative z-10 transition-transform duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] max-md:w-10 max-md:h-10 max-md:rounded-lg;
-                            }
-            
-                            &:hover img {
-                                @apply scale-110;
-                            }
-            
-                            &:active img {
-                                @apply scale-95;
-                            }
-            
-                            p {
-                                @apply text-sm text-center font-medium w-40 text-gray-800 dark:text-gray-200 relative z-10 transition-colors duration-300 max-md:text-left max-md:w-full max-md:text-[17px] max-md:text-black dark:max-md:text-white max-md:font-normal;
-                            }
-                        }
-            h3 {
-                @apply max-md:hidden;
-            }
-        }
-    }
-
-    #txtfile {
-        @apply absolute bg-white dark:bg-[#1c1c1e] shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden top-[15%] left-[60%] w-[500px] h-[600px] transition-none max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white dark:max-md:bg-black;
-    }
-
-    #imgfile {
-        @apply absolute bg-white dark:bg-[#1c1c1e] shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden top-[20%] left-[20%] w-[650px] h-[500px] transition-none max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-white dark:max-md:bg-black;
-    }
-
-    #home {
-        @apply relative z-0 w-full h-full;
-        .desktop-projects {
-            li {
-                @apply absolute z-0 select-none flex items-center flex-col cursor-pointer;
-                img {
-                    @apply group-hover:bg-gray-950/10 dark:group-hover:bg-white/10 p-1 rounded-md;
-                }
-                p {
-                    @apply text-sm text-white text-center px-1 rounded-md group-hover:bg-blue-500 transition-colors max-w-40;
-                }
-            }
-        }
-    }
+    let currentCount = 0;
     
-    #vscode {
-            @apply absolute bg-[#1e1e1e]/95 backdrop-blur-xl shadow-2xl drop-shadow-2xl rounded-xl overflow-hidden top-[12%] left-[15%] w-[850px] h-[600px] transition-none max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bg-[#1e1e1e];
-        }
+    const tick = () => {
+      currentCount += 1;
+      setCompletedCount(currentCount); // Update the text in the UI
+      
+      const pct = Math.min(
+        Math.floor((currentCount / TOTAL_TASKS) * 100),
+        100
+      );
+      setLoadedProgress(pct);
+      
+      if (currentCount >= TOTAL_TASKS) {
+        setEverythingReady(true);
+      }
+    };
 
-    .ios-home-indicator {
-        @apply fixed bottom-2 left-1/2 -translate-x-1/2 w-[130px] h-1.5 bg-white/60 dark:bg-white/30 rounded-full z-[100] pointer-events-none max-md:block hidden;
+    // 1. Preload Images
+    IMAGE_ASSETS.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = tick;
+      img.onerror = tick;
+    });
+
+    // 2. Preload Components
+    COMPONENT_IMPORTS.forEach((importFn) => {
+      importFn().then(tick).catch(tick);
+    });
+
+    // 3. Preload Sounds
+    SOUND_ASSETS.forEach((src) => {
+      fetch(src)
+        .then((response) => response.blob())
+        .then(tick)
+        .catch((err) => {
+            console.warn(`Failed to preload audio: ${src}`, err);
+            tick(); 
+        });
+    });
+
+    // 4. Preload Fonts
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(tick).catch(tick);
+    } else {
+      tick();
     }
-}
+  },[]);
+
+  // Stage 0 → 1
+  useEffect(() => {
+    if (stage !== 0) return;
+    const t = setTimeout(() => setStage(1), 100);
+    return () => clearTimeout(t);
+  },[stage]);
+
+  // Stage 1: GRUB text scroll
+  useEffect(() => {
+    if (stage !== 1) return;
+    let i = 0;
+    const interval = setInterval(() => {
+      setLines((prev) => [...prev, bootLines[i]]);
+      i++;
+      if (i >= bootLines.length) {
+        clearInterval(interval);
+        setStage(2); 
+      }
+    }, 60); 
+    return () => clearInterval(interval);
+  }, [stage]);
+
+  // Stage 2: Smooth / Minimum Time Progress Bar Animation
+  useEffect(() => {
+    if (stage !== 2) return;
+    
+    const interval = setInterval(() => {
+      setDisplayedProgress((prev) => {
+        if (prev >= 100) return 100;
+        
+        // Target the real loaded percentage unless we're totally done
+        const target = everythingReady ? 100 : loadedProgress;
+        
+        // Add artificial delay per tick so the bar takes a minimum of ~1.5 - 2s to complete
+        let next = prev + (Math.random() * 5 + 3); 
+        
+        if (next > target) {
+            return target;
+        }
+        return next;
+      });
+    }, 120);
+    
+    return () => clearInterval(interval);
+  }, [stage, loadedProgress, everythingReady]);
+
+  // Stage 2 → 3: Wait until the Displayed bar visually hits 100%
+  useEffect(() => {
+    if (stage === 2 && displayedProgress >= 100) {
+      // Pause for half a second at 100% before flashing to the login screen
+      const t = setTimeout(() => setStage(3), 600); 
+      return () => clearTimeout(t);
+    }
+  }, [stage, displayedProgress]);
+
+  // ── Login screen fade-in ───────────────────────────────────────────────────
+  useGSAP(() => {
+    if (stage === 3 && loginRef.current) {
+      gsap.fromTo(
+        loginRef.current,
+        { opacity: 0, scale: 1.08 },
+        { opacity: 1, scale: 1, duration: 1.5, ease: "power2.out" }
+      );
+    }
+  }, [stage]);
+
+  // ── Login handler ─────────────────────────────────────────────────────────
+  const handleLogin = (e) => {
+    e?.preventDefault();
+    if (password === "1234") {
+      trigger("success");
+      const audio = new Audio("/sounds/oxygen_boot.ogg");
+      audio.volume = 1;
+      audio.play().catch(() => {});
+      setStage(4);
+      gsap.to(containerRef.current, {
+        opacity: 0,
+        scale: 1.05,
+        duration: 1.2,
+        ease: "power2.inOut",
+        onComplete: onComplete,
+      });
+    } else {
+      trigger("error");
+      setErrorMsg(
+        "it's 1234 stupid! — i am a creative developer, for sure that's my bank password!"
+      );
+      gsap.fromTo(
+        ".login-box",
+        { x: -10 },
+        { x: 10, yoyo: true, repeat: 5, duration: 0.05 }
+      );
+    }
+  };
+
+  const renderLine = (text) => {
+    if (!text || typeof text !== "string") return "";
+    if (text.includes("[  OK  ]")) {
+      return text.replace(
+        "[  OK  ]",
+        `<span class="text-green-500">[  OK  ]</span>`
+      );
+    }
+    return text;
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className="fixed inset-0 z-[9999] bg-[#000000] text-white flex flex-col font-terminal overflow-hidden select-none"
+    >
+      {stage === 0 && (
+        <div className="p-5 text-2xl font-bold">
+          <span className="cursor-blink">_</span>
+        </div>
+      )}
+
+      {stage === 1 && (
+        <div className="p-5 flex flex-col justify-start h-full overflow-hidden">
+          {lines.map((line, i) => (
+            <div
+              key={i}
+              className="text-sm md:text-base text-gray-300 leading-tight"
+              dangerouslySetInnerHTML={{ __html: renderLine(line) }}
+            />
+          ))}
+          <div className="mt-2 text-xs text-gray-600">
+            {!everythingReady
+              ? `[ Loading ZPortfolio assets... ${Math.round(loadedProgress)}% ]`
+              : `[ Assets loaded. Starting Display Manager... ]`}
+          </div>
+        </div>
+      )}
+
+      {stage === 2 && (
+        <div className="flex-1 flex flex-col items-center justify-center animate-in fade-in duration-700">
+          <img
+            src="/images/arch.webp"
+            alt="Arch Logo"
+            fetchPriority="high"
+            className="w-32 h-32 md:w-48 md:h-48 mb-10 object-contain"
+          />
+
+          <div className="w-64 h-1 bg-gray-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[#1793d1] transition-all duration-200 ease-out"
+              style={{ width: `${displayedProgress}%` }}
+            />
+          </div>
+
+          <p className="mt-4 text-[#1793d1] font-terminal text-xs opacity-50">
+            {displayedProgress < 100
+              ? `${Math.round(displayedProgress)}% — loading components...`
+              : "Ready."}
+          </p>
+
+          <p className="mt-1 text-gray-700 font-terminal text-[10px]">
+            {completedCount} / {TOTAL_TASKS} tasks
+          </p>
+        </div>
+      )}
+
+      {(stage === 3 || stage === 4) && (
+        <div
+          ref={loginRef}
+          className="absolute inset-0 bg-[url('/images/wallpaper.webp')] max-md:bg-[url('/images/wallpaper-2.webp')] bg-cover bg-center"
+        >
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-3xl flex flex-col items-center">
+            <div className="mt-[12vh] md:mt-[15vh] text-center">
+              <h1 className="text-7xl md:text-9xl font-semibold tracking-tighter text-white drop-shadow-lg font-georama">
+                {time.format("h:mm")}
+              </h1>
+              <p className="text-xl md:text-3xl mt-2 font-medium text-white/90 drop-shadow-md font-georama">
+                {time.format("dddd, MMMM D")}
+              </p>
+            </div>
+
+            <div className="login-box mt-auto mb-[20vh] flex flex-col items-center z-10 w-full px-5">
+              <img
+                src="/images/yousef-5.webp"
+                alt="Yousef Zedan"
+                className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover shadow-2xl mb-5 mt-5 border-[3px] border-white/20"
+              />
+              <h2 className="text-xl md:text-2xl font-bold mb-6 mt-6 tracking-wide text-white drop-shadow-md font-georama">
+                Yousef Zedan
+              </h2>
+              <h3 className="text-sm md:text-base mb-6 mt-6 tracking-wide text-gray-500 drop-shadow-md font-georama">
+                hint: 1234
+              </h3>
+
+              <form
+                onSubmit={handleLogin}
+                className="relative w-full max-w-[300px]"
+              >
+                <input
+                  type="password"
+                  autoFocus
+                  placeholder="Type the password..."
+                  className="w-full bg-white/10 border border-white/20 rounded-full px-5 py-3.5 text-center text-white placeholder:text-white/60 outline-none focus:bg-white/20 focus:border-white/40 backdrop-blur-xl transition-all shadow-xl font-georama text-[15px]"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errorMsg) setErrorMsg("");
+                  }}
+                />
+                {password.length > 0 && (
+                  <button
+                    type="submit"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors cursor-pointer flex items-center justify-center"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                )}
+              </form>
+
+              <div className="h-16 mt-4 flex items-start justify-center">
+                {errorMsg && (
+                  <p className="text-red-300 text-[13px] md:text-sm font-medium max-w-sm text-center drop-shadow-md px-2 animate-in fade-in zoom-in-95 font-georama">
+                    {errorMsg}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+          @keyframes grub-blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+          }
+          .cursor-blink {
+            animation: grub-blink 0.8s step-end infinite;
+          }
+        `,
+        }}
+      />
+    </div>
+  );
+};
+
+export default BootSequence;
 </file>
 
 <file path="src/components/Dock.jsx">
