@@ -29,43 +29,44 @@ const SpotlightHint = ({ isBooted }) => {
     }
   }, [isBooted, volume, isMuted, trigger]);
 
-  useGSAP(() => {
-    if (isVisible) {
-      gsap.fromTo(
-        notificationRef.current,
-        { x: 400, opacity: 0, scale: 0.9 },
-        { 
-          x: 0, 
-          opacity: 1, 
-          scale: 1, 
-          duration: 0.8, 
-          ease: "elastic.out(1, 0.75)" 
-        }
-      );
-
-      // Auto-hide after 8 seconds
-      const hideTimer = setTimeout(() => handleClose(), 8000);
-      return () => clearTimeout(hideTimer);
-    }
-  }, [isVisible]);
-
   const { contextSafe } = useGSAP();
+    
+    const handleClose = () => {
+      contextSafe(() => {
+        gsap.to(notificationRef.current, {
+          x: 100,
+          opacity: 0,
+          scale: 0.9,
+          duration: 0.4,
+          ease: "power2.in",
+          onComplete: () => setIsVisible(false)
+        });
+      })();
+    };
+    
+    useGSAP(() => {
+      if (isVisible) {
+        gsap.fromTo(
+          notificationRef.current,
+          { x: 400, opacity: 0, scale: 0.9 },
+          { 
+            x: 0, 
+            opacity: 1, 
+            scale: 1, 
+            duration: 0.8, 
+            ease: "elastic.out(1, 0.75)" 
+          }
+        );
   
-  const handleClose = contextSafe(() => {
-    gsap.to(notificationRef.current, {
-      x: 100,
-      opacity: 0,
-      scale: 0.9,
-      duration: 0.4,
-      ease: "power2.in",
-      onComplete: () => setIsVisible(false)
-    });
-  });
-
-  const openSpotlight = () => {
-    window.dispatchEvent(new CustomEvent('toggle-spotlight'));
-    handleClose();
-  };
+        const hideTimer = setTimeout(() => handleClose(), 8000);
+        return () => clearTimeout(hideTimer);
+      }
+    }, [isVisible]);
+    
+    const openSpotlight = () => {
+      window.dispatchEvent(new CustomEvent('toggle-spotlight'));
+      handleClose();
+    };
 
   if (!isVisible) return null;
 
