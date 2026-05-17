@@ -1400,6 +1400,53 @@ const Spotlight = () => {
 export default Spotlight;
 </file>
 
+<file path="src/components/Welcome.jsx">
+import { ProximityText } from "z-proximity-engine";
+
+const Welcome = () => {
+  return (
+    <section id="welcome" className="max-md:hidden pointer-events-none w-full">
+      <ProximityText
+        text="Hey, I'm Yousef Zedan! Welcome to my"
+        preset="opacity-y-tiltCard"
+        splitBy="letter"
+        global={true}
+        ignoreSelectors={[".os-window"]}
+        config={{
+          duration: 1.5,
+          resetDuration: 1.5,
+          ease: "elastic",
+          resetEase: "elastic"
+        }}
+        reach={0.6}
+        falloff={2}
+        className="cursor-default text-center px-4"
+        textClassName="text-[5vw] sm:text-2xl md:text-3xl font-georama font-[150]"
+      />
+      <ProximityText
+        text="ZPortfolio"
+        preset="weight"
+        global={true}
+        ignoreSelectors={[".os-window"]}
+        config={{
+          duration: 1,
+          resetDuration: 1,
+          weight: [500, 900],
+          ease: "elastic",
+          resetEase: "elastic"
+        }}
+        reach={0.5}
+        falloff={2}
+        className="mt-4 md:mt-7 cursor-default text-center"
+        textClassName="text-[10.5vw] sm:text-7xl md:text-9xl italic font-georama"
+      />
+    </section>
+  );
+};
+
+export default Welcome;
+</file>
+
 <file path="src/store/window.js">
 import { INITIAL_Z_INDEX, WINDOW_CONFIG, dockApps } from "#constants";
 import { create } from "zustand";
@@ -1913,53 +1960,6 @@ const ContextMenu = () => {
 export default ContextMenu;
 </file>
 
-<file path="src/components/Welcome.jsx">
-import { ProximityText } from "z-proximity-engine";
-
-const Welcome = () => {
-  return (
-    <section id="welcome" className="max-md:hidden pointer-events-none w-full">
-      <ProximityText
-        text="Hey, I'm Yousef Zedan! Welcome to my"
-        preset="opacity-y-tiltCard"
-        splitBy="letter"
-        global={true}
-        ignoreSelectors={[".os-window"]}
-        config={{
-          duration: 1.5,
-          resetDuration: 1.5,
-          ease: "elastic",
-          resetEase: "elastic"
-        }}
-        reach={0.6}
-        falloff={2}
-        className="cursor-default text-center px-4"
-        textClassName="text-[5vw] sm:text-2xl md:text-3xl font-georama font-[150]"
-      />
-      <ProximityText
-        text="ZPortfolio"
-        preset="weight"
-        global={true}
-        ignoreSelectors={[".os-window"]}
-        config={{
-          duration: 1,
-          resetDuration: 1,
-          weight: [500, 900],
-          ease: "elastic",
-          resetEase: "elastic"
-        }}
-        reach={0.5}
-        falloff={2}
-        className="mt-4 md:mt-7 cursor-default text-center"
-        textClassName="text-[10.5vw] sm:text-7xl md:text-9xl italic font-georama"
-      />
-    </section>
-  );
-};
-
-export default Welcome;
-</file>
-
 <file path="vite.config.js">
 import { defineConfig, normalizePath } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -2042,6 +2042,110 @@ export {
   Spotlight, 
   SpotlightHint,
 };
+</file>
+
+<file path="src/components/Navbar.jsx">
+import React, { memo, useState, useEffect, useRef } from "react";
+import { navIcons, navLinks } from "#constants";
+import useWindowStore from "#store/window.js";
+import dayjs from "dayjs";
+import { Battery, Signal, Wifi } from "lucide-react";
+import ControlCenter from "./ControlCenter.jsx";
+
+const Navbar = memo(() => {
+  const openWindow = useWindowStore((s) => s.openWindow);
+  const [time, setTime] = useState(dayjs().format("ddd MMM D   h:mm A"));
+  const [timeStr, setTimeStr] = useState(dayjs().format("h:mm"));
+
+  const [isControlCenterOpen, setIsControlCenterOpen] = useState(false);
+  const controlCenterRef = useRef(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(dayjs().format("ddd MMM D   h:mm A"));
+      setTimeStr(dayjs().format("h:mm"));
+    }, 10000);
+    return () => clearInterval(timer);
+  },[]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (controlCenterRef.current && !controlCenterRef.current.contains(event.target)) {
+        setIsControlCenterOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  },[]);
+
+  return (
+    <nav className="relative z-50 max-md:z-1500 max-md:fixed max-md:top-0 max-md:left-0 max-md:right-0 max-md:h-12 max-md:bg-transparent max-md:border-none max-md:pointer-events-none max-md:p-0 max-md:px-0 box-border">
+    
+      {/* PC Navbar */}
+      <div className="flex items-center gap-4 max-md:hidden">
+        <img src="/images/logo.svg" alt="logo" width={20} height={20} className="w-5 h-5 dark:invert" />
+        <p className="font-bold whitespace-nowrap dark:text-white">Yousef's Portfolio</p>
+        <ul className="flex items-center gap-3">
+          {navLinks.map(({ id, name, type }) => (
+            <li 
+              key={id} 
+              className="relative cursor-pointer"
+              onClick={() => openWindow(type)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openWindow(type)}
+            >
+              <p className="z-10">{name}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+      
+      {/* iOS Mobile Status Bar */}
+      <div className="hidden max-md:flex w-full h-full items-center justify-between text-white drop-shadow-md pointer-events-auto px-6 box-border">
+        <time className="text-[15px] font-bold tracking-wide">{timeStr}</time>
+        
+        {/* Dynamic Island - Now perfectly centered vertically in the h-12 nav */}
+        <div className="absolute left-1/2 -translate-x-1/2 top-1 w-[120px] h-[32px] bg-black rounded-full z-50 shadow-sm" />
+        
+        <div className="flex items-center gap-1.5">
+          <Signal size={16} className="fill-white" strokeWidth={2.5} />
+          <Wifi size={16} strokeWidth={2.5} />
+          <Battery size={20} strokeWidth={2} className="fill-white" />
+        </div>
+      </div>
+
+      {/* PC Right Side */}
+      <div className="flex items-center gap-5 max-md:hidden" ref={controlCenterRef}>
+        <ul>
+          {navIcons.map(({ id, img }) => (
+            <li key={id}>
+              <img 
+                src={img} 
+                alt={`icon-${id}`} 
+                width={18} 
+                height={18} 
+                className="w-[22px] h-[22px] p-[2px] transition-all duration-300 ease-in-out 
+                                 rounded-md cursor-pointer dark:invert
+                                 hover:bg-black/10 dark:hover:bg-white/20 
+                                 hover:scale-110 active:scale-95" 
+                loading="lazy" 
+                onClick={() => {
+                  if (id === 4) setIsControlCenterOpen(!isControlCenterOpen);
+                  if (id === 2) window.dispatchEvent(new CustomEvent('toggle-spotlight'));
+                }}
+              />
+            </li>
+          ))}
+        </ul>
+        <time>{time}</time>
+        <ControlCenter isOpen={isControlCenterOpen} />
+      </div>
+    </nav>
+  );
+});
+
+export default Navbar;
 </file>
 
 <file path="src/components/WindowControls.jsx">
@@ -2532,638 +2636,6 @@ export {
   photosLinks,
   gallery
 };
-</file>
-
-<file path="src/components/Navbar.jsx">
-import React, { memo, useState, useEffect, useRef } from "react";
-import { navIcons, navLinks } from "#constants";
-import useWindowStore from "#store/window.js";
-import dayjs from "dayjs";
-import { Battery, Signal, Wifi } from "lucide-react";
-import ControlCenter from "./ControlCenter.jsx";
-
-const Navbar = memo(() => {
-  const openWindow = useWindowStore((s) => s.openWindow);
-  const [time, setTime] = useState(dayjs().format("ddd MMM D   h:mm A"));
-  const [timeStr, setTimeStr] = useState(dayjs().format("h:mm"));
-
-  const [isControlCenterOpen, setIsControlCenterOpen] = useState(false);
-  const controlCenterRef = useRef(null);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTime(dayjs().format("ddd MMM D   h:mm A"));
-      setTimeStr(dayjs().format("h:mm"));
-    }, 10000);
-    return () => clearInterval(timer);
-  },[]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (controlCenterRef.current && !controlCenterRef.current.contains(event.target)) {
-        setIsControlCenterOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  },[]);
-
-  return (
-    <nav className="relative z-50 max-md:z-1500 max-md:fixed max-md:top-0 max-md:left-0 max-md:right-0 max-md:h-12 max-md:bg-transparent max-md:border-none max-md:pointer-events-none max-md:p-0 max-md:px-0 box-border">
-    
-      {/* PC Navbar */}
-      <div className="flex items-center gap-4 max-md:hidden">
-        <img src="/images/logo.svg" alt="logo" width={20} height={20} className="w-5 h-5 dark:invert" />
-        <p className="font-bold whitespace-nowrap dark:text-white">Yousef's Portfolio</p>
-        <ul className="flex items-center gap-3">
-          {navLinks.map(({ id, name, type }) => (
-            <li 
-              key={id} 
-              className="relative cursor-pointer"
-              onClick={() => openWindow(type)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openWindow(type)}
-            >
-              <p className="z-10">{name}</p>
-            </li>
-          ))}
-        </ul>
-      </div>
-      
-      {/* iOS Mobile Status Bar */}
-      <div className="hidden max-md:flex w-full h-full items-center justify-between text-white drop-shadow-md pointer-events-auto px-6 box-border">
-        <time className="text-[15px] font-bold tracking-wide">{timeStr}</time>
-        
-        {/* Dynamic Island - Now perfectly centered vertically in the h-12 nav */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-1 w-[120px] h-[32px] bg-black rounded-full z-50 shadow-sm" />
-        
-        <div className="flex items-center gap-1.5">
-          <Signal size={16} className="fill-white" strokeWidth={2.5} />
-          <Wifi size={16} strokeWidth={2.5} />
-          <Battery size={20} strokeWidth={2} className="fill-white" />
-        </div>
-      </div>
-
-      {/* PC Right Side */}
-      <div className="flex items-center gap-5 max-md:hidden" ref={controlCenterRef}>
-        <ul>
-          {navIcons.map(({ id, img }) => (
-            <li key={id}>
-              <img 
-                src={img} 
-                alt={`icon-${id}`} 
-                width={18} 
-                height={18} 
-                className="w-[22px] h-[22px] p-[2px] transition-all duration-300 ease-in-out 
-                                 rounded-md cursor-pointer dark:invert
-                                 hover:bg-black/10 dark:hover:bg-white/20 
-                                 hover:scale-110 active:scale-95" 
-                loading="lazy" 
-                onClick={() => {
-                  if (id === 4) setIsControlCenterOpen(!isControlCenterOpen);
-                  if (id === 2) window.dispatchEvent(new CustomEvent('toggle-spotlight'));
-                }}
-              />
-            </li>
-          ))}
-        </ul>
-        <time>{time}</time>
-        <ControlCenter isOpen={isControlCenterOpen} />
-      </div>
-    </nav>
-  );
-});
-
-export default Navbar;
-</file>
-
-<file path="package.json">
-{
-  "name": "zportfolio",
-  "private": false,
-  "version": "1.0.0",
-  "author": "Yousef Zedan (ZED Studios) <zedstudios.devs@gmail.com>",
-  "license": "MIT",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@fontsource-variable/geist": "^5.2.8",
-    "@gsap/react": "^2.1.2",
-    "@monaco-editor/react": "^4.7.0",
-    "@tailwindcss/vite": "^4.2.2",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "dayjs": "^1.11.20",
-    "gsap": "^3.15.0",
-    "immer": "^11.1.4",
-    "lucide-react": "^1.7.0",
-    "monaco-editor": "^0.53.0",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-pdf": "^10.4.1",
-    "react-tooltip": "^5.30.0",
-    "tailwind-merge": "^3.5.0",
-    "tailwindcss": "^4.2.2",
-    "tw-animate-css": "^1.4.0",
-    "use-sound": "^5.0.0",
-    "web-haptics": "^0.0.6",
-    "z-proximity-engine": "^2.3.0",
-    "zustand": "^5.0.12"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.4",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
-    "eslint": "^9.39.4",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
-    "globals": "^17.4.0",
-    "vite": "^8.0.1",
-    "vite-plugin-static-copy": "^4.0.0"
-  }
-}
-</file>
-
-<file path="src/App.jsx">
-import React, { Suspense, lazy, useState, useEffect } from "react";
-import gsap from "gsap";
-import { Draggable } from "gsap/Draggable";
-import BootSequence from "#components/BootSequence.jsx";
-import { loader } from "@monaco-editor/react";
-const Navbar = lazy(() => import("#components/Navbar.jsx"));
-const Welcome = lazy(() => import("#components/Welcome.jsx"));
-const Dock = lazy(() => import("#components/Dock.jsx"));
-const Home = lazy(() => import("#components/Home.jsx"));
-const Terminal = lazy(() => import("#windows/Terminal.jsx"));
-const ZenBrowser = lazy(() => import("#windows/ZenBrowser.jsx"));
-const Resume = lazy(() => import("#windows/Resume.jsx"));
-const Finder = lazy(() => import("#windows/Finder.jsx"));
-const Text = lazy(() => import("#windows/Text.jsx"));
-const Image = lazy(() => import("#windows/Image.jsx"));
-const Contact = lazy(() => import("#windows/Contact.jsx"));
-const Photos = lazy(() => import("#windows/Photos.jsx"));
-const CodeEditor = lazy(() => import("#windows/CodeEditor.jsx"));
-const ContextMenu = lazy(() => import("#components/ContextMenu.jsx"));
-const Spotlight = lazy(() => import("#components/Spotlight.jsx"));
-const SpotlightHint = lazy(() => import("#components/SpotlightHint.jsx"));
-
-gsap.registerPlugin(Draggable);
-
-if (typeof window !== "undefined") {
-  console.log(
-    "%c 💻 ZPortfolio by ZED Studios %c Developed by Yousef Zedan %c https://github.com/YoussefZidan-1/zportfolio ",
-    "color: white; background: #000; padding: 5px 10px; border-radius: 5px 0 0 5px; font-weight: bold;",
-    "color: #fff; background: #007aff; padding: 5px 10px; font-weight: bold;",
-    "color: #000; background: #fff; padding: 5px 10px; border-radius: 0 5px 5px 0; border: 1px solid #000;"
-  );
-}
-
-const App = () => {
-  const [isBooted, setIsBooted] = useState(false);
-  useEffect(() => {
-    if (isBooted) {
-      loader.init().then(() => {
-        console.log("%c[System] ZED Code Engine preloaded in the background.", "color: #a6e3a1; background: #1e1e2e; padding: 2px 6px; border-radius: 4px;");
-      }).catch((err) => {
-        console.warn("Failed to preload Monaco Editor", err);
-      });
-    }
-  }, [isBooted]);
-
-  return (
-    <>
-      {!isBooted && <BootSequence onComplete={() => setIsBooted(true)} />}
-      <div 
-        className={`fixed inset-0 w-full h-full transition-opacity duration-1000 ease-in-out z-0 ${
-          isBooted ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-        }`}
-      >
-        <Suspense fallback={null}>
-          <main className="w-full h-full">
-            <div className="ios-home-indicator" />
-            <Navbar />
-            <Welcome />
-            <Home />
-            <ContextMenu />
-            <Spotlight />
-            <SpotlightHint isBooted={isBooted} />
-            <Dock />
-            <Terminal />
-            <ZenBrowser />
-            <Resume />
-            <Finder />
-            <Text />
-            <Image />
-            <Contact />
-            <Photos />
-            <CodeEditor /> 
-          </main>
-        </Suspense>
-      </div>
-    </>
-  );
-};
-
-export default App;
-</file>
-
-<file path="src/windows/CodeEditor.jsx">
-import WindowWrapper from "#hoc/WindowWrapper.jsx";
-import codeEditorRaw from "./CodeEditor.jsx?raw";
-import { WindowControls } from "#components";
-import { memo, useState, useMemo, useEffect, useRef, useCallback } from "react";
-import Editor from "@monaco-editor/react";
-import { ChevronRight, ChevronDown, Folder, FolderOpen, Code2, Braces, Hash, PanelLeft, Info, X } from "lucide-react";
-import { useWebHaptics } from "web-haptics/react";
-import clsx from "clsx";
-
-const globFiles = import.meta.glob([
-  '/src/**/*.{jsx,js,css,json,ts,tsx}', 
-  '/package.json',
-  '/vite.config.js',
-  '/eslint.config.js',
-  '/index.html',
-  '/README.md',
-  '/vercel.json',
-  '/jsconfig.json',
-  '/LICENSE',
-  '/.gitignore',
-], { query: '?raw', import: 'default', eager: true });
-
-const rawFiles = {
-  ...globFiles,
-  '/src/windows/CodeEditor.jsx': codeEditorRaw,
-};
-
-const buildFileTree = (files) => {
-  const root = {};
-  Object.entries(files).forEach(([path]) => {
-    const parts = path.replace(/^\//, '').split('/');
-    let current = root;
-
-    parts.forEach((part, idx) => {
-      if (idx === parts.length - 1) {
-        current[part] = { type: 'file', name: part, path: path }; 
-      } else {
-        if (!current[part]) {
-          current[part] = { type: 'folder', name: part, children: {} };
-        }
-        current = current[part].children;
-      }
-    });
-  });
-  return root;
-};
-
-const getLanguage = (name) => {
-  if (name.endsWith('.js') || name.endsWith('.jsx')) return 'javascript';
-  if (name.endsWith('.css')) return 'css';
-  if (name.endsWith('.json')) return 'json';
-  if (name.endsWith('.html')) return 'html';
-  if (name.endsWith('.md')) return 'markdown';
-  return 'plaintext';
-};
-
-const handleEditorWillMount = (monaco) => {
-  monaco.editor.defineTheme("catppuccin-mocha", {
-    base: "vs-dark",
-    inherit: true,
-    rules:[
-      { token: "", foreground: "cdd6f4" }, 
-      { token: "comment", foreground: "6c7086", fontStyle: "italic" }, 
-      { token: "keyword", foreground: "cba6f7" }, 
-      { token: "identifier", foreground: "cdd6f4" }, 
-      { token: "string", foreground: "a6e3a1" }, 
-      { token: "number", foreground: "fab387" }, 
-      { token: "type", foreground: "f9e2af" }, 
-      { token: "class", foreground: "f9e2af" }, 
-      { token: "function", foreground: "8caaee" }, 
-      { token: "variable", foreground: "cdd6f4" }, 
-      { token: "constant", foreground: "fab387" }, 
-      { token: "operator", foreground: "89dceb" }, 
-      { token: "property", foreground: "74c7ec" },
-      { token: "tag", foreground: "cba6f7" },              
-      { token: "attribute.name", foreground: "8caaee" },    
-      { token: "attribute.value", foreground: "a6e3a1" },   
-      { token: "delimiter", foreground: "94e2d5" },
-      { token: "string.key.json", foreground: "8caaee" },
-      { token: "keyword.json", foreground: "cba6f7" },  
-    ],
-    colors: {
-      "editor.background": "#1e1e2e", 
-      "editor.foreground": "#cdd6f4", 
-      "editorLineNumber.foreground": "#585b70", 
-      "editorCursor.foreground": "#f5e0dc", 
-      "editor.selectionBackground": "#45475a", 
-      "editor.inactiveSelectionBackground": "#313244", 
-      "editorIndentGuide.background": "#313244", 
-      "editorIndentGuide.activeBackground": "#585b70", 
-      "editorWidget.background": "#181825", 
-      "scrollbarSlider.background": "#31324480",
-      "scrollbarSlider.hoverBackground": "#45475a",
-      "scrollbarSlider.activeBackground": "#585b70",
-    },
-  });
-};
-
-const FileTreeNode = ({ node, level, activePath, openFile, onFileClick }) => {
-  const [isOpen, setIsOpen] = useState(true);
-  const isFolder = node.type === 'folder';
-  const isActive = activePath === node.path;
-
-  const getIcon = () => {
-    if (isFolder) return isOpen ? <FolderOpen size={14} color="#8caaee" /> : <Folder size={14} color="#8caaee" />; 
-    if (node.name.endsWith('.jsx')) return <span className="text-[#cba6f7] font-bold text-[10px]">JSX</span>; 
-    if (node.name.endsWith('.js')) return <span className="text-[#f9e2af] font-bold text-[10px]">JS</span>; 
-    if (node.name.endsWith('.css')) return <Hash size={14} color="#89dceb" />; 
-    if (node.name.endsWith('.json')) return <Braces size={14} color="#a6e3a1" />; 
-    return <Code2 size={14} color="#bac2de" />; 
-  };
-
-  const organicStyles = clsx(
-    "relative overflow-hidden select-none transition-all duration-150 ease-out cursor-pointer active:scale-[0.97]",
-    "before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0 before:bg-[#313244] before:transition-all before:duration-300 before:ease-in-out hover:before:w-full",
-    "flex items-center gap-1.5 py-1 px-2 text-sm whitespace-nowrap"
-  );
-
-  if (isFolder) {
-    const children = Object.values(node.children).sort((a, b) => {
-      if (a.type === b.type) return a.name.localeCompare(b.name);
-      return a.type === 'folder' ? -1 : 1;
-    });
-
-    return (
-      <div className="select-none">
-        <div 
-          className={clsx(organicStyles, "text-[#cdd6f4]")}
-          style={{ paddingLeft: `${level * 12 + 8}px` }}
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          <div className="relative z-10 flex items-center gap-1.5 pointer-events-none">
-            {isOpen ? <ChevronDown size={14} color="#a6adc8" /> : <ChevronRight size={14} color="#a6adc8" />}
-            {getIcon()}
-            <span>{node.name}</span>
-          </div>
-        </div>
-        {isOpen && children.map(child => (
-          <FileTreeNode key={child.name} node={child} level={level + 1} activePath={activePath} openFile={openFile} onFileClick={onFileClick} />
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div 
-      className={clsx(
-        organicStyles, 
-        isActive ? "text-[#cdd6f4] before:w-full before:bg-[#45475a]" : "text-[#bac2de]"
-      )}
-      style={{ paddingLeft: `${level * 12 + 28}px` }}
-      onClick={() => {
-        openFile(node.path);
-        if (onFileClick) onFileClick(); 
-      }}
-    >
-      <div className="relative z-10 flex items-center gap-2 pointer-events-none">
-        {getIcon()}
-        <span>{node.name}</span>
-      </div>
-    </div>
-  );
-};
-
-const CodeEditor = memo(() => {
-  const { trigger } = useWebHaptics();
-  const fileTree = useMemo(() => buildFileTree(rawFiles), []);
-  
-  const [openFiles, setOpenFiles] = useState(["/src/App.jsx"]); 
-  const [activePath, setActivePath] = useState("/src/App.jsx");
-  const [filesContent, setFilesContent] = useState(() => ({ ...rawFiles }));
-  const [isSidebarOpen, setIsSidebarOpen] = useState(
-    typeof window !== 'undefined' ? window.innerWidth > 768 : true
-  );
-
-  const [saveToast, setSaveToast] = useState(false);
-  const toastTimeoutRef = useRef(null);
-
-  const triggerSaveToast = useCallback(() => {
-    trigger("success");
-    setSaveToast(true);
-    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-    toastTimeoutRef.current = setTimeout(() => setSaveToast(false), 5000);
-  }, [trigger]);
-
-  const openFile = (path) => {
-    if (!openFiles.includes(path)) {
-      setOpenFiles(prev => [...prev, path]);
-    }
-    setActivePath(path);
-  };
-
-  const closeFile = (path, e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const newFiles = openFiles.filter(f => f !== path);
-    setOpenFiles(newFiles);
-    if (activePath === path) {
-      setActivePath(newFiles[newFiles.length - 1] || "");
-    }
-  };
-
-  useEffect(() => {
-      const handleKeyDown = (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
-          e.preventDefault();
-          setIsSidebarOpen(prev => !prev);
-        }
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-          e.preventDefault();
-          triggerSaveToast();
-        }
-      };
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [triggerSaveToast]);
-
-  const handleEditorDidMount = (editor, monaco) => {
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-      triggerSaveToast();
-    });
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyB, () => {
-      setIsSidebarOpen(p => !p);
-    });
-  };
-
-  const handleEditorChange = (value) => {
-    setFilesContent((prev) => ({
-      ...prev, [activePath]: value
-    }));
-  };
-
-  const activeFileContent = activePath ? filesContent[activePath] : null;
-  const activeFileName = activePath ? activePath.split('/').pop() : "No file open";
-  const activeLanguage = getLanguage(activeFileName);
-
-  return (
-    <>
-      <div id="window-header" className="shrink-0 text-[#cdd6f4] relative flex items-center justify-center z-10">
-        <WindowControls target="vscode" />
-        <PanelLeft 
-          className="hidden max-md:block absolute left-14 text-[#a6adc8] hover:text-[#cdd6f4] cursor-pointer z-50 transition-transform active:scale-95" 
-          size={20} 
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsSidebarOpen(!isSidebarOpen);
-          }} 
-        />
-        <h2 className="text-sm font-medium pr-4 truncate w-full text-center">ZED Code — {activeFileName}</h2>
-      </div>
-
-      <div className="flex-1 w-full bg-[#1e1e2e] min-h-0 flex flex-row relative overflow-hidden">
-        
-        {/* EASTER EGG TOAST */}
-        <div 
-          className={`absolute bottom-6 right-6 z-[100] bg-[#1e1e2e] border border-[#313244] shadow-2xl rounded-lg p-4 max-w-[320px] transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] ${
-            saveToast ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0 pointer-events-none"
-          }`}
-        >
-          <div className="flex items-start gap-3">
-            <Info className="text-[#8caaee] mt-0.5 shrink-0" size={18} />
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[#cdd6f4] text-sm font-semibold leading-tight">Nice try! 😏</span>
-              <span className="text-[#bac2de] text-xs leading-relaxed">
-                Actually, you are the only one seeing this. Go to GitHub and send me a PR if you dare! 
-                <a href="https://github.com/YoussefZidan-1/zportfolio" target="_blank" rel="noopener noreferrer" className="text-[#cba6f7] hover:underline font-bold flex items-center gap-1 mt-1.5 w-fit">
-                  Open Repository <span className="font-terminal text-2xl font-normal px-2"></span>
-                </a>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div 
-          className={`md:hidden absolute inset-0 bg-black/50 z-40 transition-opacity duration-300 ease-in-out ${
-            isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-          }`}
-          onClick={() => setIsSidebarOpen(false)}
-        />
-
-        <div 
-          className={`shrink-0 border-[#11111b] overflow-hidden transition-all duration-300 ease-in-out z-50 bg-[#181825] 
-            max-md:absolute max-md:h-full max-md:shadow-2xl 
-            ${isSidebarOpen ? "max-md:translate-x-0 md:w-56 border-r" : "max-md:-translate-x-full md:w-0 border-r-0"}
-          `}
-        >
-          <div className="w-60 md:w-56 pt-3 pb-6 h-full flex flex-col vscode-scroll">
-            <div className="flex items-center justify-between px-4 mb-2">
-              <span className="text-[11px] text-[#a6adc8] font-semibold uppercase tracking-wider">Explorer</span>
-            </div>
-            <div className="flex-1 overflow-y-auto vscode-scroll">
-              {Object.values(fileTree).sort((a, b) => a.type === 'folder' ? -1 : 1).map(node => (
-                <FileTreeNode 
-                  key={node.name} 
-                  node={node} 
-                  level={0} 
-                  activePath={activePath} 
-                  openFile={openFile}
-                  onFileClick={() => {
-                    if (window.innerWidth < 768) setIsSidebarOpen(false);
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex-1 flex flex-col min-w-0 bg-[#1e1e2e]">
-          {/* FIXED TAB BAR */}
-          <div className="flex bg-[#11111b] shrink-0 items-center h-10 w-full overflow-hidden">
-            {/* Toggle Button: Outside the scrollable area so it's ALWAYS clickable */}
-            <button 
-              onClick={() => setIsSidebarOpen(p => !p)}
-              className="p-2 ml-1 text-[#a6adc8] hover:text-[#cdd6f4] transition-colors md:block hidden cursor-pointer z-20 shrink-0"
-              title="Toggle Sidebar (Ctrl+B)"
-            >
-              <PanelLeft size={16} />
-            </button>
-
-            {/* Tabs: This part scrolls */}
-            <div className="flex-1 flex h-full overflow-x-auto scrollbar-hide items-center">
-              {openFiles.map((path) => {
-                const fileName = path.split('/').pop();
-                const isActive = path === activePath;
-                return (
-                  <div 
-                    key={path}
-                    onClick={() => setActivePath(path)}
-                    className={clsx(
-                      "group flex items-center gap-2 px-3 py-2 text-xs cursor-pointer transition-all duration-200 border-r border-[#11111b] min-w-fit h-full select-none",
-                      isActive 
-                        ? "bg-[#1e1e2e] text-[#cdd6f4] border-t-2 border-t-[#cba6f7]" 
-                        : "bg-[#181825] text-[#a6adc8] hover:bg-[#24273a]"
-                    )}
-                  >
-                    <span className={clsx("font-medium", isActive && "text-white")}>{fileName}</span>
-                    <X 
-                      size={12} 
-                      className={clsx(
-                        "opacity-0 group-hover:opacity-100 hover:bg-white/10 rounded-sm transition-all z-30",
-                        isActive && "opacity-50"
-                      )} 
-                      onClick={(e) => closeFile(path, e)}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="flex-1 w-full min-h-0 pt-2 relative flex items-center justify-center">
-            {activePath ? (
-              <Editor
-                height="100%"
-                language={activeLanguage}
-                theme="catppuccin-mocha"
-                value={activeFileContent || "// File not found or empty"}
-                onChange={handleEditorChange}
-                beforeMount={handleEditorWillMount}
-                onMount={handleEditorDidMount}
-                options={{
-                  minimap: { enabled: true },
-                  fontSize: 14,
-                  readOnly: false,
-                  wordWrap: "on",
-                  padding: { top: 16 },
-                  scrollBeyondLastLine: false,
-                  smoothScrolling: true,
-                  cursorSmoothCaretAnimation: 'on',
-                  cursorBlinking: "expand",
-                  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                  scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10 }
-                }}
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center animate-in zoom-in-95 duration-500">
-                <img src="/images/logo.svg" alt="Arch" className="w-32 h-32 opacity-20 grayscale brightness-200" />
-                <p className="text-[#585b70] text-xs font-terminal mt-4">No file selected</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </>
-  );
-});
-
-const CodeEditorWindow = WindowWrapper(CodeEditor, "vscode");
-export default CodeEditorWindow;
 </file>
 
 <file path="src/windows/Terminal.jsx">
@@ -3950,6 +3422,89 @@ const TerminalWindow = WindowWrapper(Terminal, "terminal");
 export default TerminalWindow;
 </file>
 
+<file path="src/App.jsx">
+import React, { Suspense, lazy, useState, useEffect } from "react";
+import gsap from "gsap";
+import { Draggable } from "gsap/Draggable";
+import BootSequence from "#components/BootSequence.jsx";
+import { loader } from "@monaco-editor/react";
+const Navbar = lazy(() => import("#components/Navbar.jsx"));
+const Welcome = lazy(() => import("#components/Welcome.jsx"));
+const Dock = lazy(() => import("#components/Dock.jsx"));
+const Home = lazy(() => import("#components/Home.jsx"));
+const Terminal = lazy(() => import("#windows/Terminal.jsx"));
+const ZenBrowser = lazy(() => import("#windows/ZenBrowser.jsx"));
+const Resume = lazy(() => import("#windows/Resume.jsx"));
+const Finder = lazy(() => import("#windows/Finder.jsx"));
+const Text = lazy(() => import("#windows/Text.jsx"));
+const Image = lazy(() => import("#windows/Image.jsx"));
+const Contact = lazy(() => import("#windows/Contact.jsx"));
+const Photos = lazy(() => import("#windows/Photos.jsx"));
+const CodeEditor = lazy(() => import("#windows/CodeEditor.jsx"));
+const ContextMenu = lazy(() => import("#components/ContextMenu.jsx"));
+const Spotlight = lazy(() => import("#components/Spotlight.jsx"));
+const SpotlightHint = lazy(() => import("#components/SpotlightHint.jsx"));
+
+gsap.registerPlugin(Draggable);
+
+if (typeof window !== "undefined") {
+  console.log(
+    "%c 💻 ZPortfolio by ZED Studios %c Developed by Yousef Zedan %c https://github.com/YoussefZidan-1/zportfolio ",
+    "color: white; background: #000; padding: 5px 10px; border-radius: 5px 0 0 5px; font-weight: bold;",
+    "color: #fff; background: #007aff; padding: 5px 10px; font-weight: bold;",
+    "color: #000; background: #fff; padding: 5px 10px; border-radius: 0 5px 5px 0; border: 1px solid #000;"
+  );
+}
+
+const App = () => {
+  const [isBooted, setIsBooted] = useState(false);
+  useEffect(() => {
+    if (isBooted) {
+      loader.init().then(() => {
+        console.log("%c[System] ZED Code Engine preloaded in the background.", "color: #a6e3a1; background: #1e1e2e; padding: 2px 6px; border-radius: 4px;");
+      }).catch((err) => {
+        console.warn("Failed to preload Monaco Editor", err);
+      });
+    }
+  }, [isBooted]);
+
+  return (
+    <>
+      {!isBooted && <BootSequence onComplete={() => setIsBooted(true)} />}
+      <div 
+        className={`fixed inset-0 w-full h-full transition-opacity duration-1000 ease-in-out z-0 ${
+          isBooted ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        <Suspense fallback={null}>
+          <main className="w-full h-full">
+            <div className="ios-home-indicator" />
+            <Navbar />
+            <Welcome />
+            <Home />
+            <ContextMenu />
+            <Spotlight />
+            <SpotlightHint isBooted={isBooted} />
+            <Dock />
+            <Terminal />
+            <ZenBrowser />
+            <Resume />
+            <Finder />
+            <Text />
+            <Image />
+            <Contact />
+            <Photos />
+            <CodeEditor /> 
+          </main>
+        </Suspense>
+      </div>
+    </>
+  );
+};
+
+export default App;
+</file>
+
 <file path="src/hoc/WindowWrapper.jsx">
 // src/hoc/WindowWrapper.jsx
 
@@ -4243,6 +3798,451 @@ const WindowWrapper = (Component, windowKey) => {
 };
 
 export default WindowWrapper;
+</file>
+
+<file path="src/windows/CodeEditor.jsx">
+import WindowWrapper from "#hoc/WindowWrapper.jsx";
+import codeEditorRaw from "./CodeEditor.jsx?raw";
+import { WindowControls } from "#components";
+import { memo, useState, useMemo, useEffect, useRef, useCallback } from "react";
+import Editor from "@monaco-editor/react";
+import { ChevronRight, ChevronDown, Folder, FolderOpen, Code2, Braces, Hash, PanelLeft, Info, X } from "lucide-react";
+import { useWebHaptics } from "web-haptics/react";
+import clsx from "clsx";
+
+const globFiles = import.meta.glob([
+  '/src/**/*.{jsx,js,css,json,ts,tsx}', 
+  '/package.json',
+  '/vite.config.js',
+  '/eslint.config.js',
+  '/index.html',
+  '/README.md',
+  '/vercel.json',
+  '/jsconfig.json',
+  '/LICENSE',
+  '/.gitignore',
+], { query: '?raw', import: 'default', eager: true });
+
+const rawFiles = {
+  ...globFiles,
+  '/src/windows/CodeEditor.jsx': codeEditorRaw,
+};
+
+const buildFileTree = (files) => {
+  const root = {};
+  Object.entries(files).forEach(([path]) => {
+    const parts = path.replace(/^\//, '').split('/');
+    let current = root;
+
+    parts.forEach((part, idx) => {
+      if (idx === parts.length - 1) {
+        current[part] = { type: 'file', name: part, path: path }; 
+      } else {
+        if (!current[part]) {
+          current[part] = { type: 'folder', name: part, children: {} };
+        }
+        current = current[part].children;
+      }
+    });
+  });
+  return root;
+};
+
+const getLanguage = (name) => {
+  if (name.endsWith('.js') || name.endsWith('.jsx')) return 'javascript';
+  if (name.endsWith('.css')) return 'css';
+  if (name.endsWith('.json')) return 'json';
+  if (name.endsWith('.html')) return 'html';
+  if (name.endsWith('.md')) return 'markdown';
+  return 'plaintext';
+};
+
+const handleEditorWillMount = (monaco) => {
+  monaco.editor.defineTheme("catppuccin-mocha", {
+    base: "vs-dark",
+    inherit: true,
+    rules:[
+      { token: "", foreground: "cdd6f4" }, 
+      { token: "comment", foreground: "6c7086", fontStyle: "italic" }, 
+      { token: "keyword", foreground: "cba6f7" }, 
+      { token: "identifier", foreground: "cdd6f4" }, 
+      { token: "string", foreground: "a6e3a1" }, 
+      { token: "number", foreground: "fab387" }, 
+      { token: "type", foreground: "f9e2af" }, 
+      { token: "class", foreground: "f9e2af" }, 
+      { token: "function", foreground: "8caaee" }, 
+      { token: "variable", foreground: "cdd6f4" }, 
+      { token: "constant", foreground: "fab387" }, 
+      { token: "operator", foreground: "89dceb" }, 
+      { token: "property", foreground: "74c7ec" },
+      { token: "tag", foreground: "cba6f7" },              
+      { token: "attribute.name", foreground: "8caaee" },    
+      { token: "attribute.value", foreground: "a6e3a1" },   
+      { token: "delimiter", foreground: "94e2d5" },
+      { token: "string.key.json", foreground: "8caaee" },
+      { token: "keyword.json", foreground: "cba6f7" },  
+    ],
+    colors: {
+      "editor.background": "#1e1e2e", 
+      "editor.foreground": "#cdd6f4", 
+      "editorLineNumber.foreground": "#585b70", 
+      "editorCursor.foreground": "#f5e0dc", 
+      "editor.selectionBackground": "#45475a", 
+      "editor.inactiveSelectionBackground": "#313244", 
+      "editorIndentGuide.background": "#313244", 
+      "editorIndentGuide.activeBackground": "#585b70", 
+      "editorWidget.background": "#181825", 
+      "scrollbarSlider.background": "#31324480",
+      "scrollbarSlider.hoverBackground": "#45475a",
+      "scrollbarSlider.activeBackground": "#585b70",
+    },
+  });
+};
+
+const FileTreeNode = ({ node, level, activePath, openFile, onFileClick }) => {
+  const [isOpen, setIsOpen] = useState(true);
+  const isFolder = node.type === 'folder';
+  const isActive = activePath === node.path;
+
+  const getIcon = () => {
+    if (isFolder) return isOpen ? <FolderOpen size={14} color="#8caaee" /> : <Folder size={14} color="#8caaee" />; 
+    if (node.name.endsWith('.jsx')) return <span className="text-[#cba6f7] font-bold text-[10px]">JSX</span>; 
+    if (node.name.endsWith('.js')) return <span className="text-[#f9e2af] font-bold text-[10px]">JS</span>; 
+    if (node.name.endsWith('.css')) return <Hash size={14} color="#89dceb" />; 
+    if (node.name.endsWith('.json')) return <Braces size={14} color="#a6e3a1" />; 
+    return <Code2 size={14} color="#bac2de" />; 
+  };
+
+  const organicStyles = clsx(
+    "relative overflow-hidden select-none transition-all duration-150 ease-out cursor-pointer active:scale-[0.97]",
+    "before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0 before:bg-[#313244] before:transition-all before:duration-300 before:ease-in-out hover:before:w-full",
+    "flex items-center gap-1.5 py-1 px-2 text-sm whitespace-nowrap"
+  );
+
+  if (isFolder) {
+    const children = Object.values(node.children).sort((a, b) => {
+      if (a.type === b.type) return a.name.localeCompare(b.name);
+      return a.type === 'folder' ? -1 : 1;
+    });
+
+    return (
+      <div className="select-none">
+        <div 
+          className={clsx(organicStyles, "text-[#cdd6f4]")}
+          style={{ paddingLeft: `${level * 12 + 8}px` }}
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <div className="relative z-10 flex items-center gap-1.5 pointer-events-none">
+            {isOpen ? <ChevronDown size={14} color="#a6adc8" /> : <ChevronRight size={14} color="#a6adc8" />}
+            {getIcon()}
+            <span>{node.name}</span>
+          </div>
+        </div>
+        {isOpen && children.map(child => (
+          <FileTreeNode key={child.name} node={child} level={level + 1} activePath={activePath} openFile={openFile} onFileClick={onFileClick} />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      className={clsx(
+        organicStyles, 
+        isActive ? "text-[#cdd6f4] before:w-full before:bg-[#45475a]" : "text-[#bac2de]"
+      )}
+      style={{ paddingLeft: `${level * 12 + 28}px` }}
+      onClick={() => {
+        openFile(node.path);
+        if (onFileClick) onFileClick(); 
+      }}
+    >
+      <div className="relative z-10 flex items-center gap-2 pointer-events-none">
+        {getIcon()}
+        <span>{node.name}</span>
+      </div>
+    </div>
+  );
+};
+
+const CodeEditor = memo(() => {
+  const { trigger } = useWebHaptics();
+  const fileTree = useMemo(() => buildFileTree(rawFiles), []);
+  
+  const [openFiles, setOpenFiles] = useState(["/src/App.jsx"]); 
+  const [activePath, setActivePath] = useState("/src/App.jsx");
+  const [filesContent, setFilesContent] = useState(() => ({ ...rawFiles }));
+  const [isSidebarOpen, setIsSidebarOpen] = useState(
+    typeof window !== 'undefined' ? window.innerWidth > 768 : true
+  );
+
+  const [saveToast, setSaveToast] = useState(false);
+  const toastTimeoutRef = useRef(null);
+
+  const triggerSaveToast = useCallback(() => {
+    trigger("success");
+    setSaveToast(true);
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    toastTimeoutRef.current = setTimeout(() => setSaveToast(false), 5000);
+  }, [trigger]);
+
+  const openFile = (path) => {
+    if (!openFiles.includes(path)) {
+      setOpenFiles(prev => [...prev, path]);
+    }
+    setActivePath(path);
+  };
+
+  const closeFile = (path, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const newFiles = openFiles.filter(f => f !== path);
+    setOpenFiles(newFiles);
+    if (activePath === path) {
+      setActivePath(newFiles[newFiles.length - 1] || "");
+    }
+  };
+
+  useEffect(() => {
+      const handleKeyDown = (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+          e.preventDefault();
+          setIsSidebarOpen(prev => !prev);
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+          e.preventDefault();
+          triggerSaveToast();
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [triggerSaveToast]);
+
+  const handleEditorDidMount = (editor, monaco) => {
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+      triggerSaveToast();
+    });
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyB, () => {
+      setIsSidebarOpen(p => !p);
+    });
+  };
+
+  const handleEditorChange = (value) => {
+    setFilesContent((prev) => ({
+      ...prev, [activePath]: value
+    }));
+  };
+
+  const activeFileContent = activePath ? filesContent[activePath] : null;
+  const activeFileName = activePath ? activePath.split('/').pop() : "No file open";
+  const activeLanguage = getLanguage(activeFileName);
+
+  return (
+    <>
+      <div id="window-header" className="shrink-0 text-[#cdd6f4] relative flex items-center justify-center z-10">
+        <WindowControls target="vscode" />
+        <PanelLeft 
+          className="hidden max-md:block absolute left-14 text-[#a6adc8] hover:text-[#cdd6f4] cursor-pointer z-50 transition-transform active:scale-95" 
+          size={20} 
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsSidebarOpen(!isSidebarOpen);
+          }} 
+        />
+        <h2 className="text-sm font-medium pr-4 truncate w-full text-center">ZED Code — {activeFileName}</h2>
+      </div>
+
+      <div className="flex-1 w-full bg-[#1e1e2e] min-h-0 flex flex-row relative overflow-hidden">
+        
+        {/* EASTER EGG TOAST */}
+        <div 
+          className={`absolute bottom-6 right-6 z-[100] bg-[#1e1e2e] border border-[#313244] shadow-2xl rounded-lg p-4 max-w-[320px] transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] ${
+            saveToast ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0 pointer-events-none"
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <Info className="text-[#8caaee] mt-0.5 shrink-0" size={18} />
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[#cdd6f4] text-sm font-semibold leading-tight">Nice try! 😏</span>
+              <span className="text-[#bac2de] text-xs leading-relaxed">
+                Actually, you are the only one seeing this. Go to GitHub and send me a PR if you dare! 
+                <a href="https://github.com/YoussefZidan-1/zportfolio" target="_blank" rel="noopener noreferrer" className="text-[#cba6f7] hover:underline font-bold flex items-center gap-1 mt-1.5 w-fit">
+                  Open Repository <span className="font-terminal text-2xl font-normal px-2"></span>
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div 
+          className={`md:hidden absolute inset-0 bg-black/50 z-40 transition-opacity duration-300 ease-in-out ${
+            isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          }`}
+          onClick={() => setIsSidebarOpen(false)}
+        />
+
+        <div 
+          className={`shrink-0 border-[#11111b] overflow-hidden transition-all duration-300 ease-in-out z-50 bg-[#181825] 
+            max-md:absolute max-md:h-full max-md:shadow-2xl 
+            ${isSidebarOpen ? "max-md:translate-x-0 md:w-56 border-r" : "max-md:-translate-x-full md:w-0 border-r-0"}
+          `}
+        >
+          <div className="w-60 md:w-56 pt-3 pb-6 h-full flex flex-col vscode-scroll">
+            <div className="flex items-center justify-between px-4 mb-2">
+              <span className="text-[11px] text-[#a6adc8] font-semibold uppercase tracking-wider">Explorer</span>
+            </div>
+            <div className="flex-1 overflow-y-auto vscode-scroll">
+              {Object.values(fileTree).sort((a, b) => a.type === 'folder' ? -1 : 1).map(node => (
+                <FileTreeNode 
+                  key={node.name} 
+                  node={node} 
+                  level={0} 
+                  activePath={activePath} 
+                  openFile={openFile}
+                  onFileClick={() => {
+                    if (window.innerWidth < 768) setIsSidebarOpen(false);
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 flex flex-col min-w-0 bg-[#1e1e2e]">
+          {/* FIXED TAB BAR */}
+          <div className="flex bg-[#11111b] shrink-0 items-center h-10 w-full overflow-hidden">
+            {/* Toggle Button: Outside the scrollable area so it's ALWAYS clickable */}
+            <button 
+              onClick={() => setIsSidebarOpen(p => !p)}
+              className="p-2 ml-1 text-[#a6adc8] hover:text-[#cdd6f4] transition-colors md:block hidden cursor-pointer z-20 shrink-0"
+              title="Toggle Sidebar (Ctrl+B)"
+            >
+              <PanelLeft size={16} />
+            </button>
+
+            {/* Tabs: This part scrolls */}
+            <div className="flex-1 flex h-full overflow-x-auto scrollbar-hide items-center">
+              {openFiles.map((path) => {
+                const fileName = path.split('/').pop();
+                const isActive = path === activePath;
+                return (
+                  <div 
+                    key={path}
+                    onClick={() => setActivePath(path)}
+                    className={clsx(
+                      "group flex items-center gap-2 px-3 py-2 text-xs cursor-pointer transition-all duration-200 border-r border-[#11111b] min-w-fit h-full select-none",
+                      isActive 
+                        ? "bg-[#1e1e2e] text-[#cdd6f4] border-t-2 border-t-[#cba6f7]" 
+                        : "bg-[#181825] text-[#a6adc8] hover:bg-[#24273a]"
+                    )}
+                  >
+                    <span className={clsx("font-medium", isActive && "text-white")}>{fileName}</span>
+                    <X 
+                      size={12} 
+                      className={clsx(
+                        "opacity-0 group-hover:opacity-100 hover:bg-white/10 rounded-sm transition-all z-30",
+                        isActive && "opacity-50"
+                      )} 
+                      onClick={(e) => closeFile(path, e)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex-1 w-full min-h-0 pt-2 relative flex items-center justify-center">
+            {activePath ? (
+              <Editor
+                height="100%"
+                language={activeLanguage}
+                theme="catppuccin-mocha"
+                value={activeFileContent || "// File not found or empty"}
+                onChange={handleEditorChange}
+                beforeMount={handleEditorWillMount}
+                onMount={handleEditorDidMount}
+                options={{
+                  minimap: { enabled: true },
+                  fontSize: 14,
+                  readOnly: false,
+                  wordWrap: "on",
+                  padding: { top: 16 },
+                  scrollBeyondLastLine: false,
+                  smoothScrolling: true,
+                  cursorSmoothCaretAnimation: 'on',
+                  cursorBlinking: "expand",
+                  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                  scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10 }
+                }}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center animate-in zoom-in-95 duration-500">
+                <img src="/images/logo.svg" alt="Arch" className="w-32 h-32 opacity-20 grayscale brightness-200" />
+                <p className="text-[#585b70] text-xs font-terminal mt-4">No file selected</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+});
+
+const CodeEditorWindow = WindowWrapper(CodeEditor, "vscode");
+export default CodeEditorWindow;
+</file>
+
+<file path="package.json">
+{
+  "name": "zportfolio",
+  "private": false,
+  "version": "1.0.0",
+  "author": "Yousef Zedan (ZED Studios) <zedstudios.devs@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.2.8",
+    "@gsap/react": "^2.1.2",
+    "@monaco-editor/react": "^4.7.0",
+    "@tailwindcss/vite": "^4.2.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "dayjs": "^1.11.20",
+    "gsap": "^3.15.0",
+    "immer": "^11.1.4",
+    "lucide-react": "^1.7.0",
+    "monaco-editor": "^0.53.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-pdf": "^10.4.1",
+    "react-tooltip": "^5.30.0",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.2",
+    "tw-animate-css": "^1.4.0",
+    "use-sound": "^5.0.0",
+    "web-haptics": "^0.0.6",
+    "z-proximity-engine": "^2.5.6",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.4.0",
+    "vite": "^8.0.1",
+    "vite-plugin-static-copy": "^4.0.0"
+  }
+}
 </file>
 
 <file path="src/components/BootSequence.jsx">
@@ -5749,14 +5749,14 @@ const Dock = memo(() => {
         className="dock-container"
         selector=".dock-icon"
         preset="scale-y"
-        reach={2}
+        reach={1}
         config={{
           scale: [1, 1.3],
           y: [0, -30],
           duration: 0.1,
-          resetDuration: 1,
-          ease: "power2.out",
-          resetEase: "elastic",
+          resetDuration: 0.3,
+          ease: "0.25, 0.1, 0.25, 1",
+          resetEase: "0.25, 0.1, 0.25, 1",
         }}
       >
         {dockItems.map(({ id, name, icon, canOpen }) => (
